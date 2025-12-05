@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import Home from '../views/Home.vue'
 import { useBooksStore } from '../stores/books'
 import BookForm from '../components/BookForm.vue'
-import BookCard from '../components/BookCard.vue'
+import BookCard from '../components/library/BookCard.vue'
 
 describe('Home.vue', () => {
   let wrapper

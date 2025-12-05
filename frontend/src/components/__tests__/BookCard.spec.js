@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
-import BookCard from '../BookCard.vue'
-import BaseButton from '../BaseButton.vue'
+import BookCard from '../library/BookCard.vue'
+import BaseButton from '../base/BaseButton.vue'
 import DateSelector from '../DateSelector.vue'
-import IconButton from '../IconButton.vue'
+import IconButton from '../library/IconButton.vue'
 
 // Helper function to wait for debounced auto-save
 const waitForAutoSave = () => new Promise(resolve => setTimeout(resolve, 350))

@@ -15,7 +15,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useDateHelpers } from '../composables/useDateHelpers'
+import { useDateHelpers } from '../../composables/useDateHelpers'
 
 // --- Constants ---
 const SENTINEL_YEAR = 1900

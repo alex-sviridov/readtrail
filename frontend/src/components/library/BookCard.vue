@@ -57,13 +57,14 @@
     <!-- Card Content -->
     <div class="pt-2 flex flex-col flex-1 gap-1">
       <BookTitle
+        v-if="showBookinfo"
         :title="book.name"
         :editable="isEditMode"
         @update="handleTitleUpdate"
       />
 
       <BookAuthor
-        v-if="book.author"
+        v-if="showBookinfo && book.author"
         :author="book.author"
         :editable="isEditMode"
         @update="handleAuthorUpdate"
@@ -97,13 +98,13 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
-import IconButton from './IconButton.vue'
-import BookTitle from './BookTitle.vue'
-import BookAuthor from './BookAuthor.vue'
-import BookStatus from './BookStatus.vue'
-import BookCover from './BookCover.vue'
-import DatePickerCard from './DatePickerCard.vue'
-import { useDateHelpers } from '../composables/useDateHelpers'
+import IconButton from '@/components/library/IconButton.vue'
+import BookTitle from '@/components/library/BookTitle.vue'
+import BookAuthor from '@/components/library/BookAuthor.vue'
+import BookStatus from '@/components/library/BookStatus.vue'
+import BookCover from '@/components/library/BookCover.vue'
+import DatePickerCard from '@/components/library/DatePickerCard.vue'
+import { useDateHelpers } from '@/composables/useDateHelpers'
 
 // --- Constants ---
 const SENTINEL_YEAR = 1900
@@ -115,6 +116,10 @@ const props = defineProps({
   book: {
     type: Object,
     required: true
+  },
+  showBookinfo: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -149,7 +154,8 @@ const yearRange = computed(() => {
 
 const cardClasses = computed(() => ({
   'ring-2 ring-blue-500 shadow-xl': isEditMode.value,
-  'z-30 relative': isPickerOpen.value
+  'z-30 relative': isPickerOpen.value,
+  'ring-2 ring-blue-400 shadow-blue-100 bg-gradient-to-br from-white to-blue-50 animate-pulse-slow': isInProgress.value && !isEditMode.value
 }))
 
 // --- Methods ---

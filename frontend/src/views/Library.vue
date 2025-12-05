@@ -1,30 +1,13 @@
 <template>
   <div class="container mx-auto px-4 py-8 max-w-7xl">
     <!-- Header with Add Book Button -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">My Library</h1>
-      <div class="flex items-center gap-3">
-        <button
-          @click="toggleTimeline"
-          :class="[
-            'flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg transition-colors duration-200',
-            showTimeline
-              ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
-        >
-          <CalendarIcon class="w-5 h-5" />
-          <span class="hidden md:inline">{{ showTimeline ? 'Hide Timeline' : 'Show Timeline' }}</span>
-        </button>
-        <button
-          @click="openSearchModal"
-          class="flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
-        >
-          <PlusIcon class="w-5 h-5" />
-          <span class="hidden md:inline">Add Book</span>
-        </button>
-      </div>
-    </div>
+    <LibraryHeader
+      :show-timeline="showTimeline"
+      :show-bookinfo="showBookinfo"
+      @toggle-timeline="toggleTimeline"
+      @toggle-bookinfo="toggleBookinfo"
+      @add-book="openSearchModal"
+    />
 
     <!-- Book Grid with Timeline -->
     <div v-if="!showTimeline" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -33,6 +16,7 @@
         v-for="book in sortedBooks"
         :key="book.id"
         :book="book"
+        :show-bookinfo="showBookinfo"
         @delete="handleDeleteBook"
         @update-title="handleUpdateTitle"
         @update-author="handleUpdateAuthor"
@@ -55,6 +39,7 @@
             v-for="book in group.books"
             :key="book.id"
             :book="book"
+            :show-bookinfo="showBookinfo"
             @delete="handleDeleteBook"
             @update-title="handleUpdateTitle"
             @update-author="handleUpdateAuthor"
@@ -78,13 +63,13 @@
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
-import { PlusIcon, CalendarIcon } from '@heroicons/vue/24/outline'
-import { useBooksStore } from '../stores/books'
-import BookCard from '../components/BookCard.vue'
-import BookSearch from '../components/BookSearch.vue'
+import { useBooksStore } from '@/stores/books'
+import BookCard from '@/components/library/BookCard.vue'
+import BookSearch from '@/components/library/BookSearch.vue'
+import LibraryHeader from '@/components/library/LibraryHeader.vue'
 
 defineOptions({
-  name: 'HomePage'
+  name: 'LibraryPage'
 })
 
 // Router
@@ -97,6 +82,9 @@ const { sortedBooks } = storeToRefs(booksStore)
 
 // Timeline toggle state - initialize from query parameter
 const showTimeline = ref(route.query.timeline === 'true')
+
+// Book info toggle state - initialize from query parameter
+const showBookinfo = ref(route.query.bookinfo !== 'false')
 
 // Group books by year for timeline view
 const booksGroupedByYear = computed(() => {
@@ -141,9 +129,25 @@ const toggleTimeline = () => {
   })
 }
 
+// Toggle book info view and update URL
+const toggleBookinfo = () => {
+  showBookinfo.value = !showBookinfo.value
+  router.push({
+    query: {
+      ...route.query,
+      bookinfo: showBookinfo.value ? undefined : 'false'
+    }
+  })
+}
+
 // Watch for route changes to update timeline state
 watch(() => route.query.timeline, (newValue) => {
   showTimeline.value = newValue === 'true'
+})
+
+// Watch for route changes to update bookinfo state
+watch(() => route.query.bookinfo, (newValue) => {
+  showBookinfo.value = newValue !== 'false'
 })
 
 // Search modal state
