@@ -5,7 +5,7 @@
     :class="buttonClasses"
     :title="buttonTitle"
   >
-    <div class="text-sm font-medium transition-all duration-200 px-2 py-1 rounded">
+    <div class="text-base font-semibold transition-all duration-200 px-4 py-2 rounded-lg min-w-[140px] text-right">
       <span :class="{ italic: !hasDate }">
         {{ buttonText }}
       </span>
