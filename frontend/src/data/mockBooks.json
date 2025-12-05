@@ -1,0 +1,32 @@
+[
+  {
+    "name": "The Great Gatsby",
+    "yearOffset": 0,
+    "monthOffset": 0
+  },
+  {
+    "name": "1984",
+    "yearOffset": 0,
+    "monthOffset": -1
+  },
+  {
+    "name": "To Kill a Mockingbird",
+    "yearOffset": -1,
+    "monthOffset": 0,
+    "month": 12
+  },
+  {
+    "name": "Pride and Prejudice",
+    "yearOffset": -1,
+    "monthOffset": 0,
+    "month": 8
+  },
+  {
+    "name": "The Catcher in the Rye",
+    "inProgress": true
+  },
+  {
+    "name": "Brave New World",
+    "inProgress": true
+  }
+]
