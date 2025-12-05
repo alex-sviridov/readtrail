@@ -1,8 +1,29 @@
 <template>
-  <div class="group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 flex flex-col">
-    <!-- Hover Icons -->
-    <div class="absolute top-0 right-0 z-10 pointer-events-none">
-      <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
+  <div
+    ref="cardRef"
+    class="group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col"
+    :class="{ 'ring-2 ring-blue-500 shadow-xl': isEditMode }"
+    @click="handleCardClick"
+  >
+    <!-- Edit Icon (Top Left) -->
+    <div class="absolute top-0 left-0 z-10 pointer-events-none">
+      <div
+        class="transition-opacity duration-200 pointer-events-auto"
+        :class="isEditMode || showEditButton ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+      >
+        <IconButton
+          :icon="PencilIcon"
+          title="Edit book"
+          variant="primary"
+          position="left"
+          @click="toggleEditMode"
+        />
+      </div>
+    </div>
+
+    <!-- Delete Icon (Top Right) -->
+    <div v-if="isEditMode" class="absolute top-0 right-0 z-10 pointer-events-none">
+      <div class="opacity-100 transition-opacity duration-200 pointer-events-auto">
         <IconButton
           :icon="TrashIcon"
           title="Delete book"
@@ -14,18 +35,27 @@
       </div>
     </div>
 
-    <!-- Image Placeholder -->
-    <div class="w-full aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0">
-      <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    </div>
+    <!-- Book Cover -->
+    <BookCover
+      :cover-link="book.coverLink"
+      :alt-text="book.name"
+      :editable="isEditMode"
+      @update="handleCoverUpdate"
+    />
 
     <!-- Card Content -->
-    <div class="p-4 flex flex-col flex-grow">
+    <div class="px-4 flex flex-col flex-grow">
       <BookTitle
         :title="book.name"
+        :editable="isEditMode"
         @update="handleTitleUpdate"
+      />
+
+      <BookAuthor
+        v-if="book.author"
+        :author="book.author"
+        :editable="isEditMode"
+        @update="handleAuthorUpdate"
       />
 
       <div class="mt-auto">
@@ -40,10 +70,13 @@
 </template>
 
 <script setup>
-import { TrashIcon } from '@heroicons/vue/24/outline'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import IconButton from './IconButton.vue'
 import BookTitle from './BookTitle.vue'
+import BookAuthor from './BookAuthor.vue'
 import BookStatus from './BookStatus.vue'
+import BookCover from './BookCover.vue'
 
 const props = defineProps({
   book: {
@@ -52,7 +85,47 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['delete', 'update-title', 'update-status'])
+const emit = defineEmits(['delete', 'update-title', 'update-author', 'update-status', 'update-cover'])
+
+const isEditMode = ref(false)
+const showEditButton = ref(false)
+const cardRef = ref(null)
+
+const toggleEditMode = () => {
+  isEditMode.value = !isEditMode.value
+}
+
+const handleClickOutside = (event) => {
+  if (isEditMode.value && cardRef.value && !cardRef.value.contains(event.target)) {
+    isEditMode.value = false
+  }
+  // Hide edit button when clicking outside
+  if (showEditButton.value && cardRef.value && !cardRef.value.contains(event.target)) {
+    showEditButton.value = false
+  }
+}
+
+const handleCardClick = (event) => {
+  // On mobile (no hover support), first click shows the edit button
+  // Check if we're on a device without hover support
+  if (window.matchMedia('(hover: none)').matches && !showEditButton.value && !isEditMode.value) {
+    showEditButton.value = true
+  }
+
+  // Prevent click from bubbling to document when in edit mode
+  // This keeps edit mode active when clicking inside the card
+  if (isEditMode.value) {
+    event.stopPropagation()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 const handleDelete = () => {
   emit('delete', props.book.id)
@@ -62,7 +135,15 @@ const handleTitleUpdate = (title) => {
   emit('update-title', { id: props.book.id, title: title })
 }
 
+const handleAuthorUpdate = (author) => {
+  emit('update-author', { id: props.book.id, author: author })
+}
+
 const handleStatusUpdate = (statusData) => {
   emit('update-status', { id: props.book.id, ...statusData })
+}
+
+const handleCoverUpdate = (coverLink) => {
+  emit('update-cover', { id: props.book.id, coverLink })
 }
 </script>

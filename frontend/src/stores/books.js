@@ -70,6 +70,8 @@ export const useBooksStore = defineStore('books', {
           return {
             id: `${Date.now()}-${idCounter++}`,
             name: bookTemplate.name,
+            author: bookTemplate.author || null,
+            coverLink: bookTemplate.coverLink || null,
             year: null,
             month: null,
             createdAt: new Date(currentYear, currentMonth - 1 - index, 1)
@@ -82,6 +84,8 @@ export const useBooksStore = defineStore('books', {
         return {
           id: `${Date.now()}-${idCounter++}`,
           name: bookTemplate.name,
+          author: bookTemplate.author || null,
+          coverLink: bookTemplate.coverLink || null,
           year,
           month,
           createdAt: new Date(year, month - 1, 15 - index * 5)
@@ -106,10 +110,12 @@ export const useBooksStore = defineStore('books', {
     },
 
     // Add a new book
-    addBook(name, year = null, month = null) {
+    addBook(name, year = null, month = null, author = null, coverLink = null) {
       const book = {
         id: `${Date.now()}-${idCounter++}`,
         name,
+        author,
+        coverLink,
         year,
         month,
         createdAt: new Date()
@@ -121,10 +127,12 @@ export const useBooksStore = defineStore('books', {
     },
 
     // Update an existing book
-    updateBook(id, name, year = null, month = null) {
+    updateBook(id, name, year = null, month = null, author = null, coverLink = null) {
       const book = this.books.find(b => b.id === id)
       if (book) {
         book.name = name
+        book.author = author
+        book.coverLink = coverLink
         book.year = year
         book.month = month
         this.saveToLocalStorage()
@@ -148,6 +156,28 @@ export const useBooksStore = defineStore('books', {
       const book = this.books.find(b => b.id === id)
       if (book && title) {
         book.name = title
+        this.saveToLocalStorage()
+        return true
+      }
+      return false
+    },
+
+    // Update book author
+    updateBookAuthor(id, author = null) {
+      const book = this.books.find(b => b.id === id)
+      if (book && author) {
+        book.author = author
+        this.saveToLocalStorage()
+        return true
+      }
+      return false
+    },
+
+    // Update book cover
+    updateBookCover(id, coverLink = null) {
+      const book = this.books.find(b => b.id === id)
+      if (book) {
+        book.coverLink = coverLink
         this.saveToLocalStorage()
         return true
       }

@@ -35,6 +35,8 @@ describe('useBooksStore', () => {
 
       expect(store.books).toHaveLength(1)
       expect(book.name).toBe('The Great Gatsby')
+      expect(book.author).toBeNull()
+      expect(book.coverLink).toBeNull()
       expect(book.year).toBeNull()
       expect(book.month).toBeNull()
       expect(book.createdAt).toBeInstanceOf(Date)
@@ -46,6 +48,19 @@ describe('useBooksStore', () => {
 
       expect(store.books).toHaveLength(1)
       expect(book.name).toBe('1984')
+      expect(book.author).toBeNull()
+      expect(book.coverLink).toBeNull()
+      expect(book.year).toBe(2024)
+      expect(book.month).toBe(3)
+    })
+
+    it('should add a book with author and cover', () => {
+      const book = store.addBook('1984', 2024, 3, 'George Orwell', 'https://example.com/cover.jpg')
+
+      expect(store.books).toHaveLength(1)
+      expect(book.name).toBe('1984')
+      expect(book.author).toBe('George Orwell')
+      expect(book.coverLink).toBe('https://example.com/cover.jpg')
       expect(book.year).toBe(2024)
       expect(book.month).toBe(3)
     })
@@ -88,6 +103,8 @@ describe('useBooksStore', () => {
       store.updateBook(book.id, 'Updated Name')
 
       expect(store.books[0].name).toBe('Updated Name')
+      expect(store.books[0].author).toBeNull()
+      expect(store.books[0].coverLink).toBeNull()
       expect(store.books[0].year).toBeNull()
       expect(store.books[0].month).toBeNull()
     })
@@ -97,6 +114,17 @@ describe('useBooksStore', () => {
       store.updateBook(book.id, 'Updated Book', 2024, 6)
 
       expect(store.books[0].name).toBe('Updated Book')
+      expect(store.books[0].year).toBe(2024)
+      expect(store.books[0].month).toBe(6)
+    })
+
+    it('should update book with author and cover', () => {
+      const book = store.addBook('Test Book')
+      store.updateBook(book.id, 'Updated Book', 2024, 6, 'New Author', 'https://example.com/new-cover.jpg')
+
+      expect(store.books[0].name).toBe('Updated Book')
+      expect(store.books[0].author).toBe('New Author')
+      expect(store.books[0].coverLink).toBe('https://example.com/new-cover.jpg')
       expect(store.books[0].year).toBe(2024)
       expect(store.books[0].month).toBe(6)
     })
@@ -315,8 +343,15 @@ describe('useBooksStore', () => {
       store.loadBooks()
 
       expect(store.books.length).toBeGreaterThan(0)
-      expect(store.books.some(b => b.name === 'The Great Gatsby')).toBe(true)
-      expect(store.books.some(b => b.name === '1984')).toBe(true)
+      const gatsby = store.books.find(b => b.name === 'The Great Gatsby')
+      expect(gatsby).toBeDefined()
+      expect(gatsby.author).toBe('F. Scott Fitzgerald')
+      expect(gatsby.coverLink).toBeTruthy()
+
+      const orwell = store.books.find(b => b.name === '1984')
+      expect(orwell).toBeDefined()
+      expect(orwell.author).toBe('George Orwell')
+      expect(orwell.coverLink).toBeTruthy()
     })
 
     it('should handle corrupted localStorage data gracefully', () => {

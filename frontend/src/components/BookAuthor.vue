@@ -1,8 +1,8 @@
 <template>
-  <div class="h-20 max-h-20 flex items-center overflow-hidden">
-    <h3
-      ref="titleRef"
-      class="w-full max-h-20 leading-tight break-words overflow-hidden font-semibold text-gray-900 p-1 rounded"
+  <div class="author-container">
+    <p
+      ref="authorRef"
+      class="author-text text-sm text-gray-600 p-1 rounded"
       :class="{
         'hover:bg-gray-100 cursor-pointer': props.editable && !isEditing,
         'border-b border-blue-500 bg-blue-50': isEditing
@@ -14,8 +14,8 @@
       @blur="stopEditingAndEmit"
       @input="handleInput"
     >
-      {{ props.title }}
-    </h3>
+      {{ props.author }}
+    </p>
   </div>
 </template>
 
@@ -23,7 +23,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue'
 
 const props = defineProps({
-  title: { type: String, default: null },
+  author: { type: String, default: null },
   editable: { type: Boolean, default: false }
 })
 
@@ -31,13 +31,13 @@ const emit = defineEmits(['update'])
 
 // --- State ---
 const isEditing = ref(false)
-const titleRef = ref(null)
-const fontSize = ref('12pt') // Default font size
+const authorRef = ref(null)
+const fontSize = ref('10pt') // Default font size for author (slightly smaller than title)
 
 // Container dimensions
-const MAX_HEIGHT = 80 // Fixed height in pixels
+const MAX_HEIGHT = 48 // Fixed height in pixels (smaller than title)
 const MIN_FONT_SIZE = 8 // Minimum font size in pt
-const MAX_FONT_SIZE = 12 // Maximum font size in pt
+const MAX_FONT_SIZE = 10 // Maximum font size in pt (smaller than title)
 
 // --- Methods ---
 
@@ -47,7 +47,7 @@ const MAX_FONT_SIZE = 12 // Maximum font size in pt
 const adjustFontSize = async () => {
   await nextTick()
 
-  const element = titleRef.value
+  const element = authorRef.value
   if (!element) return
 
   // Start from current font size to avoid jumping
@@ -90,13 +90,13 @@ const startEditing = async () => {
   await nextTick()
 
   // 3. Focus the element and move cursor to the end
-  if (titleRef.value) {
-    titleRef.value.focus()
+  if (authorRef.value) {
+    authorRef.value.focus()
 
     // Move cursor to the end of the contenteditable element
     const range = document.createRange()
     const selection = window.getSelection()
-    range.selectNodeContents(titleRef.value)
+    range.selectNodeContents(authorRef.value)
     range.collapse(false) // Collapse to end
     selection.removeAllRanges()
     selection.addRange(range)
@@ -106,22 +106,22 @@ const startEditing = async () => {
 }
 
 /**
- * Stops editing and emits the update if the title has changed.
+ * Stops editing and emits the update if the author has changed.
  */
 const stopEditingAndEmit = () => {
   // Prevent immediate re-entry if the blur event is somehow triggered multiple times
   if (!isEditing.value) return
 
   // 1. Get the text content from the contenteditable element
-  const newTitle = titleRef.value ? titleRef.value.textContent.trim() : ''
+  const newAuthor = authorRef.value ? authorRef.value.textContent.trim() : ''
 
-  // 2. Check if the title has actually changed and is not empty
-  if (newTitle !== props.title && newTitle.length > 0) {
-    emit('update', newTitle)
-  } else if (newTitle.length === 0) {
-    // Reset to original title if empty
-    if (titleRef.value) {
-      titleRef.value.textContent = props.title
+  // 2. Check if the author has actually changed and is not empty
+  if (newAuthor !== props.author && newAuthor.length > 0) {
+    emit('update', newAuthor)
+  } else if (newAuthor.length === 0) {
+    // Reset to original author if empty
+    if (authorRef.value) {
+      authorRef.value.textContent = props.author
     }
   }
 
@@ -129,20 +129,38 @@ const stopEditingAndEmit = () => {
   isEditing.value = false
 }
 
-// Adjust font size on mount and when title changes
+// Adjust font size on mount and when author changes
 onMounted(() => {
   adjustFontSize()
 })
 
 // Update element content if prop changes while not editing (e.g., parent update)
 watch(
-  () => props.title,
-  (newTitle) => {
-    if (!isEditing.value && titleRef.value) {
-      titleRef.value.textContent = newTitle
+  () => props.author,
+  (newAuthor) => {
+    if (!isEditing.value && authorRef.value) {
+      authorRef.value.textContent = newAuthor
       adjustFontSize()
     }
   }
 )
 </script>
 
+<style scoped>
+.author-container {
+  height: 48px;
+  max-height: 48px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.author-text {
+  width: 100%;
+  max-height: 48px;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden;
+}
+</style>

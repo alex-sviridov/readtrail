@@ -3,12 +3,13 @@
     <button
       @click="handleClick"
       :class="[
-        'relative flex items-start justify-end transition-all duration-200',
+        'relative flex items-start transition-all duration-200',
+        position === 'left' ? 'justify-start' : 'justify-end',
         isConfirming ? confirmingClasses : baseClasses
       ]"
       :title="isConfirming ? confirmTitle : title"
     >
-      <component :is="icon" :class="[isConfirming ? 'w-5 h-5 m-1' : 'w-4 h-4 m-0.5', iconClasses]" />
+      <component :is="icon" :class="[isConfirming ? 'w-5 h-5 m-1.5' : 'w-4 h-4 m-1', iconClasses]" />
     </button>
   </div>
 </template>
@@ -28,7 +29,12 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'danger'].includes(value)
+    validator: (value) => ['default', 'danger', 'primary'].includes(value)
+  },
+  position: {
+    type: String,
+    default: 'right',
+    validator: (value) => ['left', 'right'].includes(value)
   },
   requireConfirmation: {
     type: Boolean,
@@ -56,7 +62,7 @@ const containerClasses = computed(() => {
 
 const baseClasses = computed(() => {
   const cornerShape = 'w-10 h-10 shadow-md'
-  const clipPath = 'clip-path-corner'
+  const clipPath = props.position === 'left' ? 'clip-path-corner-left' : 'clip-path-corner'
   if (props.variant === 'danger') {
     return `${cornerShape} ${clipPath} bg-white/95 backdrop-blur-sm hover:bg-red-50 hover:w-12 hover:h-12`
   }
@@ -64,9 +70,12 @@ const baseClasses = computed(() => {
 })
 
 const confirmingClasses = computed(() => {
-  const clipPath = 'clip-path-corner'
+  const clipPath = props.position === 'left' ? 'clip-path-corner-left' : 'clip-path-corner'
   if (props.variant === 'danger') {
     return `w-14 h-14 ${clipPath} bg-red-500 animate-pulse opacity-100`
+  }
+  if (props.variant === 'primary') {
+    return `w-14 h-14 ${clipPath} bg-blue-500 animate-pulse opacity-100`
   }
   return `w-14 h-14 ${clipPath} bg-blue-500 animate-pulse opacity-100`
 })
@@ -104,5 +113,9 @@ const handleClick = () => {
 <style scoped>
 .clip-path-corner {
   clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.clip-path-corner-left {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 </style>

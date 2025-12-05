@@ -1,32 +1,44 @@
 [
   {
     "name": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "coverLink": "https://covers.openlibrary.org/b/id/7222246-L.jpg",
     "yearOffset": 0,
     "monthOffset": 0
   },
   {
     "name": "1984",
+    "author": "George Orwell",
+    "coverLink": "https://covers.openlibrary.org/b/id/7222246-L.jpg",
     "yearOffset": 0,
     "monthOffset": -1
   },
   {
     "name": "To Kill a Mockingbird",
+    "author": "Harper Lee",
+    "coverLink": "https://covers.openlibrary.org/b/id/8225261-L.jpg",
     "yearOffset": -1,
     "monthOffset": 0,
     "month": 12
   },
   {
     "name": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "coverLink": "https://covers.openlibrary.org/b/id/8235657-L.jpg",
     "yearOffset": -1,
     "monthOffset": 0,
     "month": 8
   },
   {
     "name": "The Catcher in the Rye",
+    "author": "J.D. Salinger",
+    "coverLink": "https://covers.openlibrary.org/b/id/8194532-L.jpg",
     "inProgress": true
   },
   {
     "name": "Brave New World",
+    "author": "Aldous Huxley",
+    "coverLink": "https://covers.openlibrary.org/b/id/8233209-L.jpg",
     "inProgress": true
   }
 ]
