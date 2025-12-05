@@ -1,8 +1,8 @@
 <template>
-  <div class="h-20 max-h-20 flex items-center overflow-hidden">
+  <div class="min-h-0 max-h-16 flex px-3 items-center overflow-hidden">
     <h3
       ref="titleRef"
-      class="w-full max-h-20 leading-tight break-words overflow-hidden font-semibold text-gray-900 p-1 rounded"
+      class="w-full max-h-16 leading-tight break-words overflow-hidden font-semibold text-gray-900 p-1 rounded"
       :class="{
         'hover:bg-gray-100 cursor-pointer': props.editable && !isEditing,
         'border-b border-blue-500 bg-blue-50': isEditing
@@ -35,7 +35,7 @@ const titleRef = ref(null)
 const fontSize = ref('12pt') // Default font size
 
 // Container dimensions
-const MAX_HEIGHT = 80 // Fixed height in pixels
+const MAX_HEIGHT = 64 // Fixed height in pixels
 const MIN_FONT_SIZE = 8 // Minimum font size in pt
 const MAX_FONT_SIZE = 12 // Maximum font size in pt
 

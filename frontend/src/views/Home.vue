@@ -6,16 +6,22 @@
       <div class="flex items-center gap-3">
         <button
           @click="toggleTimeline"
-          class="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+          :class="[
+            'flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg transition-colors duration-200',
+            showTimeline
+              ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          ]"
         >
-          {{ showTimeline ? 'Hide Timeline' : 'Show Timeline' }}
+          <CalendarIcon class="w-5 h-5" />
+          <span class="hidden md:inline">{{ showTimeline ? 'Hide Timeline' : 'Show Timeline' }}</span>
         </button>
         <button
           @click="openSearchModal"
-          class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+          class="flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
         >
           <PlusIcon class="w-5 h-5" />
-          Add Book
+          <span class="hidden md:inline">Add Book</span>
         </button>
       </div>
     </div>
@@ -72,7 +78,7 @@
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
-import { PlusIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 import { useBooksStore } from '../stores/books'
 import BookCard from '../components/BookCard.vue'
 import BookSearch from '../components/BookSearch.vue'

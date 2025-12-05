@@ -1,8 +1,8 @@
 <template>
-  <div class="author-container">
+  <div class="min-h-0 max-h-8 flex items-center overflow-hidden px-3">
     <p
       ref="authorRef"
-      class="author-text text-sm text-gray-600 p-1 rounded"
+      class="w-full max-h-8 leading-[1.3] break-words overflow-hidden text-sm text-gray-600 p-1 rounded"
       :class="{
         'hover:bg-gray-100 cursor-pointer': props.editable && !isEditing,
         'border-b border-blue-500 bg-blue-50': isEditing
@@ -35,7 +35,7 @@ const authorRef = ref(null)
 const fontSize = ref('10pt') // Default font size for author (slightly smaller than title)
 
 // Container dimensions
-const MAX_HEIGHT = 48 // Fixed height in pixels (smaller than title)
+const MAX_HEIGHT = 32 // Fixed height in pixels (smaller than title)
 const MIN_FONT_SIZE = 8 // Minimum font size in pt
 const MAX_FONT_SIZE = 10 // Maximum font size in pt (smaller than title)
 
@@ -146,21 +146,3 @@ watch(
 )
 </script>
 
-<style scoped>
-.author-container {
-  height: 48px;
-  max-height: 48px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.author-text {
-  width: 100%;
-  max-height: 48px;
-  line-height: 1.3;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  overflow: hidden;
-}
-</style>
