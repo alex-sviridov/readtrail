@@ -96,7 +96,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+// 1. Imports
+import { ref, computed } from 'vue'
 import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import IconButton from '@/components/library/IconButton.vue'
 import BookTitle from '@/components/library/BookTitle.vue'
@@ -105,39 +106,38 @@ import BookStatus from '@/components/library/BookStatus.vue'
 import BookCover from '@/components/library/BookCover.vue'
 import DatePickerCard from '@/components/library/DatePickerCard.vue'
 import { useDateHelpers } from '@/composables/useDateHelpers'
+import { useClickOutside, useEscapeKey } from '@/composables/useClickOutside'
+import { BOOK_STATUS, DATE_PICKER } from '@/constants'
 
-// --- Constants ---
-const SENTINEL_YEAR = 1900
-const PICKER_DIMENSIONS = {
-  YEAR_LOOKBACK: 20
-}
-
+// 2. Props & Emits
 const props = defineProps({
   book: {
     type: Object,
-    required: true
+    required: true,
+    default: null
   },
   showBookinfo: {
     type: Boolean,
+    required: false,
     default: true
   }
 })
 
 const emit = defineEmits(['delete', 'update-title', 'update-author', 'update-status', 'update-cover'])
 
-// --- Composables ---
+// 3. Composables
 const { formatYearMonth } = useDateHelpers()
 
-// --- State ---
+// 4. Local State
 const isEditMode = ref(false)
 const showEditButton = ref(false)
 const cardRef = ref(null)
 const isPickerOpen = ref(false)
 const selectedDate = ref(null)
 
-// --- Computed Properties ---
+// 5. Computed Properties
 const hasDate = computed(() => !!props.book.year && !!props.book.month)
-const isReadLongAgo = computed(() => props.book.year === SENTINEL_YEAR)
+const isReadLongAgo = computed(() => props.book.year === BOOK_STATUS.SENTINEL_YEAR)
 const isInProgress = computed(() => !hasDate.value)
 
 const initialPickerDate = computed(() => {
@@ -149,7 +149,7 @@ const initialPickerDate = computed(() => {
 
 const yearRange = computed(() => {
   const currentYear = new Date().getFullYear()
-  return [currentYear - PICKER_DIMENSIONS.YEAR_LOOKBACK, currentYear]
+  return [currentYear - DATE_PICKER.YEAR_LOOKBACK, currentYear]
 })
 
 const cardClasses = computed(() => ({
@@ -158,101 +158,83 @@ const cardClasses = computed(() => ({
   'ring-2 ring-blue-400 shadow-blue-100 bg-gradient-to-br from-white to-blue-50 animate-pulse-slow': isInProgress.value && !isEditMode.value
 }))
 
-// --- Methods ---
-const toggleEditMode = () => {
+// 6. Methods
+function toggleEditMode() {
   isEditMode.value = !isEditMode.value
 }
 
-const openPicker = () => {
-  isEditMode.value = false // Close edit mode if open
+function openPicker() {
+  isEditMode.value = false
   selectedDate.value = initialPickerDate.value
   isPickerOpen.value = true
 }
 
-const closePicker = () => {
+function closePicker() {
   isPickerOpen.value = false
 }
 
-const handleDateSelect = (date) => {
+function handleDateSelect(date) {
   const year = date.year
   const month = date.month + 1
-  if (year !== SENTINEL_YEAR) {
+  if (year !== BOOK_STATUS.SENTINEL_YEAR) {
     emit('update-status', { id: props.book.id, year, month })
   }
   closePicker()
 }
 
-const markReadLongAgo = () => {
-  emit('update-status', { id: props.book.id, year: SENTINEL_YEAR, month: 1 })
+function markReadLongAgo() {
+  emit('update-status', { id: props.book.id, year: BOOK_STATUS.SENTINEL_YEAR, month: BOOK_STATUS.SENTINEL_MONTH })
   closePicker()
 }
 
-const markInProgress = () => {
+function markInProgress() {
   emit('update-status', { id: props.book.id, year: null, month: null })
   closePicker()
 }
 
-const handleClickOutside = (event) => {
-  if (isEditMode.value && cardRef.value && !cardRef.value.contains(event.target)) {
-    isEditMode.value = false
-  }
-  // Hide edit button when clicking outside
-  if (showEditButton.value && cardRef.value && !cardRef.value.contains(event.target)) {
-    showEditButton.value = false
-  }
-}
-
-const handleCardClick = (event) => {
+function handleCardClick(event) {
   // On mobile (no hover support), first click shows the edit button
-  // Check if we're on a device without hover support
   if (window.matchMedia('(hover: none)').matches && !showEditButton.value && !isEditMode.value) {
     showEditButton.value = true
   }
 
-  // Prevent click from bubbling to document when in edit mode
-  // This keeps edit mode active when clicking inside the card
+  // Prevent click from bubbling when in edit mode
   if (isEditMode.value) {
     event.stopPropagation()
   }
 }
 
-const handleKeydown = (event) => {
-  if (event.key === 'Escape') {
-    if (isPickerOpen.value) {
-      closePicker()
-    } else if (isEditMode.value) {
-      isEditMode.value = false
-    }
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  document.addEventListener('keydown', handleKeydown)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('keydown', handleKeydown)
-})
-
-const handleDelete = () => {
+function handleDelete() {
   emit('delete', props.book.id)
 }
 
-const handleTitleUpdate = (title) => {
-  emit('update-title', { id: props.book.id, title: title })
+function handleTitleUpdate(title) {
+  emit('update-title', { id: props.book.id, title })
 }
 
-const handleAuthorUpdate = (author) => {
-  emit('update-author', { id: props.book.id, author: author })
+function handleAuthorUpdate(author) {
+  emit('update-author', { id: props.book.id, author })
 }
 
-const handleStatusUpdate = (statusData) => {
-  emit('update-status', { id: props.book.id, ...statusData })
-}
-
-const handleCoverUpdate = (coverLink) => {
+function handleCoverUpdate(coverLink) {
   emit('update-cover', { id: props.book.id, coverLink })
 }
+
+// 7. Lifecycle - Composables with side effects
+useClickOutside(cardRef, () => {
+  if (isEditMode.value) {
+    isEditMode.value = false
+  }
+  if (showEditButton.value) {
+    showEditButton.value = false
+  }
+})
+
+useEscapeKey(() => {
+  if (isPickerOpen.value) {
+    closePicker()
+  } else if (isEditMode.value) {
+    isEditMode.value = false
+  }
+})
 </script>

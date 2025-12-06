@@ -102,63 +102,70 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { ref } from 'vue'
 import { PhotoIcon } from '@heroicons/vue/24/outline'
 import BaseModal from '@/components/base/BaseModal.vue'
 
+// 2. Props & Emits
 const props = defineProps({
   coverLink: {
     type: String,
+    required: false,
     default: ''
   },
   altText: {
     type: String,
+    required: false,
     default: 'Book cover'
   },
   editable: {
     type: Boolean,
+    required: false,
     default: false
   }
 })
 
 const emit = defineEmits(['update'])
 
+// 3. Local State
 const isModalOpen = ref(false)
 const tempCoverUrl = ref('')
 const previewUrl = ref('')
 const imageError = ref(false)
 
-const handleCoverClick = (event) => {
+// 4. Methods
+function handleCoverClick(event) {
   if (props.editable) {
     event.stopPropagation()
     openModal()
   }
 }
 
-const openModal = () => {
+function openModal() {
   tempCoverUrl.value = props.coverLink
   previewUrl.value = props.coverLink
   imageError.value = false
   isModalOpen.value = true
 }
 
-const closeModal = () => {
+function closeModal() {
   isModalOpen.value = false
   tempCoverUrl.value = ''
   previewUrl.value = ''
   imageError.value = false
 }
 
-const handleUrlInput = () => {
+function handleUrlInput() {
   imageError.value = false
   previewUrl.value = tempCoverUrl.value
 }
 
-const handleImageError = () => {
+function handleImageError() {
   imageError.value = true
 }
 
-const saveCover = () => {
+function saveCover() {
   emit('update', tempCoverUrl.value)
   closeModal()
 }

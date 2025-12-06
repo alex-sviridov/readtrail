@@ -14,28 +14,33 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { computed } from 'vue'
-import { useDateHelpers } from '../../composables/useDateHelpers'
+import { useDateHelpers } from '@/composables/useDateHelpers'
+import { BOOK_STATUS } from '@/constants'
 
-// --- Constants ---
-const SENTINEL_YEAR = 1900
-
-// --- Props & Emits ---
+// 2. Props & Emits
 const props = defineProps({
-  year: { type: Number, default: null },
-  month: { type: Number, default: null }
+  year: {
+    type: Number,
+    required: false,
+    default: null
+  },
+  month: {
+    type: Number,
+    required: false,
+    default: null
+  }
 })
 
 defineEmits(['open-picker'])
 
-// --- Composables ---
+// 3. Composables
 const { formatYearMonth } = useDateHelpers()
 
-// --- Computed Properties (Status) ---
+// 4. Computed Properties
 const hasDate = computed(() => !!props.year && !!props.month)
-const isReadLongAgo = computed(() => props.year === SENTINEL_YEAR)
-
-// --- Computed Properties (Button Config) ---
+const isReadLongAgo = computed(() => props.year === BOOK_STATUS.SENTINEL_YEAR)
 const buttonClasses = computed(() => {
   if (!hasDate.value) {
     return 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold'

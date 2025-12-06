@@ -42,67 +42,89 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { useEscapeKey } from '@/composables/useClickOutside'
 
+// 2. Props & Emits
 const props = defineProps({
   isOpen: {
     type: Boolean,
+    required: false,
     default: false
   },
   title: {
     type: String,
+    required: false,
     default: ''
   },
   showCloseButton: {
     type: Boolean,
+    required: false,
     default: true
   },
   closeOnOverlayClick: {
     type: Boolean,
+    required: false,
     default: true
   },
   contentClass: {
     type: String,
+    required: false,
     default: 'max-w-2xl w-full'
   },
   maxHeightClass: {
     type: String,
+    required: false,
     default: 'max-h-[80vh]'
   },
   overlayClass: {
     type: String,
+    required: false,
     default: ''
   },
   headerClass: {
     type: String,
+    required: false,
     default: ''
   },
   titleClass: {
     type: String,
+    required: false,
     default: ''
   },
   bodyClass: {
     type: String,
+    required: false,
     default: 'p-6'
   },
   footerClass: {
     type: String,
+    required: false,
     default: 'p-6'
   }
 })
 
 const emit = defineEmits(['close', 'update:isOpen'])
 
-const close = () => {
+// 3. Methods
+function close() {
   emit('close')
   emit('update:isOpen', false)
 }
 
-const handleOverlayClick = () => {
+function handleOverlayClick() {
   if (props.closeOnOverlayClick) {
     close()
   }
 }
+
+// 4. Lifecycle - Composables with side effects
+useEscapeKey(() => {
+  if (props.isOpen) {
+    close()
+  }
+})
 </script>
 
 <style scoped>

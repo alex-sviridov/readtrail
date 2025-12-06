@@ -51,18 +51,22 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 const props = defineProps({
   selectedDate: {
     type: Object,
+    required: false,
     default: null
   },
   yearRange: {
     type: Array,
-    required: true
+    required: true,
+    default: () => []
   },
   isReadLongAgo: {
     type: Boolean,
+    required: false,
     default: false
   },
   isInProgress: {
     type: Boolean,
+    required: false,
     default: false
   }
 })

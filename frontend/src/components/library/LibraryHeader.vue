@@ -41,18 +41,22 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { PlusIcon, CalendarIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '@/components/base/BaseButton.vue'
 
+// 2. Props & Emits
 defineProps({
   showTimeline: {
     type: Boolean,
-    required: true
+    required: true,
+    default: false
   },
   showBookinfo: {
     type: Boolean,
-    required: true
-  },
+    required: true,
+    default: false
+  }
 })
 
 defineEmits(['toggle-timeline', 'toggle-bookinfo', 'add-book'])

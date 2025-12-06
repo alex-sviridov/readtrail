@@ -15,48 +15,59 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { ref, computed } from 'vue'
+import { TIMINGS } from '@/constants'
 
+// 2. Props & Emits
 const props = defineProps({
   icon: {
     type: [Object, Function],
-    required: true
+    required: true,
+    default: null
   },
   title: {
     type: String,
-    required: true
+    required: true,
+    default: ''
   },
   variant: {
     type: String,
+    required: false,
     default: 'default',
     validator: (value) => ['default', 'danger', 'primary'].includes(value)
   },
   position: {
     type: String,
+    required: false,
     default: 'right',
     validator: (value) => ['left', 'right'].includes(value)
   },
   requireConfirmation: {
     type: Boolean,
+    required: false,
     default: false
   },
   confirmTitle: {
     type: String,
+    required: false,
     default: 'Click again to confirm'
   },
   confirmTimeout: {
     type: Number,
-    default: 5000
+    required: false,
+    default: TIMINGS.CONFIRMATION_TIMEOUT
   }
 })
 
 const emit = defineEmits(['click'])
 
+// 3. Local State
 const isConfirming = ref(false)
 let confirmTimer = null
 
+// 4. Computed Properties
 const containerClasses = computed(() => {
-  // Keep button visible when confirming, even without hover
   return isConfirming.value ? 'opacity-100' : ''
 })
 
@@ -89,7 +100,8 @@ const iconClasses = computed(() => {
     : 'text-gray-700 hover:text-blue-600'
 })
 
-const handleClick = () => {
+// 5. Methods
+function handleClick() {
   if (!props.requireConfirmation) {
     emit('click')
     return

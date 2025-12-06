@@ -17,4 +17,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  define: {
+    'import.meta.env.VITE_OPEN_LIBRARY_API_URL': JSON.stringify(
+      process.env.VITE_OPEN_LIBRARY_API_URL || 'https://openlibrary.org'
+    )
+  }
 })

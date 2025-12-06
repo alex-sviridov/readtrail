@@ -8,15 +8,17 @@
   </button>
 </template>
 
-<script>
-export default {
+<script setup>
+defineOptions({
   name: 'BaseButton',
-  inheritAttrs: false,
-  props: {
-    title: {
-      type: String,
-      default: ''
-    }
+  inheritAttrs: false
+})
+
+defineProps({
+  title: {
+    type: String,
+    required: false,
+    default: ''
   }
-}
+})
 </script>

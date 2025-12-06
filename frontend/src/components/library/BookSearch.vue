@@ -15,7 +15,6 @@
           placeholder="Enter book title..."
           class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           @input="handleSearchInput"
-          @keyup.escape="closeModal"
         />
         <MagnifyingGlassIcon class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
       </div>
@@ -26,7 +25,6 @@
           placeholder="Enter author name..."
           class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           @input="handleSearchInput"
-          @keyup.escape="closeModal"
         />
         <MagnifyingGlassIcon class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
       </div>
@@ -116,20 +114,28 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, computed } from 'vue'
+// 1. Imports
+import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
 import { MagnifyingGlassIcon, BookOpenIcon } from '@heroicons/vue/24/outline'
 import BaseModal from '@/components/base/BaseModal.vue'
+import { TIMINGS } from '@/constants'
 
+// 2. Constants
+const API_BASE_URL = import.meta.env.VITE_OPEN_LIBRARY_API_URL || 'https://openlibrary.org'
+const SEARCH_LIMIT = 20
+
+// 3. Props & Emits
 const props = defineProps({
   isOpen: {
     type: Boolean,
+    required: false,
     default: false
   }
 })
 
 const emit = defineEmits(['close', 'select'])
 
-// State
+// 4. Local State
 const titleQuery = ref('')
 const authorQuery = ref('')
 const searchResults = ref([])
@@ -137,29 +143,47 @@ const isLoading = ref(false)
 const error = ref(null)
 const searchInputRef = ref(null)
 let debounceTimeout = null
+let abortController = null
 
-// Computed property to check if there's any search query
+// 5. Computed Properties
 const hasSearchQuery = computed(() => {
   return titleQuery.value.trim() || authorQuery.value.trim()
 })
 
-// Watch for modal open to focus input
-watch(() => props.isOpen, async (isOpen) => {
-  if (isOpen) {
-    await nextTick()
-    searchInputRef.value?.focus()
-  } else {
-    // Reset state when closing
-    titleQuery.value = ''
-    authorQuery.value = ''
-    searchResults.value = []
-    error.value = null
-  }
-})
+// 6. Utility Methods
+/**
+ * Creates a fetch request with timeout support
+ * @param {string} url - The URL to fetch
+ * @param {object} options - Fetch options
+ * @param {number} timeout - Timeout in milliseconds
+ * @returns {Promise} Fetch promise with timeout
+ */
+function fetchWithTimeout(url, options = {}, timeout = TIMINGS.API_TIMEOUT) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeout)
+    )
+  ])
+}
 
-// Handle search input with debouncing
-const handleSearchInput = () => {
+/**
+ * Cancels any in-flight request
+ */
+function cancelPendingRequest() {
+  if (abortController) {
+    abortController.abort()
+    abortController = null
+  }
+}
+
+// 7. Search Methods
+function handleSearchInput() {
+  // Clear existing timeout
   clearTimeout(debounceTimeout)
+
+  // Cancel any pending request
+  cancelPendingRequest()
 
   if (!hasSearchQuery.value) {
     searchResults.value = []
@@ -169,48 +193,87 @@ const handleSearchInput = () => {
 
   debounceTimeout = setTimeout(() => {
     performSearch()
-  }, 500)
+  }, TIMINGS.SEARCH_DEBOUNCE)
 }
 
-// Perform the search using Open Library API
-const performSearch = async () => {
+async function performSearch() {
+  // Build query parameters
   const queryParams = []
+  const title = titleQuery.value.trim()
+  const author = authorQuery.value.trim()
 
-  // Only add parameters for filled fields
-  if (titleQuery.value.trim()) {
-    queryParams.push(`title=${encodeURIComponent(titleQuery.value.trim())}`)
+  if (title) {
+    queryParams.push(`title=${encodeURIComponent(title)}`)
   }
-  if (authorQuery.value.trim()) {
-    queryParams.push(`author=${encodeURIComponent(authorQuery.value.trim())}`)
+  if (author) {
+    queryParams.push(`author=${encodeURIComponent(author)}`)
   }
 
-  // If no query params, don't search
   if (queryParams.length === 0) return
+
+  // Cancel any existing request
+  cancelPendingRequest()
+
+  // Create new abort controller for this request
+  abortController = new AbortController()
 
   isLoading.value = true
   error.value = null
 
   try {
-    const response = await fetch(
-      `https://openlibrary.org/search.json?${queryParams.join('&')}&limit=20`
+    const url = `${API_BASE_URL}/search.json?${queryParams.join('&')}&limit=${SEARCH_LIMIT}`
+
+    const response = await fetchWithTimeout(
+      url,
+      { signal: abortController.signal },
+      TIMINGS.API_TIMEOUT
     )
 
     if (!response.ok) {
-      throw new Error('Failed to fetch books')
+      const statusMessages = {
+        400: 'Invalid search query. Please check your input.',
+        404: 'Search service not found. Please try again later.',
+        429: 'Too many requests. Please wait a moment and try again.',
+        500: 'Search service is experiencing issues. Please try again later.',
+        503: 'Search service is temporarily unavailable. Please try again later.'
+      }
+
+      const message = statusMessages[response.status] ||
+        `Search failed with status ${response.status}. Please try again.`
+
+      throw new Error(message)
     }
 
     const data = await response.json()
-    searchResults.value = data.docs || []
+
+    // Only update results if this request wasn't cancelled
+    if (abortController) {
+      searchResults.value = data.docs || []
+    }
   } catch (err) {
-    error.value = 'Failed to search for books. Please try again.'
+    // Ignore aborted requests
+    if (err.name === 'AbortError') {
+      return
+    }
+
+    // Handle different error types
+    if (err.message === 'Request timeout') {
+      error.value = 'Search request timed out. Please check your connection and try again.'
+    } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      error.value = 'Network error. Please check your internet connection.'
+    } else {
+      error.value = err.message || 'Failed to search for books. Please try again.'
+    }
+
     console.error('Search error:', err)
   } finally {
     isLoading.value = false
+    abortController = null
   }
 }
 
-// Select a book from results
-const selectBook = (book) => {
+// 8. Selection Methods
+function selectBook(book) {
   const bookData = {
     title: book.title,
     author: book.author_name ? book.author_name.join(', ') : null,
@@ -224,8 +287,7 @@ const selectBook = (book) => {
   closeModal()
 }
 
-// Add book manually with entered title and author
-const addManually = () => {
+function addManually() {
   const bookData = {
     title: titleQuery.value.trim(),
     author: authorQuery.value.trim() || null,
@@ -237,8 +299,37 @@ const addManually = () => {
   closeModal()
 }
 
-// Close the modal
-const closeModal = () => {
+function closeModal() {
+  // Cancel any pending requests on close
+  cancelPendingRequest()
+  clearTimeout(debounceTimeout)
+
   emit('close')
 }
+
+// 9. Lifecycle
+onUnmounted(() => {
+  // Clean up on component unmount
+  cancelPendingRequest()
+  clearTimeout(debounceTimeout)
+})
+
+// 10. Watchers
+watch(() => props.isOpen, async (isOpen) => {
+  if (isOpen) {
+    await nextTick()
+    searchInputRef.value?.focus()
+  } else {
+    // Reset state when closing
+    titleQuery.value = ''
+    authorQuery.value = ''
+    searchResults.value = []
+    error.value = null
+    isLoading.value = false
+
+    // Clean up pending operations
+    cancelPendingRequest()
+    clearTimeout(debounceTimeout)
+  }
+})
 </script>
