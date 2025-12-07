@@ -54,6 +54,7 @@ export const useBooksStore = defineStore('books', () => {
         const parsed = JSON.parse(stored)
         books.value = parsed.map(book => ({
           ...book,
+          isUnfinished: book.isUnfinished ?? false,
           createdAt: new Date(book.createdAt)
         }))
         console.info(`Loaded ${books.value.length} books from localStorage`)
@@ -97,6 +98,7 @@ export const useBooksStore = defineStore('books', () => {
           coverLink: bookTemplate.coverLink || null,
           year: null,
           month: null,
+          isUnfinished: false,
           createdAt: new Date(currentYear, currentMonth - 1 - index, 1)
         }
       }
@@ -111,6 +113,7 @@ export const useBooksStore = defineStore('books', () => {
         coverLink: bookTemplate.coverLink || null,
         year,
         month,
+        isUnfinished: false,
         createdAt: new Date(year, month - 1, 15 - index * 5)
       }
     })
@@ -149,7 +152,7 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   // Add a new book
-  function addBook(name, year = null, month = null, author = null, coverLink = null) {
+  function addBook(name, year = null, month = null, author = null, coverLink = null, isUnfinished = false) {
     const book = {
       id: `${Date.now()}-${idCounter++}`,
       name,
@@ -157,6 +160,7 @@ export const useBooksStore = defineStore('books', () => {
       coverLink,
       year,
       month,
+      isUnfinished,
       createdAt: new Date()
     }
 
@@ -181,11 +185,12 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   // Update book status (year and month only)
-  function updateBookStatus(id, year = null, month = null) {
+  function updateBookStatus(id, year = null, month = null, isUnfinished = false) {
     const book = books.value.find(b => b.id === id)
     if (book) {
       book.year = year
       book.month = month
+      book.isUnfinished = isUnfinished
       saveToLocalStorage()
       return true
     }

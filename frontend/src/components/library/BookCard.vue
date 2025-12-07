@@ -16,6 +16,11 @@
 
     <!-- Normal Card Content (when picker is closed) -->
     <template v-if="!isPickerOpen">
+      <!-- Bookmark Ribbon (only when unfinished) -->
+      <div v-if="book.isUnfinished" class="book-card__ribbon">
+        Unfinished
+      </div>
+
       <!-- Edit Icon (Top Left) -->
       <div class="absolute top-0 left-0 z-10 pointer-events-none">
       <div
@@ -88,6 +93,7 @@
         :is-read-long-ago="isReadLongAgo"
         :is-read-lately="isReadLately"
         :is-in-progress="isInProgress"
+        :is-unfinished="book.isUnfinished"
         @date-select="handleDateSelect"
       />
     </template>
@@ -173,18 +179,27 @@ function closePicker() {
   isPickerOpen.value = false
 }
 
-function handleDateSelect(date) {
+function handleDateSelect(dateInfo) {
   // Handle "In Progress" (null date)
-  if (date === null) {
-    emit('update-status', { id: props.book.id, year: null, month: null })
+  if (dateInfo === null) {
+    emit('update-status', { id: props.book.id, year: null, month: null, isUnfinished: false })
     closePicker()
     return
   }
 
-  const year = date.year
-  const month = date.month + 1
-  emit('update-status', { id: props.book.id, year, month })
-  closePicker()
+  const { year, month, isUnfinished, keepOpen } = dateInfo
+  const adjustedMonth = month + 1
+  emit('update-status', {
+    id: props.book.id,
+    year,
+    month: adjustedMonth,
+    isUnfinished
+  })
+
+  // Only close picker if keepOpen is not true
+  if (!keepOpen) {
+    closePicker()
+  }
 }
 
 function handleCardClick(event) {
@@ -233,3 +248,19 @@ useEscapeKey(() => {
   }
 })
 </script>
+
+<style scoped>
+.book-card__ribbon {
+  position: absolute;
+  top: 10px;
+  right: -6px;
+  background: #f59e0b;
+  color: white;
+  padding: 2px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  pointer-events: none;
+}
+</style>

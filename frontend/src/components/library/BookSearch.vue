@@ -164,6 +164,7 @@
               :is-read-long-ago="false"
               :is-read-lately="false"
               :is-in-progress="true"
+              :is-unfinished="false"
               @date-select="handleDateSelect"
             />
           </div>
@@ -377,24 +378,25 @@ function addManually() {
 }
 
 // 9. Date Picker Event Handlers
-function handleDateSelect(date) {
+function handleDateSelect(dateInfo) {
   // Handle "In Progress" (null date)
-  if (date === null) {
-    finalizeBookAddition(null, null)
+  if (dateInfo === null) {
+    finalizeBookAddition(null, null, false)
     return
   }
 
-  const year = date.year
-  const month = date.month + 1
-  finalizeBookAddition(year, month)
+  const { year, month, isUnfinished } = dateInfo
+  const adjustedMonth = month + 1
+  finalizeBookAddition(year, adjustedMonth, isUnfinished || false)
 }
 
-function finalizeBookAddition(year, month) {
+function finalizeBookAddition(year, month, isUnfinished) {
   // Emit complete book data with date/status
   const completeBookData = {
     ...pendingBookData.value,
     year,
-    month
+    month,
+    isUnfinished
   }
 
   emit('select', completeBookData)

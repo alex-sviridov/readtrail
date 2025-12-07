@@ -167,7 +167,14 @@ const closeSearchModal = () => {
 // Handle book selection from search
 const handleBookSelect = (bookData) => {
   // Add the book to the store with selected date/status
-  booksStore.addBook(bookData.title, bookData.year, bookData.month, bookData.author, bookData.coverLink)
+  booksStore.addBook(
+    bookData.title,
+    bookData.year,
+    bookData.month,
+    bookData.author,
+    bookData.coverLink,
+    bookData.isUnfinished || false
+  )
 }
 
 // Handle deleting a book
@@ -194,8 +201,8 @@ const handleUpdateAuthor = ({ id, author }) => {
 }
 
 // Handle updating book status
-const handleUpdateStatus = ({ id, year, month }) => {
-  const success = booksStore.updateBookStatus(id, year, month)
+const handleUpdateStatus = ({ id, year, month, isUnfinished }) => {
+  const success = booksStore.updateBookStatus(id, year, month, isUnfinished)
 
   if (!success) {
     console.error('Failed to update book status for book:', id)

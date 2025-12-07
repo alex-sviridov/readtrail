@@ -8,11 +8,17 @@ export const BOOK_STATUS = {
   isReadLongAgo: (year) => year === 1900,
   isReadLately: (year) => year === 1910,
   isSentinelYear: (year) => year === 1900 || year === 1910,
+  isUnfinished: (book) => book?.isUnfinished === true,
   getTimelineLabel: (year) => {
     if (year === 1910) return 'Read Lately'
     if (year <= 1900) return 'Long Time Ago'
     return year
   }
+}
+
+// Unfinished book styling
+export const UNFINISHED_STYLE = {
+  RIBBON_COLOR: '#f59e0b'  // Amber color
 }
 
 // Typography configuration
