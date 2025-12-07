@@ -3,9 +3,7 @@
     <!-- Header with Add Book Button -->
     <LibraryHeader
       :show-timeline="showTimeline"
-      :show-bookinfo="showBookinfo"
       @toggle-timeline="toggleTimeline"
-      @toggle-bookinfo="toggleBookinfo"
       @add-book="openSearchModal"
     />
 
@@ -16,7 +14,7 @@
         v-for="book in sortedBooks"
         :key="book.id"
         :book="book"
-        :show-bookinfo="showBookinfo"
+        :settings="settingsStore"
         @delete="handleDeleteBook"
         @update-title="handleUpdateTitle"
         @update-author="handleUpdateAuthor"
@@ -39,7 +37,7 @@
             v-for="book in group.books"
             :key="book.id"
             :book="book"
-            :show-bookinfo="showBookinfo"
+            :settings="settingsStore"
             @delete="handleDeleteBook"
             @update-title="handleUpdateTitle"
             @update-author="handleUpdateAuthor"
@@ -64,6 +62,7 @@ import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
+import { useSettingsStore } from '@/stores/settings'
 import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
 import BookSearch from '@/components/library/BookSearch.vue'
@@ -81,11 +80,11 @@ const route = useRoute()
 const booksStore = useBooksStore()
 const { sortedBooks } = storeToRefs(booksStore)
 
+// Initialize the settings store
+const settingsStore = useSettingsStore()
+
 // Timeline toggle state - initialize from query parameter
 const showTimeline = ref(route.query.timeline === 'true')
-
-// Book info toggle state - initialize from query parameter
-const showBookinfo = ref(route.query.bookinfo !== 'false')
 
 // Group books by year for timeline view
 const booksGroupedByYear = computed(() => {
@@ -130,25 +129,9 @@ const toggleTimeline = () => {
   })
 }
 
-// Toggle book info view and update URL
-const toggleBookinfo = () => {
-  showBookinfo.value = !showBookinfo.value
-  router.push({
-    query: {
-      ...route.query,
-      bookinfo: showBookinfo.value ? undefined : 'false'
-    }
-  })
-}
-
 // Watch for route changes to update timeline state
 watch(() => route.query.timeline, (newValue) => {
   showTimeline.value = newValue === 'true'
-})
-
-// Watch for route changes to update bookinfo state
-watch(() => route.query.bookinfo, (newValue) => {
-  showBookinfo.value = newValue !== 'false'
 })
 
 // Search modal state

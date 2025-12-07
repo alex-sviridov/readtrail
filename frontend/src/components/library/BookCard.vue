@@ -17,7 +17,7 @@
     <!-- Normal Card Content (when picker is closed) -->
     <template v-if="!isPickerOpen">
       <!-- Bookmark Ribbon (only when unfinished) -->
-      <div v-if="book.isUnfinished" class="book-card__ribbon">
+      <div v-if="book.isUnfinished && settings.allowUnfinishedReading" class="book-card__ribbon">
         Unfinished
       </div>
 
@@ -62,14 +62,14 @@
     <!-- Card Content -->
     <div class="pt-2 flex flex-col flex-1 gap-1">
       <BookTitle
-        v-if="showBookinfo"
+        v-if="settings.showBookInfo"
         :title="book.name"
         :editable="isEditMode"
         @update="handleTitleUpdate"
       />
 
       <BookAuthor
-        v-if="showBookinfo && book.author"
+        v-if="settings.showBookInfo && book.author"
         :author="book.author"
         :editable="isEditMode"
         @update="handleAuthorUpdate"
@@ -94,6 +94,7 @@
         :is-read-lately="isReadLately"
         :is-in-progress="isInProgress"
         :is-unfinished="book.isUnfinished"
+        :allow-unfinished="settings.allowUnfinishedReading"
         @date-select="handleDateSelect"
       />
     </template>
@@ -121,10 +122,10 @@ const props = defineProps({
     required: true,
     default: null
   },
-  showBookinfo: {
-    type: Boolean,
+  settings: {
+    type: Object,
     required: false,
-    default: true
+    default: () => ({ showBookInfo: true })
   }
 })
 

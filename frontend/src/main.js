@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { useBooksStore } from './stores/books'
+import { useSettingsStore } from './stores/settings'
 import './style.css'
 
 // Import VueDatePicker
@@ -20,6 +21,9 @@ app.use(router)
 
 app.mount('#app')
 
-// Initialize books store on startup
+// Initialize stores on startup
 const booksStore = useBooksStore()
 booksStore.loadBooks()
+
+const settingsStore = useSettingsStore()
+settingsStore.loadSettings()

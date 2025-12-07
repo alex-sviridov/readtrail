@@ -3,19 +3,6 @@
     <h1 class="text-3xl font-bold text-gray-900">My Library</h1>
     <div class="flex items-center gap-3">
       <BaseButton
-        title="Book Info"
-        @click="$emit('toggle-bookinfo')"
-        :class="[
-          showBookinfo
-            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        ]"
-      >
-        <template #icon>
-          <DocumentTextIcon class="w-5 h-5" />
-        </template>
-      </BaseButton>
-      <BaseButton
         title="Timeline"
         @click="$emit('toggle-timeline')"
         :class="[
@@ -42,7 +29,7 @@
 
 <script setup>
 // 1. Imports
-import { PlusIcon, CalendarIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 // 2. Props & Emits
@@ -51,13 +38,8 @@ defineProps({
     type: Boolean,
     required: true,
     default: false
-  },
-  showBookinfo: {
-    type: Boolean,
-    required: true,
-    default: false
   }
 })
 
-defineEmits(['toggle-timeline', 'toggle-bookinfo', 'add-book'])
+defineEmits(['toggle-timeline', 'add-book'])
 </script>

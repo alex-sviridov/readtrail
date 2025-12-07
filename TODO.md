@@ -3,3 +3,5 @@
 
 # UI
 - [ ] Allow editing read date only in edit mode
+- [ ] Allow like\dislike
+- [ ] Allow generating cover

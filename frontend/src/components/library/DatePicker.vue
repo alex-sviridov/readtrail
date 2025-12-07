@@ -1,7 +1,7 @@
 <template>
   <article class="flex flex-col h-full w-full picker-container">
     <!-- Top Section: Unfinished Toggle -->
-    <section class="bg-gray-50 border-b border-gray-200 px-3 py-1.5 flex-shrink-0">
+    <section v-if="props.allowUnfinished" class="bg-gray-50 border-b border-gray-200 px-3 py-1.5 flex-shrink-0">
       <UnfinishedCheckbox v-model="isUnfinishedToggled" />
     </section>
 
@@ -84,6 +84,10 @@ const props = defineProps({
     default: false
   },
   isUnfinished: {
+    type: Boolean,
+    default: false
+  },
+  allowUnfinished: {
     type: Boolean,
     default: false
   }
