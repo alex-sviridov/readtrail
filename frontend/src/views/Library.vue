@@ -31,7 +31,7 @@
         <div v-if="index > 0" class="my-8 border-t-2 border-gray-300"></div>
         <div class="mb-2">
           <h2 class="text-2xl font-semibold text-gray-800">
-            {{ group.year <= 1900 ? 'Long Time Ago' : group.year }}
+            {{ BOOK_STATUS.getTimelineLabel(group.year) }}
           </h2>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-8">
@@ -64,6 +64,7 @@ import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
+import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
 import BookSearch from '@/components/library/BookSearch.vue'
 import LibraryHeader from '@/components/library/LibraryHeader.vue'
@@ -165,8 +166,8 @@ const closeSearchModal = () => {
 
 // Handle book selection from search
 const handleBookSelect = (bookData) => {
-  // Add the book to the store (initially as in-progress)
-  booksStore.addBook(bookData.title, null, null, bookData.author, bookData.coverLink)
+  // Add the book to the store with selected date/status
+  booksStore.addBook(bookData.title, bookData.year, bookData.month, bookData.author, bookData.coverLink)
 }
 
 // Handle deleting a book

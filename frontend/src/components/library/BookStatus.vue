@@ -40,12 +40,13 @@ const { formatYearMonth } = useDateHelpers()
 
 // 4. Computed Properties
 const hasDate = computed(() => !!props.year && !!props.month)
-const isReadLongAgo = computed(() => props.year === BOOK_STATUS.SENTINEL_YEAR)
+const isReadLongAgo = computed(() => BOOK_STATUS.isReadLongAgo(props.year))
+const isReadLately = computed(() => BOOK_STATUS.isReadLately(props.year))
 const buttonClasses = computed(() => {
   if (!hasDate.value) {
     return 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold'
   }
-  if (isReadLongAgo.value) {
+  if (isReadLongAgo.value || isReadLately.value) {
     return 'text-gray-700 bg-gray-50 hover:bg-gray-100 font-semibold'
   }
   return 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
@@ -58,6 +59,9 @@ const buttonTitle = computed(() =>
 const buttonText = computed(() => {
   if (isReadLongAgo.value) {
     return 'Read Long Ago'
+  }
+  if (isReadLately.value) {
+    return 'Read Lately'
   }
   return hasDate.value
     ? formatYearMonth(props.year, props.month)

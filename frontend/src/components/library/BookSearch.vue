@@ -1,12 +1,14 @@
 <template>
   <BaseModal
     :is-open="isOpen"
-    title="Add Book"
+    :title="modalTitle"
     body-class=""
     @close="closeModal"
   >
-    <!-- Search Input -->
-    <div class="p-6 border-b space-y-3">
+    <!-- Step 1: Book Search -->
+    <template v-if="currentStep === 'search'">
+      <!-- Search Input -->
+      <div class="p-6 border-b space-y-3">
       <div class="relative">
         <input
           ref="searchInputRef"
@@ -110,15 +112,74 @@
         </button>
       </div>
     </div>
+    </template>
+
+    <!-- Step 2: Date Picker -->
+    <template v-else-if="currentStep === 'datePicker'">
+      <div class="p-6">
+
+        <!-- Two cards side by side -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Book Info Card -->
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-2">
+          <!-- Back button -->
+          <button
+            @click="goBackToSearch"
+            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+          >
+            <ArrowLeftIcon class="w-5 h-5" />
+            <span>Back to search</span>
+          </button>
+            <div class="flex flex-col items-center">
+              <!-- Book cover -->
+              <div class="w-32 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded shadow-md mb-4">
+                <img
+                  v-if="pendingBookData?.coverLink"
+                  :src="pendingBookData.coverLink"
+                  :alt="pendingBookData.title"
+                  class="w-full h-full object-cover rounded"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <BookOpenIcon class="w-16 h-16 text-gray-400" />
+                </div>
+              </div>
+
+              <!-- Book info -->
+              <div class="text-center w-full">
+                <h4 class="font-semibold text-gray-900 text-base mb-2">
+                  {{ pendingBookData?.title }}
+                </h4>
+                <p v-if="pendingBookData?.author" class="text-sm text-gray-600">
+                  {{ pendingBookData.author }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Date Picker Card -->
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <DatePickerCard
+              :selected-date="selectedDate"
+              :year-range="yearRange"
+              :is-read-long-ago="false"
+              :is-read-lately="false"
+              :is-in-progress="true"
+              @date-select="handleDateSelect"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
   </BaseModal>
 </template>
 
 <script setup>
 // 1. Imports
 import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
-import { MagnifyingGlassIcon, BookOpenIcon } from '@heroicons/vue/24/outline'
+import { MagnifyingGlassIcon, BookOpenIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import BaseModal from '@/components/base/BaseModal.vue'
-import { TIMINGS } from '@/constants'
+import DatePickerCard from '@/components/library/DatePicker.vue'
+import { TIMINGS, BOOK_STATUS, DATE_PICKER } from '@/constants'
 
 // 2. Constants
 const API_BASE_URL = import.meta.env.VITE_OPEN_LIBRARY_API_URL || 'https://openlibrary.org'
@@ -142,12 +203,26 @@ const searchResults = ref([])
 const isLoading = ref(false)
 const error = ref(null)
 const searchInputRef = ref(null)
+const currentStep = ref('search') // 'search' or 'datePicker'
+const pendingBookData = ref(null)
+const selectedDate = ref(null)
 let debounceTimeout = null
 let abortController = null
 
 // 5. Computed Properties
 const hasSearchQuery = computed(() => {
   return titleQuery.value.trim() || authorQuery.value.trim()
+})
+
+const isDatePickerStep = computed(() => currentStep.value === 'datePicker')
+
+const yearRange = computed(() => {
+  const currentYear = new Date().getFullYear()
+  return [currentYear - DATE_PICKER.YEAR_LOOKBACK, currentYear]
+})
+
+const modalTitle = computed(() => {
+  return isDatePickerStep.value ? 'When did you read it?' : 'Add Book'
 })
 
 // 6. Utility Methods
@@ -274,7 +349,7 @@ async function performSearch() {
 
 // 8. Selection Methods
 function selectBook(book) {
-  const bookData = {
+  pendingBookData.value = {
     title: book.title,
     author: book.author_name ? book.author_name.join(', ') : null,
     year: book.first_publish_year || null,
@@ -283,22 +358,55 @@ function selectBook(book) {
       : null
   }
 
-  emit('select', bookData)
-  closeModal()
+  // Move to date picker step instead of closing
+  currentStep.value = 'datePicker'
+  selectedDate.value = null
 }
 
 function addManually() {
-  const bookData = {
+  pendingBookData.value = {
     title: titleQuery.value.trim(),
     author: authorQuery.value.trim() || null,
     year: null,
     coverLink: null
   }
 
-  emit('select', bookData)
+  // Move to date picker step instead of closing
+  currentStep.value = 'datePicker'
+  selectedDate.value = null
+}
+
+// 9. Date Picker Event Handlers
+function handleDateSelect(date) {
+  // Handle "In Progress" (null date)
+  if (date === null) {
+    finalizeBookAddition(null, null)
+    return
+  }
+
+  const year = date.year
+  const month = date.month + 1
+  finalizeBookAddition(year, month)
+}
+
+function finalizeBookAddition(year, month) {
+  // Emit complete book data with date/status
+  const completeBookData = {
+    ...pendingBookData.value,
+    year,
+    month
+  }
+
+  emit('select', completeBookData)
   closeModal()
 }
 
+function goBackToSearch() {
+  currentStep.value = 'search'
+  // Keep pendingBookData in case user goes back again
+}
+
+// 10. Modal Management
 function closeModal() {
   // Cancel any pending requests on close
   cancelPendingRequest()
@@ -314,13 +422,16 @@ onUnmounted(() => {
   clearTimeout(debounceTimeout)
 })
 
-// 10. Watchers
+// 11. Watchers
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
     await nextTick()
     searchInputRef.value?.focus()
   } else {
-    // Reset state when closing
+    // Reset ALL state when closing
+    currentStep.value = 'search'
+    pendingBookData.value = null
+    selectedDate.value = null
     titleQuery.value = ''
     authorQuery.value = ''
     searchResults.value = []

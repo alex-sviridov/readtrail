@@ -86,10 +86,9 @@
         :selected-date="selectedDate"
         :year-range="yearRange"
         :is-read-long-ago="isReadLongAgo"
+        :is-read-lately="isReadLately"
         :is-in-progress="isInProgress"
         @date-select="handleDateSelect"
-        @mark-read-long-ago="markReadLongAgo"
-        @mark-in-progress="markInProgress"
       />
     </template>
   </div>
@@ -104,7 +103,7 @@ import BookTitle from '@/components/library/BookTitle.vue'
 import BookAuthor from '@/components/library/BookAuthor.vue'
 import BookStatus from '@/components/library/BookStatus.vue'
 import BookCover from '@/components/library/BookCover.vue'
-import DatePickerCard from '@/components/library/DatePickerCard.vue'
+import DatePickerCard from '@/components/library/DatePicker.vue'
 import { useDateHelpers } from '@/composables/useDateHelpers'
 import { useClickOutside, useEscapeKey } from '@/composables/useClickOutside'
 import { BOOK_STATUS, DATE_PICKER } from '@/constants'
@@ -137,11 +136,12 @@ const selectedDate = ref(null)
 
 // 5. Computed Properties
 const hasDate = computed(() => !!props.book.year && !!props.book.month)
-const isReadLongAgo = computed(() => props.book.year === BOOK_STATUS.SENTINEL_YEAR)
+const isReadLongAgo = computed(() => BOOK_STATUS.isReadLongAgo(props.book.year))
+const isReadLately = computed(() => BOOK_STATUS.isReadLately(props.book.year))
 const isInProgress = computed(() => !hasDate.value)
 
 const initialPickerDate = computed(() => {
-  if (props.book.year && props.book.month && !isReadLongAgo.value) {
+  if (props.book.year && props.book.month && !isReadLongAgo.value && !isReadLately.value) {
     return { year: props.book.year, month: props.book.month - 1 }
   }
   return null
@@ -174,21 +174,16 @@ function closePicker() {
 }
 
 function handleDateSelect(date) {
+  // Handle "In Progress" (null date)
+  if (date === null) {
+    emit('update-status', { id: props.book.id, year: null, month: null })
+    closePicker()
+    return
+  }
+
   const year = date.year
   const month = date.month + 1
-  if (year !== BOOK_STATUS.SENTINEL_YEAR) {
-    emit('update-status', { id: props.book.id, year, month })
-  }
-  closePicker()
-}
-
-function markReadLongAgo() {
-  emit('update-status', { id: props.book.id, year: BOOK_STATUS.SENTINEL_YEAR, month: BOOK_STATUS.SENTINEL_MONTH })
-  closePicker()
-}
-
-function markInProgress() {
-  emit('update-status', { id: props.book.id, year: null, month: null })
+  emit('update-status', { id: props.book.id, year, month })
   closePicker()
 }
 
