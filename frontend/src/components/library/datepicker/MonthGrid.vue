@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 grid grid-cols-4 gap-2 auto-rows-fr content-start picker-grid">
+  <div class="flex-1 grid grid-cols-4 gap-1 auto-rows-fr content-start picker-grid">
     <button
       v-for="month in months"
       :key="month.index"

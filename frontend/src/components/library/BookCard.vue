@@ -60,7 +60,7 @@
     />
 
     <!-- Card Content -->
-    <div class="pt-2 flex flex-col flex-1 gap-1">
+    <div class="flex flex-col flex-1 gap-1">
       <BookTitle
         v-if="settings.showBookInfo"
         :title="book.name"

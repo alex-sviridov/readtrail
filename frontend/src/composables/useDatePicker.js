@@ -67,16 +67,12 @@ export function useDatePicker(props, emit) {
 
   function computeMonthButtonClasses(monthIndex) {
     const selected = isSelectedMonth(monthIndex)
-    const sameYear = isSelectedYear() && !selected
     const current = isCurrentMonth(monthIndex)
     const future = isFutureMonth(monthIndex)
 
     return {
       // Selected state (highest priority)
       'bg-blue-600 text-white shadow-md hover:bg-blue-700': selected,
-
-      // Same year but different month
-      'bg-blue-50 text-blue-700 hover:bg-blue-100': sameYear,
 
       // Current month indicator
       'ring-2 ring-blue-400': current && !selected,
@@ -85,7 +81,7 @@ export function useDatePicker(props, emit) {
       'opacity-40 cursor-not-allowed': future,
 
       // Default state
-      'bg-gray-50 text-gray-700 hover:bg-gray-100': !selected && !sameYear && !future
+      'text-gray-700 hover:bg-gray-100': !selected && !future
     }
   }
 

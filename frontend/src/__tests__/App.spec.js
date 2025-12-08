@@ -97,7 +97,7 @@ describe('App', () => {
       }
     })
 
-    const title = wrapper.find('h1')
+    const title = wrapper.find('a[href="/library"]')
     expect(title.classes()).toContain('text-2xl')
     expect(title.classes()).toContain('font-bold')
     expect(title.classes()).toContain('text-gray-900')

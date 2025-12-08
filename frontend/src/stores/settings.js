@@ -8,31 +8,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const showBookInfo = ref(true)
   const allowUnfinishedReading = ref(true)
 
-  // Settings configuration metadata
-  const settingsConfig = computed(() => [
-    {
-      section: 'Display Settings',
-      settings: [
-        {
-          key: 'showBookInfo',
-          label: 'Show Book Information',
-          description: 'Display book title and author on book cards in the library',
-          type: 'toggle',
-          value: showBookInfo,
-          toggle: toggleShowBookInfo
-        },
-        {
-          key: 'allowUnfinishedReading',
-          label: 'Allow Unfinished Reading',
-          description: 'Enable marking books as unfinished when setting their completion date',
-          type: 'toggle',
-          value: allowUnfinishedReading,
-          toggle: toggleAllowUnfinishedReading
-        }
-      ]
-    }
-  ])
-
   // Load settings from localStorage
   function loadSettings() {
     try {
@@ -86,6 +61,31 @@ export const useSettingsStore = defineStore('settings', () => {
     allowUnfinishedReading.value = value
     saveToLocalStorage()
   }
+
+  // Settings configuration metadata
+  const settingsConfig = computed(() => [
+    {
+      section: 'Display Settings',
+      settings: [
+        {
+          key: 'showBookInfo',
+          label: 'Show Book Information',
+          description: 'Display book title and author on book cards in the library',
+          type: 'toggle',
+          value: showBookInfo.value,
+          toggle: toggleShowBookInfo
+        },
+        {
+          key: 'allowUnfinishedReading',
+          label: 'Allow Unfinished Reading',
+          description: 'Enable marking books as unfinished when setting their completion date',
+          type: 'toggle',
+          value: allowUnfinishedReading.value,
+          toggle: toggleAllowUnfinishedReading
+        }
+      ]
+    }
+  ])
 
   // Return public API
   return {
