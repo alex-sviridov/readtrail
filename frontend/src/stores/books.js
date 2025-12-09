@@ -52,11 +52,28 @@ export const useBooksStore = defineStore('books', () => {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
-        books.value = parsed.map(book => ({
-          ...book,
-          isUnfinished: book.isUnfinished ?? false,
-          createdAt: new Date(book.createdAt)
-        }))
+        books.value = parsed.map(book => {
+          // Migrate old isUnfinished property to attributes hash
+          const attributes = book.attributes || {}
+          if (book.isUnfinished !== undefined && attributes.isUnfinished === undefined) {
+            attributes.isUnfinished = book.isUnfinished
+          }
+          if (attributes.isUnfinished === undefined) {
+            attributes.isUnfinished = false
+          }
+          if (attributes.customCover === undefined) {
+            attributes.customCover = false
+          }
+          if (attributes.score === undefined) {
+            attributes.score = null
+          }
+
+          return {
+            ...book,
+            attributes,
+            createdAt: new Date(book.createdAt)
+          }
+        })
         console.info(`Loaded ${books.value.length} books from localStorage`)
       } else {
         // Load default mock books if localStorage is empty
@@ -98,7 +115,11 @@ export const useBooksStore = defineStore('books', () => {
           coverLink: bookTemplate.coverLink || null,
           year: null,
           month: null,
-          isUnfinished: false,
+          attributes: {
+            isUnfinished: false,
+            customCover: false,
+            score: null
+          },
           createdAt: new Date(currentYear, currentMonth - 1 - index, 1)
         }
       }
@@ -113,7 +134,10 @@ export const useBooksStore = defineStore('books', () => {
         coverLink: bookTemplate.coverLink || null,
         year,
         month,
-        isUnfinished: false,
+        attributes: {
+          isUnfinished: false,
+          score: null
+        },
         createdAt: new Date(year, month - 1, 15 - index * 5)
       }
     })
@@ -152,7 +176,7 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   // Add a new book
-  function addBook(name, year = null, month = null, author = null, coverLink = null, isUnfinished = false) {
+  function addBook(name, year = null, month = null, author = null, coverLink = null, isUnfinished = false, score = null) {
     const book = {
       id: `${Date.now()}-${idCounter++}`,
       name,
@@ -160,7 +184,10 @@ export const useBooksStore = defineStore('books', () => {
       coverLink,
       year,
       month,
-      isUnfinished,
+      attributes: {
+        isUnfinished,
+        score: score ?? null
+      },
       createdAt: new Date()
     }
 
@@ -185,12 +212,26 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   // Update book status (year and month only)
-  function updateBookStatus(id, year = null, month = null, isUnfinished = false) {
+  function updateBookStatus(id, year = null, month = null, isUnfinished = false, score = null) {
     const book = books.value.find(b => b.id === id)
     if (book) {
       book.year = year
       book.month = month
-      book.isUnfinished = isUnfinished
+      if (!book.attributes) {
+        book.attributes = {}
+      }
+      book.attributes.isUnfinished = isUnfinished
+
+      // Handle score update
+      if (score !== null) {
+        book.attributes.score = score
+      }
+
+      // Clear score when setting to in-progress
+      if (year === null && month === null) {
+        book.attributes.score = 0
+      }
+
       saveToLocalStorage()
       return true
     }
@@ -220,10 +261,30 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   // Update book cover
-  function updateBookCover(id, coverLink = null) {
+  function updateBookCover(id, coverLink = null, customCover = null) {
     const book = books.value.find(b => b.id === id)
     if (book) {
       book.coverLink = coverLink
+      if (customCover !== null) {
+        if (!book.attributes) {
+          book.attributes = {}
+        }
+        book.attributes.customCover = customCover
+      }
+      saveToLocalStorage()
+      return true
+    }
+    return false
+  }
+
+  // Update book score
+  function updateBookScore(id, score = null) {
+    const book = books.value.find(b => b.id === id)
+    if (book) {
+      if (!book.attributes) {
+        book.attributes = {}
+      }
+      book.attributes.score = score
       saveToLocalStorage()
       return true
     }
@@ -266,6 +327,7 @@ export const useBooksStore = defineStore('books', () => {
     updateBookTitle,
     updateBookAuthor,
     updateBookCover,
+    updateBookScore,
     deleteBook,
     findBookById
   }

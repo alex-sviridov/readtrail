@@ -7,6 +7,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // State
   const showBookInfo = ref(true)
   const allowUnfinishedReading = ref(true)
+  const allowScoring = ref(true)
 
   // Load settings from localStorage
   function loadSettings() {
@@ -16,12 +17,14 @@ export const useSettingsStore = defineStore('settings', () => {
         const parsed = JSON.parse(stored)
         showBookInfo.value = parsed.showBookInfo ?? true
         allowUnfinishedReading.value = parsed.allowUnfinishedReading ?? true
+        allowScoring.value = parsed.allowScoring ?? true
         console.info('Loaded settings from localStorage')
       }
     } catch (error) {
       console.error('Failed to load settings from localStorage', error)
       showBookInfo.value = true
       allowUnfinishedReading.value = true
+      allowScoring.value = true
     }
   }
 
@@ -30,18 +33,13 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const settings = {
         showBookInfo: showBookInfo.value,
-        allowUnfinishedReading: allowUnfinishedReading.value
+        allowUnfinishedReading: allowUnfinishedReading.value,
+        allowScoring: allowScoring.value
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
     } catch (error) {
       console.error('Failed to save settings to localStorage', error)
     }
-  }
-
-  // Toggle show book info
-  function toggleShowBookInfo() {
-    showBookInfo.value = !showBookInfo.value
-    saveToLocalStorage()
   }
 
   // Set show book info
@@ -50,15 +48,15 @@ export const useSettingsStore = defineStore('settings', () => {
     saveToLocalStorage()
   }
 
-  // Toggle allow unfinished reading
-  function toggleAllowUnfinishedReading() {
-    allowUnfinishedReading.value = !allowUnfinishedReading.value
-    saveToLocalStorage()
-  }
-
   // Set allow unfinished reading
   function setAllowUnfinishedReading(value) {
     allowUnfinishedReading.value = value
+    saveToLocalStorage()
+  }
+
+  // Set allow scoring
+  function setAllowScoring(value) {
+    allowScoring.value = value
     saveToLocalStorage()
   }
 
@@ -73,7 +71,7 @@ export const useSettingsStore = defineStore('settings', () => {
           description: 'Display book title and author on book cards in the library',
           type: 'toggle',
           value: showBookInfo.value,
-          toggle: toggleShowBookInfo
+          toggle: () => setShowBookInfo(!showBookInfo.value)
         },
         {
           key: 'allowUnfinishedReading',
@@ -81,7 +79,15 @@ export const useSettingsStore = defineStore('settings', () => {
           description: 'Enable marking books as unfinished when setting their completion date',
           type: 'toggle',
           value: allowUnfinishedReading.value,
-          toggle: toggleAllowUnfinishedReading
+          toggle: () => setAllowUnfinishedReading(!allowUnfinishedReading.value)
+        },
+        {
+          key: 'allowScoring',
+          label: 'Allow Book Scoring',
+          description: 'Enable like/dislike functionality for books',
+          type: 'toggle',
+          value: allowScoring.value,
+          toggle: () => setAllowScoring(!allowScoring.value)
         }
       ]
     }
@@ -92,13 +98,13 @@ export const useSettingsStore = defineStore('settings', () => {
     // State
     showBookInfo,
     allowUnfinishedReading,
+    allowScoring,
     // Configuration
     settingsConfig,
     // Actions
     loadSettings,
-    toggleShowBookInfo,
     setShowBookInfo,
-    toggleAllowUnfinishedReading,
-    setAllowUnfinishedReading
+    setAllowUnfinishedReading,
+    setAllowScoring
   }
 })

@@ -1,4 +1,5 @@
 <template>
+  <!-- Date Picker View -->
   <article class="flex flex-col h-full w-full picker-container">
     <!-- Top Section: Unfinished Toggle -->
     <section v-if="props.allowUnfinished" class="bg-gray-50 border-b border-gray-200 px-3 py-1.5 flex-shrink-0">

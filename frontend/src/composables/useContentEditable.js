@@ -1,4 +1,5 @@
 import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
+import { calculateOptimalFontSize } from '@/utils/fontSizing'
 
 /**
  * Creates a debounced version of a function
@@ -65,26 +66,12 @@ export function useContentEditable(options = {}) {
     const element = elementRef.value
     if (!element) return
 
-    // Start from max font size
-    let currentSize = maxFontSize
-
-    // Reset to max size first
-    element.style.fontSize = `${currentSize}pt`
-
     // Wait for layout to settle
     await nextTick()
 
-    // Reduce font size until content fits
-    let iterations = 0
-    const maxIterations = 100 // Prevent infinite loops
-
-    while (element.scrollHeight > maxHeight && currentSize > minFontSize && iterations < maxIterations) {
-      currentSize -= 0.5
-      element.style.fontSize = `${currentSize}pt`
-      iterations++
-    }
-
-    fontSize.value = `${currentSize}pt`
+    // Use shared utility to calculate optimal font size
+    const optimalSize = calculateOptimalFontSize(element, maxHeight, maxFontSize, minFontSize)
+    fontSize.value = `${optimalSize}pt`
   }
 
   /**

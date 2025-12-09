@@ -33,7 +33,7 @@ vi.mock('@/constants', () => ({
     isReadLongAgo: (year) => year === 1900,
     isReadLately: (year) => year === 1910,
     isSentinelYear: (year) => year === 1900 || year === 1910,
-    isUnfinished: (book) => book?.isUnfinished === true,
+    isUnfinished: (book) => book?.attributes?.isUnfinished === true,
     getTimelineLabel: (year) => {
       if (year === 1910) return 'Read Lately'
       if (year <= 1900) return 'Long Time Ago'
@@ -93,7 +93,9 @@ describe('BookCard', () => {
     author: 'Test Author',
     year: null,
     month: null,
-    isUnfinished: false,
+    attributes: {
+      isUnfinished: false
+    },
     coverLink: null
   }
 
@@ -103,7 +105,9 @@ describe('BookCard', () => {
     author: 'Test Author',
     year: 2024,
     month: 6,
-    isUnfinished: false,
+    attributes: {
+      isUnfinished: false
+    },
     coverLink: null
   }
 
@@ -246,7 +250,8 @@ describe('BookCard', () => {
       expect(wrapper.emitted('update-cover')).toBeTruthy()
       expect(wrapper.emitted('update-cover')[0][0]).toEqual({
         id: '1',
-        coverLink: 'https://example.com/cover.jpg'
+        coverLink: 'https://example.com/cover.jpg',
+        customCover: null
       })
     })
   })
@@ -442,7 +447,7 @@ describe('BookCard', () => {
     })
 
     it('shows unfinished ribbon when book is unfinished and setting is enabled', () => {
-      const unfinishedBook = { ...inProgressBook, isUnfinished: true }
+      const unfinishedBook = { ...inProgressBook, attributes: { isUnfinished: true } }
       const wrapper = mount(BookCard, {
         props: {
           book: unfinishedBook,
@@ -455,7 +460,7 @@ describe('BookCard', () => {
     })
 
     it('does not show unfinished ribbon when setting is disabled', () => {
-      const unfinishedBook = { ...inProgressBook, isUnfinished: true }
+      const unfinishedBook = { ...inProgressBook, attributes: { isUnfinished: true } }
       const wrapper = mount(BookCard, {
         props: {
           book: unfinishedBook,

@@ -8,7 +8,7 @@ export const BOOK_STATUS = {
   isReadLongAgo: (year) => year === 1900,
   isReadLately: (year) => year === 1910,
   isSentinelYear: (year) => year === 1900 || year === 1910,
-  isUnfinished: (book) => book?.isUnfinished === true,
+  isUnfinished: (book) => book?.attributes?.isUnfinished === true,
   getTimelineLabel: (year) => {
     if (year === 1910) return 'Read Lately'
     if (year <= 1900) return 'Long Time Ago'
@@ -67,6 +67,19 @@ export const MONTHS = [
 
 // Convert from 1-indexed SENTINEL_MONTH to 0-indexed for component usage
 export const SENTINEL_MONTH_INDEX = BOOK_STATUS.SENTINEL_MONTH - 1
+
+// Book scoring values
+export const BOOK_SCORE = {
+  LIKE: 1,
+  DISLIKE: -1,
+  NEUTRAL: 0,
+
+  // Helper functions
+  isLike: (score) => score === 1,
+  isDislike: (score) => score === -1,
+  isNeutral: (score) => score === 0,
+  hasScore: (score) => score !== null && score !== 0
+}
 
 // Z-index layers (lowest to highest)
 export const Z_INDEX = {

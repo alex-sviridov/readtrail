@@ -16,10 +16,7 @@
         :book="book"
         :settings="settingsStore"
         @delete="handleDeleteBook"
-        @update-title="handleUpdateTitle"
-        @update-author="handleUpdateAuthor"
         @update-status="handleUpdateStatus"
-        @update-cover="handleUpdateCover"
       />
     </div>
 
@@ -39,10 +36,7 @@
             :book="book"
             :settings="settingsStore"
             @delete="handleDeleteBook"
-            @update-title="handleUpdateTitle"
-            @update-author="handleUpdateAuthor"
             @update-status="handleUpdateStatus"
-            @update-cover="handleUpdateCover"
           />
         </div>
       </template>
@@ -58,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
@@ -80,8 +74,14 @@ const route = useRoute()
 const booksStore = useBooksStore()
 const { sortedBooks } = storeToRefs(booksStore)
 
+// Provide booksStore to child components
+provide('booksStore', booksStore)
+
 // Initialize the settings store
 const settingsStore = useSettingsStore()
+
+// Provide settingsStore to child components
+provide('settingsStore', settingsStore)
 
 // Timeline toggle state - initialize from query parameter
 const showTimeline = ref(route.query.timeline === 'true')
@@ -156,7 +156,8 @@ const handleBookSelect = (bookData) => {
     bookData.month,
     bookData.author,
     bookData.coverLink,
-    bookData.isUnfinished || false
+    bookData.isUnfinished || false,
+    bookData.score || null
   )
 }
 
@@ -165,39 +166,13 @@ const handleDeleteBook = (id) => {
   booksStore.deleteBook(id)
 }
 
-// Handle updating book title
-const handleUpdateTitle = ({ id, title }) => {
-  const success = booksStore.updateBookTitle(id, title)
-
-  if (!success) {
-    console.error('Failed to update book title:', id)
-  }
-}
-
-// Handle updating book author
-const handleUpdateAuthor = ({ id, author }) => {
-  const success = booksStore.updateBookAuthor(id, author)
-
-  if (!success) {
-    console.error('Failed to update book author:', id)
-  }
-}
-
 // Handle updating book status
-const handleUpdateStatus = ({ id, year, month, isUnfinished }) => {
-  const success = booksStore.updateBookStatus(id, year, month, isUnfinished)
+const handleUpdateStatus = ({ id, year, month, isUnfinished, score }) => {
+  const success = booksStore.updateBookStatus(id, year, month, isUnfinished, score)
 
   if (!success) {
     console.error('Failed to update book status for book:', id)
   }
 }
 
-// Handle updating book cover
-const handleUpdateCover = ({ id, coverLink }) => {
-  const success = booksStore.updateBookCover(id, coverLink)
-
-  if (!success) {
-    console.error('Failed to update book cover:', id)
-  }
-}
 </script>

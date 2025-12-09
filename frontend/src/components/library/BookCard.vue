@@ -17,15 +17,15 @@
     <!-- Normal Card Content (when picker is closed) -->
     <template v-if="!isPickerOpen">
       <!-- Bookmark Ribbon (only when unfinished) -->
-      <div v-if="book.isUnfinished && settings.allowUnfinishedReading" class="book-card__ribbon">
+      <div v-if="book.attributes?.isUnfinished && settings.allowUnfinishedReading" class="book-card__ribbon">
         Unfinished
       </div>
 
       <!-- Edit Icon (Top Left) -->
       <div class="absolute top-0 left-0 z-10 pointer-events-none">
       <div
-        class="transition-opacity duration-200 pointer-events-auto"
-        :class="isEditMode || showEditButton ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        class="transition-opacity duration-200 pointer-events-auto opacity-0 group-hover:opacity-100 edit-button"
+        :class="{ 'opacity-100': isEditMode }"
       >
         <IconButton
           :icon="PencilIcon"
@@ -51,26 +51,38 @@
       </div>
     </div>
 
+
     <!-- Book Cover -->
     <BookCover
       :cover-link="book.coverLink"
       :alt-text="book.name"
       :editable="isEditMode"
+      :use-custom-cover="book.attributes?.customCover"
+      :book-name="book.name"
+      :book-author="book.author"
+      :score="book.attributes?.score"
+      :is-score-editable="isScoreEditable"
+      :allow-scoring="settings.allowScoring"
       @update="handleCoverUpdate"
+      @update:score="handleScoreUpdate"
     />
 
     <!-- Card Content -->
     <div class="flex flex-col flex-1 gap-1">
-      <BookTitle
+      <EditableText
         v-if="settings.showBookInfo"
-        :title="book.name"
+        :value="book.name"
+        as="h3"
+        variant="title"
         :editable="isEditMode"
         @update="handleTitleUpdate"
       />
 
-      <BookAuthor
+      <EditableText
         v-if="settings.showBookInfo && book.author"
-        :author="book.author"
+        :value="book.author"
+        as="p"
+        variant="author"
         :editable="isEditMode"
         @update="handleAuthorUpdate"
       />
@@ -93,7 +105,7 @@
         :is-read-long-ago="isReadLongAgo"
         :is-read-lately="isReadLately"
         :is-in-progress="isInProgress"
-        :is-unfinished="book.isUnfinished"
+        :is-unfinished="book.attributes?.isUnfinished"
         :allow-unfinished="settings.allowUnfinishedReading"
         @date-select="handleDateSelect"
       />
@@ -103,11 +115,10 @@
 
 <script setup>
 // 1. Imports
-import { ref, computed } from 'vue'
+import { ref, computed, inject, onUnmounted } from 'vue'
 import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import IconButton from '@/components/library/IconButton.vue'
-import BookTitle from '@/components/library/BookTitle.vue'
-import BookAuthor from '@/components/library/BookAuthor.vue'
+import EditableText from '@/components/library/EditableText.vue'
 import BookStatus from '@/components/library/BookStatus.vue'
 import BookCover from '@/components/library/BookCover.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
@@ -129,17 +140,20 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['delete', 'update-title', 'update-author', 'update-status', 'update-cover'])
+const emit = defineEmits(['delete', 'update-status'])
 
-// 3. Composables
+// 3. Composables & Injections
 const { formatYearMonth } = useDateHelpers()
+const booksStore = inject('booksStore')
 
 // 4. Local State
 const isEditMode = ref(false)
-const showEditButton = ref(false)
 const cardRef = ref(null)
 const isPickerOpen = ref(false)
 const selectedDate = ref(null)
+const previousWasInProgress = ref(false)
+const showScoreEditTemporarily = ref(false)
+let scoreEditTimer = null
 
 // 5. Computed Properties
 const hasDate = computed(() => !!props.book.year && !!props.book.month)
@@ -165,14 +179,39 @@ const cardClasses = computed(() => ({
   'ring-2 ring-blue-400 shadow-blue-100 bg-gradient-to-br from-white to-blue-50 animate-pulse-slow': isInProgress.value && !isEditMode.value
 }))
 
+const isScoreEditable = computed(() => isEditMode.value || showScoreEditTemporarily.value)
+
 // 6. Methods
 function toggleEditMode() {
   isEditMode.value = !isEditMode.value
+
+  // Clear temporary score edit if user manually enters edit mode
+  if (isEditMode.value && showScoreEditTemporarily.value) {
+    if (scoreEditTimer) {
+      clearTimeout(scoreEditTimer)
+      scoreEditTimer = null
+    }
+    showScoreEditTemporarily.value = false
+  }
+}
+
+function startTemporaryScoreEdit() {
+  // Clear any existing timer
+  if (scoreEditTimer) {
+    clearTimeout(scoreEditTimer)
+  }
+
+  showScoreEditTemporarily.value = true
+  scoreEditTimer = setTimeout(() => {
+    showScoreEditTemporarily.value = false
+    scoreEditTimer = null
+  }, 5000)
 }
 
 function openPicker() {
   isEditMode.value = false
   selectedDate.value = initialPickerDate.value
+  previousWasInProgress.value = isInProgress.value
   isPickerOpen.value = true
 }
 
@@ -183,32 +222,52 @@ function closePicker() {
 function handleDateSelect(dateInfo) {
   // Handle "In Progress" (null date)
   if (dateInfo === null) {
-    emit('update-status', { id: props.book.id, year: null, month: null, isUnfinished: false })
+    emit('update-status', {
+      id: props.book.id,
+      year: null,
+      month: null,
+      isUnfinished: false,
+      score: 0
+    })
     closePicker()
     return
   }
 
   const { year, month, isUnfinished, keepOpen } = dateInfo
   const adjustedMonth = month + 1
+
   emit('update-status', {
     id: props.book.id,
     year,
     month: adjustedMonth,
-    isUnfinished
+    isUnfinished,
+    score: props.book.attributes?.score ?? null
   })
 
-  // Only close picker if keepOpen is not true
+  // If book was "In Progress" and now has a date, show score edit for 5 seconds
+  if (previousWasInProgress.value && !keepOpen) {
+    startTemporaryScoreEdit()
+  }
+
   if (!keepOpen) {
     closePicker()
   }
 }
 
-function handleCardClick(event) {
-  // On mobile (no hover support), first click shows the edit button
-  if (window.matchMedia('(hover: none)').matches && !showEditButton.value && !isEditMode.value) {
-    showEditButton.value = true
-  }
+function handleScoreUpdate(newScore) {
+  booksStore.updateBookScore(props.book.id, newScore)
 
+  // If user scored during temporary edit mode, end it immediately
+  if (showScoreEditTemporarily.value) {
+    if (scoreEditTimer) {
+      clearTimeout(scoreEditTimer)
+      scoreEditTimer = null
+    }
+    showScoreEditTemporarily.value = false
+  }
+}
+
+function handleCardClick(event) {
   // Prevent click from bubbling when in edit mode
   if (isEditMode.value) {
     event.stopPropagation()
@@ -220,24 +279,21 @@ function handleDelete() {
 }
 
 function handleTitleUpdate(title) {
-  emit('update-title', { id: props.book.id, title })
+  booksStore.updateBookTitle(props.book.id, title)
 }
 
 function handleAuthorUpdate(author) {
-  emit('update-author', { id: props.book.id, author })
+  booksStore.updateBookAuthor(props.book.id, author)
 }
 
-function handleCoverUpdate(coverLink) {
-  emit('update-cover', { id: props.book.id, coverLink })
+function handleCoverUpdate(coverData) {
+  booksStore.updateBookCover(props.book.id, coverData.coverLink, coverData.customCover)
 }
 
 // 7. Lifecycle - Composables with side effects
 useClickOutside(cardRef, () => {
   if (isEditMode.value) {
     isEditMode.value = false
-  }
-  if (showEditButton.value) {
-    showEditButton.value = false
   }
 })
 
@@ -246,6 +302,13 @@ useEscapeKey(() => {
     closePicker()
   } else if (isEditMode.value) {
     isEditMode.value = false
+  }
+})
+
+// Cleanup timer on unmount
+onUnmounted(() => {
+  if (scoreEditTimer) {
+    clearTimeout(scoreEditTimer)
   }
 })
 </script>
@@ -263,5 +326,12 @@ useEscapeKey(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   z-index: 10;
   pointer-events: none;
+}
+
+/* Show edit button on mobile without hover */
+@media (hover: none) {
+  .group .edit-button {
+    opacity: 1 !important;
+  }
 }
 </style>

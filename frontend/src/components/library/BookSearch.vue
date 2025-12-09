@@ -131,8 +131,8 @@
             <span>Back to search</span>
           </button>
             <div class="flex flex-col items-center">
-              <!-- Book cover -->
-              <div class="w-32 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded shadow-md mb-4">
+              <!-- Book cover with score -->
+              <div class="relative w-32 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded shadow-md mb-4">
                 <img
                   v-if="pendingBookData?.coverLink"
                   :src="pendingBookData.coverLink"
@@ -142,6 +142,16 @@
                 <div v-else class="w-full h-full flex items-center justify-center">
                   <BookOpenIcon class="w-16 h-16 text-gray-400" />
                 </div>
+
+                <!-- Score Component (always editable in this context) -->
+                <BookScore
+                  v-if="settingsStore.allowScoring"
+                  :score="selectedScore"
+                  :editable="true"
+                  :allow-scoring="settingsStore.allowScoring"
+                  class="absolute bottom-2 right-2 z-10"
+                  @update:score="selectedScore = $event"
+                />
               </div>
 
               <!-- Book info -->
@@ -176,10 +186,11 @@
 
 <script setup>
 // 1. Imports
-import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
+import { ref, watch, nextTick, computed, onUnmounted, inject } from 'vue'
 import { MagnifyingGlassIcon, BookOpenIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import BaseModal from '@/components/base/BaseModal.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
+import BookScore from '@/components/library/BookScore.vue'
 import { TIMINGS, BOOK_STATUS, DATE_PICKER } from '@/constants'
 
 // 2. Constants
@@ -197,6 +208,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'select'])
 
+// 3. Injections
+const settingsStore = inject('settingsStore', { allowScoring: false })
+
 // 4. Local State
 const titleQuery = ref('')
 const authorQuery = ref('')
@@ -207,6 +221,7 @@ const searchInputRef = ref(null)
 const currentStep = ref('search') // 'search' or 'datePicker'
 const pendingBookData = ref(null)
 const selectedDate = ref(null)
+const selectedScore = ref(0)
 let debounceTimeout = null
 let abortController = null
 
@@ -362,6 +377,7 @@ function selectBook(book) {
   // Move to date picker step instead of closing
   currentStep.value = 'datePicker'
   selectedDate.value = null
+  selectedScore.value = 0
 }
 
 function addManually() {
@@ -375,6 +391,7 @@ function addManually() {
   // Move to date picker step instead of closing
   currentStep.value = 'datePicker'
   selectedDate.value = null
+  selectedScore.value = 0
 }
 
 // 9. Date Picker Event Handlers
@@ -396,7 +413,9 @@ function finalizeBookAddition(year, month, isUnfinished) {
     ...pendingBookData.value,
     year,
     month,
-    isUnfinished
+    isUnfinished,
+    // Only include score if book has a date (not "in progress")
+    score: (year !== null && month !== null) ? selectedScore.value : null
   }
 
   emit('select', completeBookData)
@@ -405,6 +424,7 @@ function finalizeBookAddition(year, month, isUnfinished) {
 
 function goBackToSearch() {
   currentStep.value = 'search'
+  selectedScore.value = 0
   // Keep pendingBookData in case user goes back again
 }
 
@@ -434,6 +454,7 @@ watch(() => props.isOpen, async (isOpen) => {
     currentStep.value = 'search'
     pendingBookData.value = null
     selectedDate.value = null
+    selectedScore.value = 0
     titleQuery.value = ''
     authorQuery.value = ''
     searchResults.value = []
