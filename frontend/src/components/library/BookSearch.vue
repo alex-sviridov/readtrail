@@ -175,6 +175,7 @@
               :is-read-lately="false"
               :is-in-progress="true"
               :is-unfinished="false"
+              :allow-unfinished="true"
               @date-select="handleDateSelect"
             />
           </div>

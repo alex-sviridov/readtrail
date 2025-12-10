@@ -3,7 +3,9 @@
     <!-- Header with Add Book Button -->
     <LibraryHeader
       :show-timeline="showTimeline"
+      :hide-unfinished="hideUnfinished"
       @toggle-timeline="toggleTimeline"
+      @toggle-filter="toggleFilter"
       @add-book="openSearchModal"
     />
 
@@ -11,7 +13,7 @@
     <div v-if="!showTimeline" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
       <!-- Book Cards -->
       <BookCard
-        v-for="book in sortedBooks"
+        v-for="book in filteredBooks"
         :key="book.id"
         :book="book"
         :settings="settingsStore"
@@ -86,6 +88,17 @@ provide('settingsStore', settingsStore)
 // Timeline toggle state - initialize from query parameter
 const showTimeline = ref(route.query.timeline === 'true')
 
+// Filter toggle state - initialize from query parameter
+const hideUnfinished = ref(route.query.hideUnfinished === 'true')
+
+// Filtered books based on hideUnfinished toggle
+const filteredBooks = computed(() => {
+  if (!hideUnfinished.value) {
+    return sortedBooks.value
+  }
+  return sortedBooks.value.filter(book => !book.attributes?.isUnfinished)
+})
+
 // Group books by year for timeline view
 const booksGroupedByYear = computed(() => {
   const groups = []
@@ -93,7 +106,7 @@ const booksGroupedByYear = computed(() => {
   let currentGroup = null
   const nowYear = new Date().getFullYear()
 
-  sortedBooks.value.forEach(book => {
+  filteredBooks.value.forEach(book => {
     // In-progress books (year: null) are assigned to current year
     const bookYear = book.year === null ? nowYear : book.year
 
@@ -129,9 +142,25 @@ const toggleTimeline = () => {
   })
 }
 
+// Toggle filter view and update URL
+const toggleFilter = () => {
+  hideUnfinished.value = !hideUnfinished.value
+  router.push({
+    query: {
+      ...route.query,
+      hideUnfinished: hideUnfinished.value ? 'true' : undefined
+    }
+  })
+}
+
 // Watch for route changes to update timeline state
 watch(() => route.query.timeline, (newValue) => {
   showTimeline.value = newValue === 'true'
+})
+
+// Watch for route changes to update filter state
+watch(() => route.query.hideUnfinished, (newValue) => {
+  hideUnfinished.value = newValue === 'true'
 })
 
 // Search modal state

@@ -2,11 +2,12 @@
 - [ ] Self-host openlibrary https://openlibrary.org/developers/dumps
 
 # Functional
-- [ ] Allow like\dislike
+- [x] Allow like\dislike
+- [ ] Search by author is not working good
 
 # UI
 - [ ] Allow editing read date only in edit mode
-- [ ] Allow generating cover
+- [x] Allow generating cover
 - [ ] Bulk add flow (initial addition)
 - [ ] Table view
 
