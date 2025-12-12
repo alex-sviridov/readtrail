@@ -4,12 +4,14 @@
 # Functional
 - [x] Allow like\dislike
 - [ ] Search by author is not working good
+- [ ] Import\Export
+- [ ] Connection to existing services for import 
 
 # UI
 - [ ] Allow editing read date only in edit mode
 - [x] Allow generating cover
 - [ ] Bulk add flow (initial addition)
-- [ ] Table view
+- [x] Table view
 
 # Prettify
 - [ ] unfiniche checkbox to be prettier

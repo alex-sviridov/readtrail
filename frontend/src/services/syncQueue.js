@@ -3,6 +3,8 @@
  * Manages offline operations and syncs them when connection is restored
  */
 
+import { logger } from '@/utils/logger'
+
 const SYNC_QUEUE_KEY = 'flexlib-sync-queue'
 const MAX_RETRIES = 3
 const INITIAL_RETRY_DELAY = 1000 // 1 second
@@ -36,10 +38,10 @@ class SyncQueue {
       const stored = localStorage.getItem(SYNC_QUEUE_KEY)
       if (stored) {
         this.queue = JSON.parse(stored)
-        console.info(`Loaded ${this.queue.length} operations from sync queue`)
+        logger.info(`Loaded ${this.queue.length} operations from sync queue`)
       }
     } catch (error) {
-      console.error('Failed to load sync queue:', error)
+      logger.error('Failed to load sync queue:', error)
       this.queue = []
     }
   }
@@ -51,7 +53,7 @@ class SyncQueue {
     try {
       localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(this.queue))
     } catch (error) {
-      console.error('Failed to save sync queue:', error)
+      logger.error('Failed to save sync queue:', error)
     }
   }
 
@@ -78,7 +80,7 @@ class SyncQueue {
     this.queue.push(operation)
     this.saveQueue()
 
-    console.debug('Enqueued operation:', operation)
+    logger.debug('Enqueued operation:', operation)
     return operation.id
   }
 
@@ -126,17 +128,17 @@ class SyncQueue {
    */
   async processQueue(apiHandlers, onProgress = null) {
     if (this.isProcessing) {
-      console.warn('Queue is already being processed')
+      logger.warn('Queue is already being processed')
       return { successful: [], failed: [] }
     }
 
     if (this.queue.length === 0) {
-      console.debug('Queue is empty, nothing to process')
+      logger.debug('Queue is empty, nothing to process')
       return { successful: [], failed: [] }
     }
 
     this.isProcessing = true
-    console.info(`Processing ${this.queue.length} queued operations`)
+    logger.info(`Processing ${this.queue.length} queued operations`)
 
     const successful = []
     const failed = []
@@ -148,7 +150,7 @@ class SyncQueue {
       try {
         // Check if we should retry this operation
         if (operation.retries >= MAX_RETRIES) {
-          console.error(`Operation ${operation.id} exceeded max retries, removing from queue`)
+          logger.error(`Operation ${operation.id} exceeded max retries, removing from queue`)
           this.dequeue(operation.id)
           failed.push({ operation, error: 'Max retries exceeded' })
 
@@ -163,7 +165,7 @@ class SyncQueue {
         const handler = apiHandlers[handlerKey]
 
         if (!handler) {
-          console.error(`No handler found for ${handlerKey}`)
+          logger.error(`No handler found for ${handlerKey}`)
           this.dequeue(operation.id)
           failed.push({ operation, error: 'No handler found' })
 
@@ -174,7 +176,7 @@ class SyncQueue {
         }
 
         // Execute the operation
-        console.debug(`Processing operation ${operation.id} (${operation.type} ${operation.resource})`)
+        logger.debug(`Processing operation ${operation.id} (${operation.type} ${operation.resource})`)
         const result = await handler(operation)
 
         // Operation successful, remove from queue
@@ -185,9 +187,9 @@ class SyncQueue {
           onProgress(operation.id, 'success', result)
         }
 
-        console.debug(`Operation ${operation.id} completed successfully`)
+        logger.debug(`Operation ${operation.id} completed successfully`)
       } catch (error) {
-        console.error(`Operation ${operation.id} failed:`, error)
+        logger.error(`Operation ${operation.id} failed:`, error)
 
         // Update retry count and error
         operation.retries++
@@ -199,7 +201,7 @@ class SyncQueue {
           MAX_RETRY_DELAY
         )
 
-        console.debug(`Operation ${operation.id} will retry after ${delay}ms (attempt ${operation.retries}/${MAX_RETRIES})`)
+        logger.debug(`Operation ${operation.id} will retry after ${delay}ms (attempt ${operation.retries}/${MAX_RETRIES})`)
 
         // Save updated operation
         this.saveQueue()
@@ -222,7 +224,7 @@ class SyncQueue {
     }
 
     this.isProcessing = false
-    console.info(`Queue processing complete: ${successful.length} successful, ${failed.length} failed`)
+    logger.info(`Queue processing complete: ${successful.length} successful, ${failed.length} failed`)
 
     return { successful, failed }
   }

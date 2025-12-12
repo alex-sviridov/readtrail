@@ -192,7 +192,8 @@ import { MagnifyingGlassIcon, BookOpenIcon, ArrowLeftIcon } from '@heroicons/vue
 import BaseModal from '@/components/base/BaseModal.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
 import BookScore from '@/components/library/BookScore.vue'
-import { TIMINGS, BOOK_STATUS, DATE_PICKER } from '@/constants'
+import { TIMINGS, DATE_PICKER } from '@/constants'
+import { logger } from '@/utils/logger'
 
 // 2. Constants
 const API_BASE_URL = import.meta.env.VITE_OPEN_LIBRARY_API_URL || 'https://openlibrary.org'
@@ -357,7 +358,7 @@ async function performSearch() {
       error.value = err.message || 'Failed to search for books. Please try again.'
     }
 
-    console.error('Search error:', err)
+    logger.error('Search error:', err)
   } finally {
     isLoading.value = false
     abortController = null

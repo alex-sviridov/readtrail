@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Library from '../views/Library.vue'
+import LibraryTable from '../views/LibraryTable.vue'
 import Settings from '../views/Settings.vue'
+import Login from '../views/Login.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,9 +17,24 @@ const router = createRouter({
       component: Library
     },
     {
+      path: '/library/:viewMode',
+      name: 'library-view',
+      component: Library
+    },
+    {
+      path: '/library/table',
+      name: 'library-table',
+      component: LibraryTable
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: Settings
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: Login
     }
   ],
 })

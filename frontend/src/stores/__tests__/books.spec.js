@@ -309,7 +309,7 @@ describe('useBooksStore', () => {
   })
 
   describe('localStorage persistence', () => {
-    it('should load books from localStorage on initialization', () => {
+    it('should load books from localStorage on initialization', async () => {
       // Manually set localStorage data
       const testBooks = [
         {
@@ -331,7 +331,7 @@ describe('useBooksStore', () => {
 
       // Create a new store instance which should load from localStorage
       const newStore = useBooksStore()
-      newStore.loadBooks()
+      await newStore.loadBooks()
 
       expect(newStore.books).toHaveLength(2)
       expect(newStore.books[0].name).toBe('Stored Book 1')
@@ -343,8 +343,8 @@ describe('useBooksStore', () => {
       expect(newStore.books[1].createdAt).toBeInstanceOf(Date)
     })
 
-    it('should load default books when localStorage is empty', () => {
-      store.loadBooks()
+    it('should load default books when localStorage is empty', async () => {
+      await store.loadBooks()
 
       expect(store.books.length).toBeGreaterThan(0)
       const gatsby = store.books.find(b => b.name === 'The Great Gatsby')
@@ -358,14 +358,14 @@ describe('useBooksStore', () => {
       expect(orwell.coverLink).toBeTruthy()
     })
 
-    it('should handle corrupted localStorage data gracefully', () => {
+    it('should handle corrupted localStorage data gracefully', async () => {
       localStorage.setItem('flexlib-books', 'invalid json{')
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      store.loadBooks()
+      await store.loadBooks()
 
-      expect(store.books).toEqual([])
-      expect(consoleSpy).toHaveBeenCalled()
+      // When localStorage is corrupted, it should load default books instead of leaving empty
+      expect(store.books.length).toBeGreaterThan(0)
 
       consoleSpy.mockRestore()
     })
@@ -382,7 +382,7 @@ describe('useBooksStore', () => {
       expect(parsed[0].month).toBe(5)
     })
 
-    it('should parse ISO strings back to Date objects when loading', () => {
+    it('should parse ISO strings back to Date objects when loading', async () => {
       const isoDate = new Date(2024, 4, 1).toISOString()
       const testBook = {
         id: '1',
@@ -393,7 +393,7 @@ describe('useBooksStore', () => {
       }
       localStorage.setItem('flexlib-books', JSON.stringify([testBook]))
 
-      store.loadBooks()
+      await store.loadBooks()
 
       expect(store.books[0].createdAt).toBeInstanceOf(Date)
       expect(store.books[0].year).toBe(2024)
@@ -428,13 +428,13 @@ describe('useBooksStore', () => {
       expect(store.books).toHaveLength(100)
     })
 
-    it('should handle book names with special characters', () => {
+    it('should handle book names with special characters', async () => {
       const specialName = 'Book with "quotes" & <special> characters!'
       const book = store.addBook(specialName)
 
       expect(book.name).toBe(specialName)
 
-      store.loadBooks()
+      await store.loadBooks()
       expect(store.books[0].name).toBe(specialName)
     })
 

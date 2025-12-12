@@ -255,7 +255,9 @@ function handleDateSelect(dateInfo) {
 }
 
 function handleScoreUpdate(newScore) {
-  booksStore.updateBookScore(props.book.id, newScore)
+  booksStore.updateBookFields(props.book.id, {
+    attributes: { score: newScore }
+  })
 
   // If user scored during temporary edit mode, end it immediately
   if (showScoreEditTemporarily.value) {
@@ -279,15 +281,23 @@ function handleDelete() {
 }
 
 function handleTitleUpdate(title) {
-  booksStore.updateBookTitle(props.book.id, title)
+  if (title) {
+    booksStore.updateBookFields(props.book.id, { name: title })
+  }
 }
 
 function handleAuthorUpdate(author) {
-  booksStore.updateBookAuthor(props.book.id, author)
+  if (author) {
+    booksStore.updateBookFields(props.book.id, { author })
+  }
 }
 
 function handleCoverUpdate(coverData) {
-  booksStore.updateBookCover(props.book.id, coverData.coverLink, coverData.customCover)
+  const updates = { coverLink: coverData.coverLink }
+  if (coverData.customCover !== null) {
+    updates.attributes = { customCover: coverData.customCover }
+  }
+  booksStore.updateBookFields(props.book.id, updates)
 }
 
 // 7. Lifecycle - Composables with side effects

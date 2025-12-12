@@ -1,83 +1,98 @@
 /**
  * Authentication service
- * Handles authentication configuration and header management
+ * Handles PocketBase authentication with JWT tokens
  */
 
-// Auth configuration from environment variables
-const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === 'true'
-const AUTH_HEADER_NAME = import.meta.env.VITE_AUTH_REMOTE_HEADER_NAME || 'X-Auth-User'
-const GUEST_USER_ENABLED = import.meta.env.VITE_GUEST_USER_ENABLED === 'true'
+import pb from './pocketbase'
+import { adaptPocketBaseError } from '@/utils/errors'
+import { logger } from '@/utils/logger'
 
-// LocalStorage key for storing auth header value
-const AUTH_STORAGE_KEY = 'flexlib-auth-user'
+// Auth configuration from environment variables
+const GUEST_USER_ENABLED = import.meta.env.VITE_GUEST_USER_ENABLED === 'true'
 
 /**
  * Authentication manager class
+ * Facade over PocketBase authStore for consistent API
  */
 class AuthManager {
   constructor() {
-    this.authEnabled = AUTH_ENABLED
-    this.authHeaderName = AUTH_HEADER_NAME
     this.guestUserEnabled = GUEST_USER_ENABLED
-    this.currentUser = null
-    this.isGuest = true
 
-    // Load auth state from localStorage
-    this.loadAuthState()
+    // Set up auth state change listener
+    pb.authStore.onChange((token, model) => {
+      logger.debug('[AuthManager] Auth state changed:', {
+        isValid: pb.authStore.isValid,
+        userId: model?.id || null,
+        email: model?.email || null
+      })
+    })
   }
 
   /**
-   * Load authentication state from localStorage
+   * Login with email and password
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @returns {Promise<Object>} User record
    */
-  loadAuthState() {
+  async login(email, password) {
     try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        this.currentUser = parsed.user
-        this.isGuest = parsed.isGuest ?? true
+      const authData = await pb.collection('users').authWithPassword(email, password)
+      return authData.record
+    } catch (error) {
+      throw adaptPocketBaseError(error)
+    }
+  }
+
+  /**
+   * Register a new user
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {string} passwordConfirm - Password confirmation
+   * @param {Object} additionalData - Additional user data
+   * @returns {Promise<Object>} Created user record
+   */
+  async register(email, password, passwordConfirm, additionalData = {}) {
+    try {
+      const data = {
+        email,
+        password,
+        passwordConfirm,
+        ...additionalData
       }
+      const record = await pb.collection('users').create(data)
+
+      // Auto-login after registration
+      await this.login(email, password)
+
+      return record
     } catch (error) {
-      console.error('Failed to load auth state:', error)
+      throw adaptPocketBaseError(error)
     }
   }
 
   /**
-   * Save authentication state to localStorage
+   * Logout (clear authentication and all user data)
+   * Clears auth and all data to start fresh as guest
    */
-  saveAuthState() {
-    try {
-      const state = {
-        user: this.currentUser,
-        isGuest: this.isGuest
-      }
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state))
-    } catch (error) {
-      console.error('Failed to save auth state:', error)
-    }
-  }
+  logout() {
+    logger.debug('[AuthManager] Logging out and clearing all data')
 
-  /**
-   * Set the current authenticated user
-   * @param {string} user - User identifier (email, username, etc.)
-   */
-  setUser(user) {
-    this.currentUser = user
-    this.isGuest = false
-    this.saveAuthState()
-  }
+    // Clear PocketBase auth
+    pb.authStore.clear()
 
-  /**
-   * Clear authentication (logout)
-   */
-  clearAuth() {
-    this.currentUser = null
-    this.isGuest = true
-    try {
-      localStorage.removeItem(AUTH_STORAGE_KEY)
-    } catch (error) {
-      console.error('Failed to clear auth state:', error)
-    }
+    // Clear ALL application data - user starts fresh as guest after logout
+    const keysToRemove = [
+      'flexlib-books',
+      'flexlib-sync-queue',
+      'flexlib-needs-migration',
+      'flexlib-settings-showBookInfo',
+      'flexlib-settings-allowUnfinishedReading',
+      'flexlib-settings-allowScoring'
+    ]
+
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+
+    logger.debug('[AuthManager] Cleared authentication and all data')
   }
 
   /**
@@ -85,68 +100,23 @@ class AuthManager {
    * @returns {boolean} True if user is authenticated
    */
   isAuthenticated() {
-    // If auth is disabled, always return true
-    if (!this.authEnabled) {
-      return true
-    }
-
-    // If guest user is enabled and we're a guest, return true
-    if (this.guestUserEnabled && this.isGuest) {
-      return true
-    }
-
-    // Otherwise, check if we have a user
-    return this.currentUser !== null
+    return pb.authStore.isValid
   }
 
   /**
-   * Get authentication headers for API requests
-   * @returns {Object} Headers object with auth header if needed
-   */
-  getAuthHeaders() {
-    // If auth is disabled, return empty headers
-    if (!this.authEnabled) {
-      return {}
-    }
-
-    // If guest user mode and we're a guest, return empty headers
-    if (this.guestUserEnabled && this.isGuest) {
-      return {}
-    }
-
-    // If we have a user, return the auth header
-    if (this.currentUser) {
-      return {
-        [this.authHeaderName]: this.currentUser
-      }
-    }
-
-    // No auth header
-    return {}
-  }
-
-  /**
-   * Get current user identifier
-   * @returns {string|null} Current user identifier or null
+   * Get current authenticated user
+   * @returns {Object|null} User record or null
    */
   getCurrentUser() {
-    return this.currentUser
+    return pb.authStore.record
   }
 
   /**
-   * Check if current user is a guest
+   * Check if current user is a guest (not authenticated)
    * @returns {boolean} True if user is a guest
    */
   isGuestUser() {
-    return this.isGuest
-  }
-
-  /**
-   * Check if authentication is enabled
-   * @returns {boolean} True if authentication is enabled
-   */
-  isAuthEnabled() {
-    return this.authEnabled
+    return !pb.authStore.isValid
   }
 
   /**
@@ -158,11 +128,96 @@ class AuthManager {
   }
 
   /**
+   * Get authentication token
+   * @returns {string|null} JWT token or null
+   */
+  getToken() {
+    return pb.authStore.token
+  }
+
+  /**
+   * Refresh authentication token
+   * @returns {Promise<boolean>} True if refresh succeeded
+   */
+  async refreshAuth() {
+    try {
+      await pb.collection('users').authRefresh()
+      return true
+    } catch (error) {
+      logger.error('Failed to refresh auth:', error)
+      return false
+    }
+  }
+
+  /**
+   * Check if auth token is valid and not expired
+   * @returns {boolean} True if token is valid
+   */
+  isTokenValid() {
+    return pb.authStore.isValid
+  }
+
+  /**
+   * Get user ID
+   * @returns {string|null} User ID or null
+   */
+  getUserId() {
+    return pb.authStore.record?.id || null
+  }
+
+  /**
+   * Get user email
+   * @returns {string|null} User email or null
+   */
+  getUserEmail() {
+    return pb.authStore.record?.email || null
+  }
+
+  /**
+   * Set user (for backward compatibility)
+   * Note: With PocketBase, this is handled automatically via authStore
+   * @deprecated Use login() instead
+   * @param {string} user - User identifier
+   */
+  setUser(user) {
+    logger.warn('[AuthManager] setUser() is deprecated with PocketBase. Use login() instead.')
+  }
+
+  /**
+   * Clear authentication
+   * Alias for logout() for backward compatibility
+   */
+  clearAuth() {
+    this.logout()
+  }
+
+  /**
+   * Get authentication headers for API requests
+   * @deprecated PocketBase handles auth headers automatically
+   * @returns {Object} Empty object (PocketBase handles headers)
+   */
+  getAuthHeaders() {
+    // PocketBase SDK handles authentication headers automatically
+    // Keeping this method for backward compatibility but it's not needed
+    return {}
+  }
+
+  /**
+   * Check if authentication is enabled
+   * @deprecated Always returns true with PocketBase
+   * @returns {boolean} True
+   */
+  isAuthEnabled() {
+    return true
+  }
+
+  /**
    * Get auth header name
+   * @deprecated Not used with PocketBase (uses Authorization header automatically)
    * @returns {string} Auth header name
    */
   getAuthHeaderName() {
-    return this.authHeaderName
+    return 'Authorization'
   }
 }
 

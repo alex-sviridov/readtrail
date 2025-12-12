@@ -5,6 +5,7 @@
  */
 
 import { ref, onMounted, onUnmounted } from 'vue'
+import { logger } from '@/utils/logger'
 
 // Shared reactive state across all component instances
 const isOnline = ref(navigator.onLine)
@@ -16,7 +17,7 @@ const listeners = new Set()
  */
 function handleOnline() {
   isOnline.value = true
-  console.info('Connection restored (online)')
+  logger.info('Connection restored (online)')
 
   // Notify all listeners (combined status)
   const combinedStatus = isOnline.value && isApiAvailable.value
@@ -28,7 +29,7 @@ function handleOnline() {
  */
 function handleOffline() {
   isOnline.value = false
-  console.warn('Connection lost (offline)')
+  logger.warn('Connection lost (offline)')
 
   // Notify all listeners (combined status)
   listeners.forEach(callback => callback(false))
@@ -45,9 +46,9 @@ export function setApiAvailability(available) {
   // Only log and notify if status changed
   if (wasAvailable !== available) {
     if (available) {
-      console.info('API connection restored')
+      logger.info('API connection restored')
     } else {
-      console.warn('API connection lost')
+      logger.warn('API connection lost')
     }
 
     // Notify all listeners (combined status)

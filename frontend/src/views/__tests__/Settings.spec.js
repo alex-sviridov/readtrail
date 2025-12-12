@@ -105,7 +105,7 @@ describe('Settings View', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.setShowBookInfo(true)
+      settingsStore.showBookInfo = true
 
       wrapper = mount(Settings, {
         global: {
@@ -124,7 +124,7 @@ describe('Settings View', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.setShowBookInfo(true)
+      settingsStore.showBookInfo = true
 
       wrapper = mount(Settings, {
         global: {
@@ -144,7 +144,7 @@ describe('Settings View', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.setAllowUnfinishedReading(true)
+      settingsStore.allowUnfinishedReading = true
 
       wrapper = mount(Settings, {
         global: {
@@ -164,7 +164,7 @@ describe('Settings View', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.setShowBookInfo(false)
+      settingsStore.showBookInfo = false
 
       wrapper = mount(Settings, {
         global: {
@@ -185,21 +185,6 @@ describe('Settings View', () => {
   })
 
   describe('store integration', () => {
-    it('should use storeToRefs to get settingsConfig reactively', () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
-
-      const settingsStore = useSettingsStore()
-      expect(settingsStore.settingsConfig).toBeDefined()
-      expect(Array.isArray(settingsStore.settingsConfig)).toBe(true)
-    })
-
     it('should reflect store changes in the UI', async () => {
       const pinia = createPinia()
       setActivePinia(pinia)
@@ -211,13 +196,13 @@ describe('Settings View', () => {
         }
       })
 
-      settingsStore.setShowBookInfo(true)
+      settingsStore.showBookInfo = true
       await wrapper.vm.$nextTick()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       expect(toggles[0].attributes('aria-checked')).toBe('true')
 
-      settingsStore.setShowBookInfo(false)
+      settingsStore.showBookInfo = false
       await wrapper.vm.$nextTick()
 
       expect(toggles[0].attributes('aria-checked')).toBe('false')

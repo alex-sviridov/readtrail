@@ -2,46 +2,23 @@
   <div class="container mx-auto px-4 py-8 max-w-7xl">
     <!-- Header with Add Book Button -->
     <LibraryHeader
-      :view-mode="viewMode"
+      view-mode="table"
       :hide-unfinished="hideUnfinished"
       @set-view-mode="setViewMode"
       @toggle-filter="toggleFilter"
       @add-book="openSearchModal"
     />
 
-    <!-- Grid View -->
-    <div v-if="viewMode === 'grid'" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-      <BookCard
-        v-for="book in filteredBooks"
-        :key="book.id"
-        :book="book"
-        :settings="settingsStore"
-        @delete="handleDeleteBook"
-        @update-status="handleUpdateStatus"
-      />
-    </div>
-
-    <!-- Timeline View -->
-    <div v-else-if="viewMode === 'timeline'">
-      <div v-for="(group, index) in booksGroupedByYear" :key="group.year || 'in-progress'">
-        <div v-if="index > 0" class="my-8 border-t-2 border-gray-300"></div>
-        <div class="mb-2">
-          <h2 class="text-2xl font-semibold text-gray-800">
-            {{ BOOK_STATUS.getTimelineLabel(group.year) }}
-          </h2>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-8">
-          <BookCard
-            v-for="book in group.books"
-            :key="book.id"
-            :book="book"
-            :settings="settingsStore"
-            @delete="handleDeleteBook"
-            @update-status="handleUpdateStatus"
-          />
-        </div>
-      </div>
-    </div>
+    <!-- Table View -->
+    <BooksTable
+      :books="filteredBooks"
+      :settings="settingsStore"
+      @delete="handleDeleteBook"
+      @update-cover="handleUpdateCover"
+      @update-title="handleUpdateTitle"
+      @update-author="handleUpdateAuthor"
+      @update-status="handleUpdateStatus"
+    />
 
     <!-- Book Search Modal -->
     <BookSearch
@@ -58,14 +35,13 @@ import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
-import { BOOK_STATUS } from '@/constants'
-import BookCard from '@/components/library/BookCard.vue'
 import BookSearch from '@/components/library/BookSearch.vue'
 import LibraryHeader from '@/components/library/LibraryHeader.vue'
+import BooksTable from '@/components/library/BooksTable.vue'
 import { logger } from '@/utils/logger'
 
 defineOptions({
-  name: 'LibraryPage'
+  name: 'LibraryTablePage'
 })
 
 // Router
@@ -88,9 +64,6 @@ provide('settingsStore', settingsStore)
 // Filter toggle state - initialize from query parameter
 const hideUnfinished = ref(route.query.hideUnfinished === 'true')
 
-// Get view mode from route params (default to 'grid')
-const viewMode = computed(() => route.params.viewMode || 'grid')
-
 // Filtered books based on hideUnfinished toggle
 const filteredBooks = computed(() => {
   if (!hideUnfinished.value) {
@@ -99,47 +72,14 @@ const filteredBooks = computed(() => {
   return sortedBooks.value.filter(book => !book.attributes?.isUnfinished)
 })
 
-// Group books by year for timeline view
-const booksGroupedByYear = computed(() => {
-  const groups = []
-  let currentYear = undefined
-  let currentGroup = null
-  const nowYear = new Date().getFullYear()
-
-  filteredBooks.value.forEach(book => {
-    // In-progress books (year: null) are assigned to current year
-    const bookYear = book.year === null ? nowYear : book.year
-
-    if (bookYear !== currentYear) {
-      if (currentGroup) {
-        groups.push(currentGroup)
-      }
-      currentYear = bookYear
-      currentGroup = {
-        year: bookYear,
-        books: [book]
-      }
-    } else {
-      currentGroup.books.push(book)
-    }
-  })
-
-  if (currentGroup) {
-    groups.push(currentGroup)
-  }
-
-  return groups
-})
-
 // Set view mode and navigate to appropriate route
 const setViewMode = (mode) => {
   if (mode === 'grid') {
     router.push('/library')
   } else if (mode === 'timeline') {
     router.push('/library/timeline')
-  } else if (mode === 'table') {
-    router.push('/library/table')
   }
+  // Already on table view, no need to navigate
 }
 
 // Toggle filter view and update URL
@@ -188,6 +128,28 @@ const handleBookSelect = (bookData) => {
 // Handle deleting a book
 const handleDeleteBook = (id) => {
   booksStore.deleteBook(id)
+}
+
+// Handle updating book cover
+const handleUpdateCover = ({ id, coverLink }) => {
+  booksStore.updateBookFields(id, {
+    coverLink,
+    attributes: { customCover: false }
+  })
+}
+
+// Handle updating book title
+const handleUpdateTitle = ({ id, title }) => {
+  if (title) {
+    booksStore.updateBookFields(id, { name: title })
+  }
+}
+
+// Handle updating book author
+const handleUpdateAuthor = ({ id, author }) => {
+  if (author) {
+    booksStore.updateBookFields(id, { author })
+  }
 }
 
 // Handle updating book status
