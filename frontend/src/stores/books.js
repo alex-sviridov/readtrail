@@ -241,10 +241,20 @@ export const useBooksStore = defineStore('books', () => {
     if (result.success) {
       syncStatus.value = 'idle'
       lastSyncTime.value = new Date()
+      // Emit success event for toast notification
+      if (result.migratedCount > 0) {
+        window.dispatchEvent(new CustomEvent('migration-success', {
+          detail: { count: result.migratedCount }
+        }))
+      }
     } else {
       syncStatus.value = 'error'
       if (result.reason === 'error') {
         lastError.value = 'Failed to migrate data to backend'
+        // Emit error event for toast notification
+        window.dispatchEvent(new CustomEvent('migration-error', {
+          detail: { error: result.error }
+        }))
       }
     }
   }

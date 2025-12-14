@@ -115,6 +115,7 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 import { useSettingsStore } from '@/stores/settings'
 import { authManager } from '@/services/auth'
 
@@ -122,6 +123,7 @@ defineOptions({
   name: 'SettingsPage'
 })
 
+const toast = useToast()
 const router = useRouter()
 const settingsStore = useSettingsStore()
 const { settings } = storeToRefs(settingsStore)
@@ -169,7 +171,10 @@ const goToLibrary = () => {
 
 const handleLogout = () => {
   authManager.logout()
-  // Reload to ensure clean state
-  window.location.href = '/login'
+  toast.success('Signed out successfully')
+  // Small delay to show toast before redirect
+  setTimeout(() => {
+    window.location.href = '/login'
+  }, 500)
 }
 </script>

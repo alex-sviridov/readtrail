@@ -1,10 +1,10 @@
 <script setup>
 import { RouterView, RouterLink } from 'vue-router'
-import { WifiIcon } from '@heroicons/vue/24/outline'
-import { useOnlineStatus } from '@/composables/useOnlineStatus'
+import { useSyncNotifications } from '@/composables/useSyncNotifications'
+import SyncStatusIndicator from '@/components/SyncStatusIndicator.vue'
 import UserMenu from '@/components/UserMenu.vue'
 
-const { isOnline } = useOnlineStatus()
+useSyncNotifications()
 </script>
 
 <template>
@@ -15,16 +15,7 @@ const { isOnline } = useOnlineStatus()
           readtrail
         </RouterLink>
         <div class="flex items-center gap-3">
-          <!-- Offline Indicator -->
-          <div
-            v-if="!isOnline"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md"
-            title="You are currently offline. Changes will sync when connection is restored."
-          >
-            <WifiIcon class="w-4 h-4" />
-            <span class="text-xs font-medium">Offline</span>
-          </div>
-
+          <SyncStatusIndicator />
           <UserMenu />
         </div>
       </div>

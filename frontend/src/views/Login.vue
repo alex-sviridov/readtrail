@@ -117,10 +117,12 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 import { authManager } from '@/services/auth'
 import { useBooksStore } from '@/stores/books'
 import { logger } from '@/utils/logger'
 
+const toast = useToast()
 const router = useRouter()
 const booksStore = useBooksStore()
 
@@ -164,13 +166,17 @@ async function handleLogin() {
     logger.error('[Login] Login failed:', error)
 
     // Display user-friendly error message
+    let message = ''
     if (error.isUnauthorized?.()) {
-      errorMessage.value = 'Invalid email or password. Please try again.'
+      message = 'Invalid email or password. Please try again.'
     } else if (error.isNetworkError?.()) {
-      errorMessage.value = 'Unable to connect to the server. Please check your internet connection.'
+      message = 'Unable to connect to the server. Please check your internet connection.'
     } else {
-      errorMessage.value = error.message || 'An error occurred during login. Please try again.'
+      message = error.message || 'An error occurred during login. Please try again.'
     }
+
+    errorMessage.value = message
+    toast.error(message, { timeout: 5000 })
   } finally {
     isLoading.value = false
   }

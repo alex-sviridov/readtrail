@@ -166,23 +166,7 @@ Readtrail is a modern Vue 3 + PocketBase book tracking application with:
 
 ### 🔧 PRIORITY 3: Technical & Quality of Life
 
-#### 9. Better Offline Indicators & Sync Status
-**Current State:** Basic "Offline" indicator, minimal sync feedback
-**Improvements:**
-- Show sync queue count (e.g., "3 pending changes")
-- Sync progress indicator with individual operation status
-- Last sync timestamp
-- Manual sync trigger button
-- Conflict resolution UI (if backend data conflicts with local)
-
-**Files to modify:**
-- [frontend/src/components/library/LibraryHeader.vue](frontend/src/components/library/LibraryHeader.vue)
-- [frontend/src/stores/books.js](frontend/src/stores/books.js)
-- [frontend/src/services/syncQueue.js](frontend/src/services/syncQueue.js)
-
-**Estimated complexity:** Medium
-
----
+#### 9. Better Offline Indicators & Sync Status - Done
 
 #### 10. Bulk Operations
 **Current State:** Individual book operations only (listed in TODO)
