@@ -224,17 +224,20 @@ describe('DatePicker Component', () => {
     it('should increment year when YearNavigator emits increment', async () => {
       wrapper = mount(DatePicker, {
         props: {
-          yearRange: [2020, 2024]
+          yearRange: [2020, 2024],
+          selectedDate: { year: 2020, month: 5 }  // Start at a year that can be incremented
         }
       })
 
-      // Set to a year that can be incremented
+      // The currentYear should start at the selected year (2020)
       const yearNavigator = wrapper.findComponent(YearNavigator)
-      const initialYear = yearNavigator.props('currentYear')
+      expect(yearNavigator.props('currentYear')).toBe(2020)
+      expect(yearNavigator.props('canIncrement')).toBe(true)
 
       await yearNavigator.vm.$emit('increment')
+      await wrapper.vm.$nextTick()
 
-      expect(wrapper.findComponent(YearNavigator).props('currentYear')).toBe(initialYear + 1)
+      expect(wrapper.findComponent(YearNavigator).props('currentYear')).toBe(2021)
     })
 
     it('should decrement year when YearNavigator emits decrement', async () => {

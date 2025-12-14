@@ -153,8 +153,8 @@ async function handleLogin() {
       await booksStore.migrateLocalDataToBackend()
 
       // Clear localStorage after migration - we'll reload from backend
-      localStorage.removeItem('flexlib-books')
-      localStorage.removeItem('flexlib-needs-migration')
+      localStorage.removeItem('readtrail-books')
+      localStorage.removeItem('readtrail-needs-migration')
     }
 
     // Redirect to library with full page reload for clean state

@@ -17,7 +17,7 @@
     <!-- Normal Card Content (when picker is closed) -->
     <template v-if="!isPickerOpen">
       <!-- Bookmark Ribbon (only when unfinished) -->
-      <div v-if="book.attributes?.isUnfinished && settings.allowUnfinishedReading" class="book-card__ribbon">
+      <div v-if="book.attributes?.isUnfinished && settingsStore.settings.allowUnfinishedReading" class="book-card__ribbon">
         Unfinished
       </div>
 
@@ -62,7 +62,7 @@
       :book-author="book.author"
       :score="book.attributes?.score"
       :is-score-editable="isScoreEditable"
-      :allow-scoring="settings.allowScoring"
+      :allow-scoring="settingsStore.settings.allowScoring"
       @update="handleCoverUpdate"
       @update:score="handleScoreUpdate"
     />
@@ -70,7 +70,7 @@
     <!-- Card Content -->
     <div class="flex flex-col flex-1 gap-1">
       <EditableText
-        v-if="settings.showBookInfo"
+        v-if="settingsStore.settings.showBookInfo"
         :value="book.name"
         as="h3"
         variant="title"
@@ -79,7 +79,7 @@
       />
 
       <EditableText
-        v-if="settings.showBookInfo && book.author"
+        v-if="settingsStore.settings.showBookInfo && book.author"
         :value="book.author"
         as="p"
         variant="author"
@@ -106,7 +106,7 @@
         :is-read-lately="isReadLately"
         :is-in-progress="isInProgress"
         :is-unfinished="book.attributes?.isUnfinished"
-        :allow-unfinished="settings.allowUnfinishedReading"
+        :allow-unfinished="settingsStore.settings.allowUnfinishedReading"
         @date-select="handleDateSelect"
       />
     </template>
@@ -115,15 +115,15 @@
 
 <script setup>
 // 1. Imports
-import { ref, computed, inject, onUnmounted } from 'vue'
+import { ref, computed, inject } from 'vue'
 import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import IconButton from '@/components/library/IconButton.vue'
 import EditableText from '@/components/library/EditableText.vue'
 import BookStatus from '@/components/library/BookStatus.vue'
 import BookCover from '@/components/library/BookCover.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
-import { useDateHelpers } from '@/composables/useDateHelpers'
 import { useClickOutside, useEscapeKey } from '@/composables/useClickOutside'
+import { useTemporaryScoreEdit } from '@/composables/useTemporaryScoreEdit'
 import { BOOK_STATUS, DATE_PICKER } from '@/constants'
 
 // 2. Props & Emits
@@ -132,19 +132,13 @@ const props = defineProps({
     type: Object,
     required: true,
     default: null
-  },
-  settings: {
-    type: Object,
-    required: false,
-    default: () => ({ showBookInfo: true })
   }
 })
 
-const emit = defineEmits(['delete', 'update-status'])
-
 // 3. Composables & Injections
-const { formatYearMonth } = useDateHelpers()
 const booksStore = inject('booksStore')
+const settingsStore = inject('settingsStore')
+const temporaryScoreEdit = useTemporaryScoreEdit(5000)
 
 // 4. Local State
 const isEditMode = ref(false)
@@ -152,8 +146,6 @@ const cardRef = ref(null)
 const isPickerOpen = ref(false)
 const selectedDate = ref(null)
 const previousWasInProgress = ref(false)
-const showScoreEditTemporarily = ref(false)
-let scoreEditTimer = null
 
 // 5. Computed Properties
 const hasDate = computed(() => !!props.book.year && !!props.book.month)
@@ -179,33 +171,16 @@ const cardClasses = computed(() => ({
   'ring-2 ring-blue-400 shadow-blue-100 bg-gradient-to-br from-white to-blue-50 animate-pulse-slow': isInProgress.value && !isEditMode.value
 }))
 
-const isScoreEditable = computed(() => isEditMode.value || showScoreEditTemporarily.value)
+const isScoreEditable = computed(() => isEditMode.value || temporaryScoreEdit.isEditing.value)
 
 // 6. Methods
 function toggleEditMode() {
   isEditMode.value = !isEditMode.value
 
   // Clear temporary score edit if user manually enters edit mode
-  if (isEditMode.value && showScoreEditTemporarily.value) {
-    if (scoreEditTimer) {
-      clearTimeout(scoreEditTimer)
-      scoreEditTimer = null
-    }
-    showScoreEditTemporarily.value = false
+  if (isEditMode.value && temporaryScoreEdit.isEditing.value) {
+    temporaryScoreEdit.stop()
   }
-}
-
-function startTemporaryScoreEdit() {
-  // Clear any existing timer
-  if (scoreEditTimer) {
-    clearTimeout(scoreEditTimer)
-  }
-
-  showScoreEditTemporarily.value = true
-  scoreEditTimer = setTimeout(() => {
-    showScoreEditTemporarily.value = false
-    scoreEditTimer = null
-  }, 5000)
 }
 
 function openPicker() {
@@ -222,13 +197,7 @@ function closePicker() {
 function handleDateSelect(dateInfo) {
   // Handle "In Progress" (null date)
   if (dateInfo === null) {
-    emit('update-status', {
-      id: props.book.id,
-      year: null,
-      month: null,
-      isUnfinished: false,
-      score: 0
-    })
+    booksStore.updateBookStatus(props.book.id, null, null, false, 0)
     closePicker()
     return
   }
@@ -236,17 +205,17 @@ function handleDateSelect(dateInfo) {
   const { year, month, isUnfinished, keepOpen } = dateInfo
   const adjustedMonth = month + 1
 
-  emit('update-status', {
-    id: props.book.id,
+  booksStore.updateBookStatus(
+    props.book.id,
     year,
-    month: adjustedMonth,
+    adjustedMonth,
     isUnfinished,
-    score: props.book.attributes?.score ?? null
-  })
+    props.book.attributes?.score ?? null
+  )
 
   // If book was "In Progress" and now has a date, show score edit for 5 seconds
   if (previousWasInProgress.value && !keepOpen) {
-    startTemporaryScoreEdit()
+    temporaryScoreEdit.start()
   }
 
   if (!keepOpen) {
@@ -260,12 +229,8 @@ function handleScoreUpdate(newScore) {
   })
 
   // If user scored during temporary edit mode, end it immediately
-  if (showScoreEditTemporarily.value) {
-    if (scoreEditTimer) {
-      clearTimeout(scoreEditTimer)
-      scoreEditTimer = null
-    }
-    showScoreEditTemporarily.value = false
+  if (temporaryScoreEdit.isEditing.value) {
+    temporaryScoreEdit.stop()
   }
 }
 
@@ -277,7 +242,7 @@ function handleCardClick(event) {
 }
 
 function handleDelete() {
-  emit('delete', props.book.id)
+  booksStore.deleteBook(props.book.id)
 }
 
 function handleTitleUpdate(title) {
@@ -312,13 +277,6 @@ useEscapeKey(() => {
     closePicker()
   } else if (isEditMode.value) {
     isEditMode.value = false
-  }
-})
-
-// Cleanup timer on unmount
-onUnmounted(() => {
-  if (scoreEditTimer) {
-    clearTimeout(scoreEditTimer)
   }
 })
 </script>

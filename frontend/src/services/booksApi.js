@@ -5,21 +5,8 @@
 
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
-import { isGuestMode, requireAuth as guardAuth } from './guestMode'
+import { isGuestMode, requireAuth } from './guestMode'
 import { logger } from '@/utils/logger'
-
-/**
- * Guard helper to require authentication (wrapper for guestMode service)
- * Throws an error if user is in guest mode
- * @param {string} operation - The operation being attempted
- */
-function requireAuth(operation) {
-  try {
-    guardAuth(operation)
-  } catch (error) {
-    throw new Error(`${error.message} - sync queue should handle this`)
-  }
-}
 
 /**
  * Transform book from PocketBase format to store format

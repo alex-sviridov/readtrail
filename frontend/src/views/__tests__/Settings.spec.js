@@ -58,7 +58,9 @@ describe('Settings View', () => {
 
       const sections = wrapper.findAll('h2')
       expect(sections.length).toBeGreaterThan(0)
-      expect(sections[0].text()).toBe('Display Settings')
+      // First section is Account, second is Display Settings
+      expect(sections[0].text()).toBe('Account')
+      expect(sections[1].text()).toBe('Display Settings')
     })
 
     it('should render all settings items with labels and descriptions', () => {
@@ -85,7 +87,7 @@ describe('Settings View', () => {
       })
 
       const toggleButtons = wrapper.findAll('button[role="switch"]')
-      expect(toggleButtons.length).toBe(2)
+      expect(toggleButtons.length).toBe(3)
     })
 
     it('should render back to library button', () => {
@@ -105,7 +107,7 @@ describe('Settings View', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.showBookInfo = true
+      settingsStore.settings.showBookInfo = true
 
       wrapper = mount(Settings, {
         global: {
@@ -124,7 +126,7 @@ describe('Settings View', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.showBookInfo = true
+      settingsStore.settings.showBookInfo = true
 
       wrapper = mount(Settings, {
         global: {
@@ -137,14 +139,14 @@ describe('Settings View', () => {
 
       await showBookInfoToggle.trigger('click')
 
-      expect(settingsStore.showBookInfo).toBe(false)
+      expect(settingsStore.settings.showBookInfo).toBe(false)
     })
 
     it('should toggle allowUnfinishedReading when clicked', async () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.allowUnfinishedReading = true
+      settingsStore.settings.allowUnfinishedReading = true
 
       wrapper = mount(Settings, {
         global: {
@@ -157,14 +159,14 @@ describe('Settings View', () => {
 
       await allowUnfinishedToggle.trigger('click')
 
-      expect(settingsStore.allowUnfinishedReading).toBe(false)
+      expect(settingsStore.settings.allowUnfinishedReading).toBe(false)
     })
 
     it('should update toggle visual state when value changes', async () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const settingsStore = useSettingsStore()
-      settingsStore.showBookInfo = false
+      settingsStore.settings.showBookInfo = false
 
       wrapper = mount(Settings, {
         global: {
@@ -196,13 +198,13 @@ describe('Settings View', () => {
         }
       })
 
-      settingsStore.showBookInfo = true
+      settingsStore.settings.showBookInfo = true
       await wrapper.vm.$nextTick()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       expect(toggles[0].attributes('aria-checked')).toBe('true')
 
-      settingsStore.showBookInfo = false
+      settingsStore.settings.showBookInfo = false
       await wrapper.vm.$nextTick()
 
       expect(toggles[0].attributes('aria-checked')).toBe('false')
@@ -217,8 +219,22 @@ describe('Settings View', () => {
         }
       })
 
-      const backButton = wrapper.find('button:not([role="switch"])')
+      // Find the "Back to Library" button (not the logout button or toggle switches)
+      const buttons = wrapper.findAll('button')
+      const backButton = buttons.find(btn => {
+        const text = btn.text()
+        return text.includes('Back to Library') || text.includes('← Back to Library')
+      })
+
+      expect(backButton).toBeTruthy()
+
+      // Trigger the click and wait for navigation
       await backButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Wait for the route to actually change
+      await new Promise(resolve => setTimeout(resolve, 0))
+      await router.isReady()
 
       expect(router.currentRoute.value.path).toBe('/library')
     })

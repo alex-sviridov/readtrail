@@ -9,10 +9,10 @@ import { logger } from '@/utils/logger'
 import { handleStorageError } from '@/utils/storageErrors'
 import { DEFAULT_BOOK_ATTRIBUTES, normalizeBookAttributes } from '@/utils/bookSchema'
 import { sortBooks } from '@/utils/bookSorting'
-import { serializeBook, deserializeBook, serializeBookForApi } from '@/utils/bookSerialization'
+import { serializeBook, deserializeBook } from '@/utils/bookSerialization'
+import { migrateLocalDataToBackend, needsMigration, markForMigration } from '@/services/migration'
 
-const STORAGE_KEY = 'flexlib-books'
-const MIGRATION_FLAG_KEY = 'flexlib-needs-migration'
+const STORAGE_KEY = 'readtrail-books'
 
 let idCounter = 0
 
@@ -29,8 +29,6 @@ export const useBooksStore = defineStore('books', () => {
   // Getters (computed)
   const sortedBooks = computed(() => sortBooks(books.value))
 
-  const booksCount = computed(() => books.value.length)
-
   const inProgressBooks = computed(() =>
     books.value.filter(book => !book.year && !book.month)
   )
@@ -38,8 +36,6 @@ export const useBooksStore = defineStore('books', () => {
   const completedBooks = computed(() =>
     books.value.filter(book => book.year && book.month)
   )
-
-  const pendingOperations = computed(() => syncQueue.getPendingCount())
 
   // Actions (functions)
 
@@ -106,7 +102,7 @@ export const useBooksStore = defineStore('books', () => {
 
             if (hasLocalData) {
               // Mark for migration
-              localStorage.setItem(MIGRATION_FLAG_KEY, 'true')
+              markForMigration()
               logger.info('Loaded books from localStorage, marked for migration')
             } else {
               // No data anywhere, load defaults
@@ -127,8 +123,8 @@ export const useBooksStore = defineStore('books', () => {
       }
 
       // Check if we need to migrate
-      if (localStorage.getItem(MIGRATION_FLAG_KEY) === 'true') {
-        await migrateLocalDataToBackend()
+      if (needsMigration()) {
+        await performMigration()
       }
     } catch (error) {
       logger.error('Failed to load books:', error)
@@ -218,60 +214,38 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   /**
-   * Migrate localStorage data to backend
+   * Migrate localStorage data to backend using migration service
    */
-  async function migrateLocalDataToBackend() {
-    if (!isOnline.value) {
-      logger.debug('Offline, skipping migration')
-      return
-    }
+  async function performMigration() {
+    syncStatus.value = 'syncing'
 
-    if (isGuestMode()) {
-      logger.debug('Guest mode, skipping migration')
-      return
-    }
-
-    try {
-      logger.info('Migrating localStorage books to backend')
-      syncStatus.value = 'syncing'
-
-      if (books.value.length === 0) {
-        logger.info('No books to migrate')
-        syncStatus.value = 'idle'
-        localStorage.removeItem(MIGRATION_FLAG_KEY)
-        return
+    const result = await migrateLocalDataToBackend(
+      books.value,
+      isOnline.value,
+      (idMapping) => {
+        // Update book IDs based on migration result
+        idMapping.forEach(({ oldId, newId, createdAt, updatedAt }) => {
+          const book = books.value.find(b => b.id === oldId)
+          if (book) {
+            book.id = newId
+            book.createdAt = createdAt
+            book.updatedAt = updatedAt
+            pendingIdMap.value[oldId] = newId
+          }
+        })
+        // Save updated books to localStorage
+        saveToLocalStorage()
       }
+    )
 
-      // All guest books have temp IDs, so we need to create them all on backend
-      const booksData = books.value.map(serializeBookForApi)
-
-      logger.info(`Creating ${booksData.length} books on backend...`)
-      const createdBooks = await booksApi.batchCreateBooks(booksData)
-
-      // Replace temp IDs with backend IDs
-      books.value.forEach((book, index) => {
-        if (createdBooks[index]) {
-          const oldId = book.id
-          const newId = createdBooks[index].id
-          book.id = newId
-          book.createdAt = createdBooks[index].createdAt
-          book.updatedAt = createdBooks[index].updatedAt
-          pendingIdMap.value[oldId] = newId
-          logger.debug(`Replaced temp ID ${oldId} with backend ID ${newId}`)
-        }
-      })
-
-      // Save updated books to localStorage
-      saveToLocalStorage()
-
-      localStorage.removeItem(MIGRATION_FLAG_KEY)
+    if (result.success) {
       syncStatus.value = 'idle'
       lastSyncTime.value = new Date()
-      logger.info(`Migration completed successfully - ${createdBooks.length} books migrated`)
-    } catch (error) {
-      logger.error('Migration failed:', error)
+    } else {
       syncStatus.value = 'error'
-      lastError.value = 'Failed to migrate data to backend'
+      if (result.reason === 'error') {
+        lastError.value = 'Failed to migrate data to backend'
+      }
     }
   }
 
@@ -421,27 +395,6 @@ export const useBooksStore = defineStore('books', () => {
     })
   }
 
-  // Legacy wrapper functions for backward compatibility
-  // TODO: Update components to use updateBookFields directly
-  function updateBookTitle(id, title = null) {
-    return title ? updateBookFields(id, { name: title }) : false
-  }
-
-  function updateBookAuthor(id, author = null) {
-    return author ? updateBookFields(id, { author }) : false
-  }
-
-  function updateBookCover(id, coverLink = null, customCover = null) {
-    const updates = { coverLink }
-    if (customCover !== null) {
-      updates.attributes = { customCover }
-    }
-    return updateBookFields(id, updates)
-  }
-
-  function updateBookScore(id, score = null) {
-    return updateBookFields(id, { attributes: { score } })
-  }
 
   // Delete a book
   function deleteBook(id) {
@@ -486,11 +439,9 @@ export const useBooksStore = defineStore('books', () => {
     booksLoading,
     syncStatus,
     lastSyncTime,
-    pendingOperations,
     isOnline,
     // Getters
     sortedBooks,
-    booksCount,
     inProgressBooks,
     completedBooks,
     // Actions
@@ -500,16 +451,11 @@ export const useBooksStore = defineStore('books', () => {
     addBook,
     updateBook,
     updateBookStatus,
-    updateBookFields, // NEW: Generic field updater
-    // Legacy wrapper functions (deprecated - use updateBookFields instead)
-    updateBookTitle,
-    updateBookAuthor,
-    updateBookCover,
-    updateBookScore,
+    updateBookFields,
     deleteBook,
     findBookById,
     syncWithBackend,
-    migrateLocalDataToBackend,
+    performMigration,
     $reset
   }
 })

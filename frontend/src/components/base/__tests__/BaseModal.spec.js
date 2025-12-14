@@ -69,11 +69,14 @@ describe('BaseModal Component', () => {
         props: {
           isOpen: true,
           title: 'Test Modal'
-        }
+        },
+        attachTo: document.body
       })
 
+      // Check that the modal element is rendered in the document body
       const modalElement = document.querySelector('.fixed.inset-0')
-      expect(modalElement?.parentElement).toBe(document.body)
+      expect(modalElement).toBeTruthy()
+      expect(document.body.contains(modalElement)).toBe(true)
     })
   })
 

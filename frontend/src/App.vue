@@ -12,7 +12,7 @@ const { isOnline } = useOnlineStatus()
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         <RouterLink to="/library" class="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
-          FlexLib
+          readtrail
         </RouterLink>
         <div class="flex items-center gap-3">
           <!-- Offline Indicator -->

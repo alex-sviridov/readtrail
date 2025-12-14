@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
 import BookCard from '../library/BookCard.vue'
-import BookTitle from '../library/BookTitle.vue'
-import BookAuthor from '../library/BookAuthor.vue'
+import EditableText from '../library/EditableText.vue'
 import BookStatus from '../library/BookStatus.vue'
 import BookCover from '../library/BookCover.vue'
 import DatePickerCard from '../library/DatePicker.vue'
@@ -23,6 +22,14 @@ vi.mock('@/composables/useDateHelpers', () => ({
 vi.mock('@/composables/useClickOutside', () => ({
   useClickOutside: vi.fn(),
   useEscapeKey: vi.fn()
+}))
+
+vi.mock('@/composables/useTemporaryScoreEdit', () => ({
+  useTemporaryScoreEdit: () => ({
+    isEditing: ref(false),
+    start: vi.fn(),
+    stop: vi.fn()
+  })
 }))
 
 vi.mock('@/constants', () => ({
@@ -111,58 +118,60 @@ describe('BookCard', () => {
     coverLink: null
   }
 
-  const defaultSettings = {
-    showBookInfo: true,
-    allowUnfinishedReading: false
+  const mockBooksStore = {
+    updateBookStatus: vi.fn(),
+    updateBookFields: vi.fn(),
+    deleteBook: vi.fn()
   }
 
-  const globalComponents = {
-    BookTitle,
-    BookAuthor,
-    BookStatus,
-    BookCover,
-    DatePickerCard,
-    IconButton
+  const mockSettingsStore = {
+    settings: {
+      showBookInfo: true,
+      allowUnfinishedReading: false,
+      allowScoring: false
+    }
+  }
+
+  const createWrapper = (book, settingsOverride = {}) => {
+    const settingsStore = {
+      settings: { ...mockSettingsStore.settings, ...settingsOverride }
+    }
+
+    return mount(BookCard, {
+      props: { book },
+      global: {
+        stubs: { Teleport: true },
+        provide: {
+          booksStore: mockBooksStore,
+          settingsStore
+        }
+      }
+    })
   }
 
   describe('View Mode', () => {
     it('renders book name', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
       expect(wrapper.text()).toContain('In Progress Book')
     })
 
     it('displays "Reading..." status for in-progress book', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
       expect(wrapper.text()).toContain('Reading...')
     })
 
     it('displays formatted completion date for completed book', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: completedBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(completedBook)
       expect(wrapper.text()).toContain('June 2024')
     })
 
     it('renders book cover component', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
       expect(wrapper.findComponent(BookCover).exists()).toBe(true)
     })
 
     it('renders edit button on hover (visible in test)', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
       const editButtons = wrapper.findAllComponents(IconButton)
       expect(editButtons.length).toBeGreaterThan(0)
       const editButton = editButtons.find(b => b.props('title') === 'Edit book')
@@ -172,10 +181,7 @@ describe('BookCard', () => {
 
   describe('Edit Mode', () => {
     it('enters edit mode when Edit icon is clicked', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
       await editIcon.vm.$emit('click')
@@ -184,16 +190,16 @@ describe('BookCard', () => {
       // In edit mode, the card should have the edit ring class
       expect(wrapper.find('.ring-2.ring-blue-500').exists()).toBe(true)
 
-      // BookTitle and BookAuthor should receive editable prop
-      expect(wrapper.findComponent(BookTitle).props('editable')).toBe(true)
-      expect(wrapper.findComponent(BookAuthor).props('editable')).toBe(true)
+      // EditableText components should receive editable prop
+      const editableTexts = wrapper.findAllComponents(EditableText)
+      expect(editableTexts.length).toBeGreaterThan(0)
+      editableTexts.forEach(text => {
+        expect(text.props('editable')).toBe(true)
+      })
     })
 
     it('shows delete button when in edit mode', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
       await editIcon.vm.$emit('click')
@@ -203,65 +209,42 @@ describe('BookCard', () => {
       expect(deleteIcon).toBeDefined()
     })
 
-    it('emits update-title when BookTitle emits update', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+    it('updates title when EditableText emits update', async () => {
+      const wrapper = createWrapper(inProgressBook)
 
-      const bookTitle = wrapper.findComponent(BookTitle)
-      await bookTitle.vm.$emit('update', 'Updated Title')
+      const titleComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'title')
+      await titleComponent.vm.$emit('update', 'Updated Title')
       await nextTick()
 
-      expect(wrapper.emitted('update-title')).toBeTruthy()
-      expect(wrapper.emitted('update-title')[0][0]).toEqual({
-        id: '1',
-        title: 'Updated Title'
-      })
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { name: 'Updated Title' })
     })
 
-    it('emits update-author when BookAuthor emits update', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+    it('updates author when EditableText emits update', async () => {
+      const wrapper = createWrapper(inProgressBook)
 
-      const bookAuthor = wrapper.findComponent(BookAuthor)
-      await bookAuthor.vm.$emit('update', 'Updated Author')
+      const authorComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'author')
+      await authorComponent.vm.$emit('update', 'Updated Author')
       await nextTick()
 
-      expect(wrapper.emitted('update-author')).toBeTruthy()
-      expect(wrapper.emitted('update-author')[0][0]).toEqual({
-        id: '1',
-        author: 'Updated Author'
-      })
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { author: 'Updated Author' })
     })
 
-    it('emits update-cover when BookCover emits update', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+    it('updates cover when BookCover emits update', async () => {
+      const wrapper = createWrapper(inProgressBook)
 
       const bookCover = wrapper.findComponent(BookCover)
-      await bookCover.vm.$emit('update', 'https://example.com/cover.jpg')
+      await bookCover.vm.$emit('update', { coverLink: 'https://example.com/cover.jpg', customCover: null })
       await nextTick()
 
-      expect(wrapper.emitted('update-cover')).toBeTruthy()
-      expect(wrapper.emitted('update-cover')[0][0]).toEqual({
-        id: '1',
-        coverLink: 'https://example.com/cover.jpg',
-        customCover: null
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', {
+        coverLink: 'https://example.com/cover.jpg'
       })
     })
   })
 
   describe('Date Picker Mode', () => {
     it('opens date picker when BookStatus is clicked', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       const bookStatus = wrapper.findComponent(BookStatus)
       await bookStatus.vm.$emit('open-picker')
@@ -271,14 +254,11 @@ describe('BookCard', () => {
       expect(wrapper.findComponent(DatePickerCard).exists()).toBe(true)
 
       // Normal card content should be hidden
-      expect(wrapper.findComponent(BookTitle).exists()).toBe(false)
+      expect(wrapper.findAllComponents(EditableText).length).toBe(0)
     })
 
-    it('emits update-status when date is selected', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+    it('calls updateBookStatus when date is selected', async () => {
+      const wrapper = createWrapper(inProgressBook)
 
       // Open picker
       const bookStatus = wrapper.findComponent(BookStatus)
@@ -290,20 +270,11 @@ describe('BookCard', () => {
       await datePicker.vm.$emit('date-select', { year: 2024, month: 11, isUnfinished: false, keepOpen: false })
       await nextTick()
 
-      expect(wrapper.emitted('update-status')).toBeTruthy()
-      expect(wrapper.emitted('update-status')[0][0]).toEqual({
-        id: '1',
-        year: 2024,
-        month: 12, // month is adjusted by +1
-        isUnfinished: false
-      })
+      expect(mockBooksStore.updateBookStatus).toHaveBeenCalledWith('1', 2024, 12, false, null)
     })
 
     it('closes picker after date selection (when keepOpen is false)', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       // Open picker
       const bookStatus = wrapper.findComponent(BookStatus)
@@ -322,10 +293,7 @@ describe('BookCard', () => {
     })
 
     it('handles "In Progress" selection (null date)', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: completedBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(completedBook)
 
       // Open picker
       const bookStatus = wrapper.findComponent(BookStatus)
@@ -337,22 +305,13 @@ describe('BookCard', () => {
       await datePicker.vm.$emit('date-select', null)
       await nextTick()
 
-      expect(wrapper.emitted('update-status')).toBeTruthy()
-      expect(wrapper.emitted('update-status')[0][0]).toEqual({
-        id: '2',
-        year: null,
-        month: null,
-        isUnfinished: false
-      })
+      expect(mockBooksStore.updateBookStatus).toHaveBeenCalledWith('2', null, null, false, 0)
     })
   })
 
   describe('Delete', () => {
-    it('emits delete event when Delete icon is clicked', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+    it('calls deleteBook when Delete icon is clicked', async () => {
+      const wrapper = createWrapper(inProgressBook)
 
       // Enter edit mode first
       const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
@@ -364,8 +323,7 @@ describe('BookCard', () => {
       await deleteIcon.vm.$emit('click')
       await nextTick()
 
-      expect(wrapper.emitted('delete')).toBeTruthy()
-      expect(wrapper.emitted('delete')[0][0]).toBe('1')
+      expect(mockBooksStore.deleteBook).toHaveBeenCalledWith('1')
     })
   })
 
@@ -379,16 +337,10 @@ describe('BookCard', () => {
 
     testCases.forEach(({ year, month, expected }) => {
       it(`formats ${year}-${month} as "${expected}"`, () => {
-        const wrapper = mount(BookCard, {
-          props: {
-            book: {
-              ...completedBook,
-              year,
-              month
-            },
-            settings: defaultSettings
-          },
-          global: { components: globalComponents, stubs: { Teleport: true } }
+        const wrapper = createWrapper({
+          ...completedBook,
+          year,
+          month
         })
         expect(wrapper.text()).toContain(expected)
       })
@@ -397,10 +349,7 @@ describe('BookCard', () => {
 
   describe('Card Styling', () => {
     it('applies card styling classes', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       expect(wrapper.find('.rounded-lg').exists()).toBe(true)
       expect(wrapper.find('.shadow-md').exists()).toBe(true)
@@ -408,20 +357,14 @@ describe('BookCard', () => {
     })
 
     it('applies special styling for in-progress books', () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       // In-progress books should have blue ring styling
       expect(wrapper.find('.ring-2.ring-blue-400').exists()).toBe(true)
     })
 
     it('applies edit mode styling when in edit mode', async () => {
-      const wrapper = mount(BookCard, {
-        props: { book: inProgressBook, settings: defaultSettings },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook)
 
       const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
       await editIcon.vm.$emit('click')
@@ -434,40 +377,21 @@ describe('BookCard', () => {
 
   describe('Settings', () => {
     it('hides book info when settings.showBookInfo is false', () => {
-      const wrapper = mount(BookCard, {
-        props: {
-          book: inProgressBook,
-          settings: { ...defaultSettings, showBookInfo: false }
-        },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
 
-      expect(wrapper.findComponent(BookTitle).exists()).toBe(false)
-      expect(wrapper.findComponent(BookAuthor).exists()).toBe(false)
+      expect(wrapper.findAllComponents(EditableText).length).toBe(0)
     })
 
     it('shows unfinished ribbon when book is unfinished and setting is enabled', () => {
       const unfinishedBook = { ...inProgressBook, attributes: { isUnfinished: true } }
-      const wrapper = mount(BookCard, {
-        props: {
-          book: unfinishedBook,
-          settings: { ...defaultSettings, allowUnfinishedReading: true }
-        },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(unfinishedBook, { allowUnfinishedReading: true })
 
       expect(wrapper.text()).toContain('Unfinished')
     })
 
     it('does not show unfinished ribbon when setting is disabled', () => {
       const unfinishedBook = { ...inProgressBook, attributes: { isUnfinished: true } }
-      const wrapper = mount(BookCard, {
-        props: {
-          book: unfinishedBook,
-          settings: { ...defaultSettings, allowUnfinishedReading: false }
-        },
-        global: { components: globalComponents, stubs: { Teleport: true } }
-      })
+      const wrapper = createWrapper(unfinishedBook, { allowUnfinishedReading: false })
 
       expect(wrapper.text()).not.toContain('Unfinished')
     })

@@ -124,11 +124,11 @@ defineOptions({
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
-const { showBookInfo, allowUnfinishedReading, allowScoring } = storeToRefs(settingsStore)
+const { settings } = storeToRefs(settingsStore)
 
 // Auth state
 const isGuest = computed(() => authManager.isGuestUser())
-const userEmail = computed(() => authManager.getUserEmail())
+const userEmail = computed(() => authManager.getCurrentUser()?.email || null)
 
 // Settings configuration (moved from store to component where it belongs)
 const settingsConfig = computed(() => [
@@ -140,24 +140,24 @@ const settingsConfig = computed(() => [
         label: 'Show Book Information',
         description: 'Display book title and author on book cards in the library',
         type: 'toggle',
-        value: showBookInfo.value,
-        toggle: () => { showBookInfo.value = !showBookInfo.value }
+        value: settings.value.showBookInfo,
+        toggle: () => settingsStore.updateSetting('showBookInfo', !settings.value.showBookInfo)
       },
       {
         key: 'allowUnfinishedReading',
         label: 'Allow Unfinished Reading',
         description: 'Enable marking books as unfinished when setting their completion date',
         type: 'toggle',
-        value: allowUnfinishedReading.value,
-        toggle: () => { allowUnfinishedReading.value = !allowUnfinishedReading.value }
+        value: settings.value.allowUnfinishedReading,
+        toggle: () => settingsStore.updateSetting('allowUnfinishedReading', !settings.value.allowUnfinishedReading)
       },
       {
         key: 'allowScoring',
         label: 'Allow Book Scoring',
         description: 'Enable like/dislike functionality for books',
         type: 'toggle',
-        value: allowScoring.value,
-        toggle: () => { allowScoring.value = !allowScoring.value }
+        value: settings.value.allowScoring,
+        toggle: () => settingsStore.updateSetting('allowScoring', !settings.value.allowScoring)
       }
     ]
   }

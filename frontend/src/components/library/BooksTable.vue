@@ -5,7 +5,7 @@
       <input
         v-model="globalFilter"
         type="text"
-        placeholder="Search books by title or author..."
+        placeholder="Search by title, author, or year..."
         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
@@ -181,8 +181,8 @@ const columns = [
         class: 'flex items-center cursor-pointer',
         onClick: () => openCoverModal(book)
       }, [
-        // Show custom cover if enabled
-        book.customCover
+        // Show custom cover if enabled (check attributes.customCover)
+        book.attributes?.customCover
           ? h('div', { class: 'w-10 h-14 rounded shadow-sm hover:shadow-md transition-shadow overflow-hidden' }, [
               h(CustomBookCover, {
                 title: book.name,
@@ -284,6 +284,7 @@ const columns = [
     cell: ({ row }) => {
       const book = row.original
 
+      // In Progress (no year/month set)
       if (book.year === null && book.month === null) {
         return h('div', {
           class: 'text-gray-500 italic cursor-pointer hover:text-blue-600',
@@ -291,8 +292,16 @@ const columns = [
         }, 'In Progress')
       }
 
-      const monthName = book.month ? new Date(2000, book.month - 1, 1).toLocaleString('default', { month: 'short' }) : ''
-      const dateStr = `${monthName} ${book.year}`
+      // Handle sentinel years (1900 = Long Time Ago, 1910 = Read Lately)
+      let dateStr
+      if (book.year === 1910) {
+        dateStr = 'Read Lately'
+      } else if (book.year <= 1900) {
+        dateStr = 'Long Time Ago'
+      } else {
+        const monthName = book.month ? new Date(2000, book.month - 1, 1).toLocaleString('default', { month: 'short' }) : ''
+        dateStr = `${monthName} ${book.year}`
+      }
 
       return h('div', {
         class: 'text-gray-700 cursor-pointer hover:text-blue-600 flex items-center gap-2 group',
@@ -407,7 +416,8 @@ const table = useVueTable({
     const search = filterValue.toLowerCase()
     const name = row.original.name?.toLowerCase() || ''
     const author = row.original.author?.toLowerCase() || ''
-    return name.includes(search) || author.includes(search)
+    const year = row.original.year ? String(row.original.year) : ''
+    return name.includes(search) || author.includes(search) || year.includes(search)
   },
   initialState: {
     sorting: [
@@ -416,6 +426,38 @@ const table = useVueTable({
         desc: true
       }
     ]
+  },
+  sortingFns: {
+    // Custom sort function for year column that matches Library.vue behavior
+    auto: (rowA, rowB, columnId) => {
+      if (columnId === 'year') {
+        const a = rowA.original
+        const b = rowB.original
+
+        // In-progress books (no year/month) come first
+        const aCompleted = a.year !== null && a.month !== null
+        const bCompleted = b.year !== null && b.month !== null
+
+        if (!aCompleted && bCompleted) return -1
+        if (aCompleted && !bCompleted) return 1
+
+        // Both in-progress - sort by createdAt (newest first)
+        if (!aCompleted && !bCompleted) {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        }
+
+        // Both completed - sort by year and month (newest first)
+        if (a.year !== b.year) {
+          return b.year - a.year
+        }
+        return b.month - a.month
+      }
+
+      // Default sorting for other columns
+      const aValue = rowA.getValue(columnId)
+      const bValue = rowB.getValue(columnId)
+      return aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+    }
   }
 })
 </script>

@@ -75,7 +75,7 @@ describe('useBooksStore', () => {
     it('should save to localStorage after adding', () => {
       store.addBook('Test Book')
 
-      const stored = localStorage.getItem('flexlib-books')
+      const stored = localStorage.getItem('readtrail-books')
       expect(stored).toBeDefined()
       const parsed = JSON.parse(stored)
       expect(parsed).toHaveLength(1)
@@ -159,7 +159,7 @@ describe('useBooksStore', () => {
       const book = store.addBook('Original')
       store.updateBook(book.id, 'Updated')
 
-      const stored = JSON.parse(localStorage.getItem('flexlib-books'))
+      const stored = JSON.parse(localStorage.getItem('readtrail-books'))
       expect(stored[0].name).toBe('Updated')
     })
   })
@@ -203,7 +203,7 @@ describe('useBooksStore', () => {
 
       store.deleteBook(book1.id)
 
-      const stored = JSON.parse(localStorage.getItem('flexlib-books'))
+      const stored = JSON.parse(localStorage.getItem('readtrail-books'))
       expect(stored).toHaveLength(1)
       expect(stored[0].name).toBe('Book 2')
     })
@@ -327,7 +327,7 @@ describe('useBooksStore', () => {
           createdAt: new Date(2024, 0, 2).toISOString()
         }
       ]
-      localStorage.setItem('flexlib-books', JSON.stringify(testBooks))
+      localStorage.setItem('readtrail-books', JSON.stringify(testBooks))
 
       // Create a new store instance which should load from localStorage
       const newStore = useBooksStore()
@@ -343,29 +343,22 @@ describe('useBooksStore', () => {
       expect(newStore.books[1].createdAt).toBeInstanceOf(Date)
     })
 
-    it('should load default books when localStorage is empty', async () => {
+    it('should load empty array when localStorage is empty', async () => {
       await store.loadBooks()
 
-      expect(store.books.length).toBeGreaterThan(0)
-      const gatsby = store.books.find(b => b.name === 'The Great Gatsby')
-      expect(gatsby).toBeDefined()
-      expect(gatsby.author).toBe('F. Scott Fitzgerald')
-      expect(gatsby.coverLink).toBeTruthy()
-
-      const orwell = store.books.find(b => b.name === '1984')
-      expect(orwell).toBeDefined()
-      expect(orwell.author).toBe('George Orwell')
-      expect(orwell.coverLink).toBeTruthy()
+      // With backend integration, we no longer load default books
+      // Empty localStorage means empty books array
+      expect(store.books.length).toBe(0)
     })
 
     it('should handle corrupted localStorage data gracefully', async () => {
-      localStorage.setItem('flexlib-books', 'invalid json{')
+      localStorage.setItem('readtrail-books', 'invalid json{')
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       await store.loadBooks()
 
-      // When localStorage is corrupted, it should load default books instead of leaving empty
-      expect(store.books.length).toBeGreaterThan(0)
+      // When localStorage is corrupted, it should return empty array
+      expect(store.books.length).toBe(0)
 
       consoleSpy.mockRestore()
     })
@@ -373,7 +366,7 @@ describe('useBooksStore', () => {
     it('should serialize createdAt to ISO strings when saving', () => {
       store.addBook('Test Book', 2024, 5)
 
-      const stored = localStorage.getItem('flexlib-books')
+      const stored = localStorage.getItem('readtrail-books')
       const parsed = JSON.parse(stored)
 
       expect(typeof parsed[0].createdAt).toBe('string')
@@ -391,7 +384,7 @@ describe('useBooksStore', () => {
         month: 5,
         createdAt: isoDate
       }
-      localStorage.setItem('flexlib-books', JSON.stringify([testBook]))
+      localStorage.setItem('readtrail-books', JSON.stringify([testBook]))
 
       await store.loadBooks()
 

@@ -145,10 +145,10 @@
 
                 <!-- Score Component (always editable in this context) -->
                 <BookScore
-                  v-if="settingsStore.allowScoring"
+                  v-if="settingsStore.settings.allowScoring"
                   :score="selectedScore"
                   :editable="true"
-                  :allow-scoring="settingsStore.allowScoring"
+                  :allow-scoring="settingsStore.settings.allowScoring"
                   class="absolute bottom-2 right-2 z-10"
                   @update:score="selectedScore = $event"
                 />
@@ -211,7 +211,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'select'])
 
 // 3. Injections
-const settingsStore = inject('settingsStore', { allowScoring: false })
+const settingsStore = inject('settingsStore', { settings: { allowScoring: false } })
 
 // 4. Local State
 const titleQuery = ref('')

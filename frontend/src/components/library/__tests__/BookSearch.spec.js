@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BookSearch from '../BookSearch.vue'
 import { TIMINGS, DATE_PICKER } from '@/constants'
@@ -8,12 +8,16 @@ describe('BookSearch Component', () => {
   let wrapper
   let mockFetch
 
-  beforeEach(() => {
-    // Create teleport target
-    const el = document.createElement('div')
-    el.id = 'app'
-    document.body.appendChild(el)
+  // Helper to get teleported elements
+  const getInput = (placeholder) => document.querySelector(`input[placeholder="${placeholder}"]`)
+  const setInputValue = async (placeholder, value) => {
+    const input = getInput(placeholder)
+    input.value = value
+    input.dispatchEvent(new Event('input'))
+    await nextTick()
+  }
 
+  beforeEach(() => {
     // Mock fetch globally
     mockFetch = vi.fn()
     global.fetch = mockFetch
@@ -30,66 +34,110 @@ describe('BookSearch Component', () => {
   })
 
   describe('Step 1: Search - Rendering', () => {
-    it('should render modal with search inputs when open', () => {
+    it('should render modal with search inputs when open', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
+      await nextTick()
 
-      expect(wrapper.find('input[placeholder="Enter book title..."]').exists()).toBe(true)
-      expect(wrapper.find('input[placeholder="Enter author name..."]').exists()).toBe(true)
+      expect(document.querySelector('input[placeholder="Enter book title..."]')).toBeTruthy()
+      expect(document.querySelector('input[placeholder="Enter author name..."]')).toBeTruthy()
     })
 
-    it('should display empty state when no search query', () => {
+    it('should display empty state when no search query', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
+      await nextTick()
 
-      expect(wrapper.text()).toContain('Start typing a title and/or author to search')
+      expect(document.body.textContent).toContain('Start typing a title and/or author to search')
     })
 
-    it('should have correct modal title for search step', () => {
+    it('should have correct modal title for search step', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
+      await nextTick()
 
-      expect(wrapper.text()).toContain('Add Book')
+      expect(document.body.textContent).toContain('Add Book')
     })
   })
 
   describe('Step 1: Search - Input Handling', () => {
     it('should update titleQuery when typing in title input', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
+      await nextTick()
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'
+      titleInput.dispatchEvent(new Event('input'))
+      await nextTick()
 
-      expect(titleInput.element.value).toBe('1984')
+      expect(titleInput.value).toBe('1984')
     })
 
     it('should update authorQuery when typing in author input', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
+      await nextTick()
 
-      const authorInput = wrapper.find('input[placeholder="Enter author name..."]')
-      await authorInput.setValue('George Orwell')
+      const authorInput = document.querySelector('input[placeholder="Enter author name..."]')
+      authorInput.value = 'George Orwell'
+      authorInput.dispatchEvent(new Event('input'))
+      await nextTick()
 
-      expect(authorInput.element.value).toBe('George Orwell')
+      expect(authorInput.value).toBe('George Orwell')
     })
 
     it('should focus title input when modal opens', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: false },
-        attachTo: document.body
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
       await wrapper.setProps({ isOpen: true })
       await nextTick()
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      expect(titleInput.exists()).toBe(true)
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      expect(titleInput).toBeTruthy()
     })
   })
 
@@ -101,11 +149,17 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       // Should not call fetch immediately
       expect(mockFetch).not.toHaveBeenCalled()
@@ -128,21 +182,27 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
 
-      await titleInput.setValue('1')
+      titleInput.value = '1'; titleInput.dispatchEvent(new Event('input')); await nextTick()
       vi.advanceTimersByTime(200)
 
-      await titleInput.setValue('19')
+      titleInput.value = '19'; titleInput.dispatchEvent(new Event('input')); await nextTick()
       vi.advanceTimersByTime(200)
 
-      await titleInput.setValue('198')
+      titleInput.value = '198'; titleInput.dispatchEvent(new Event('input')); await nextTick()
       vi.advanceTimersByTime(200)
 
-      await titleInput.setValue('1984')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
       vi.advanceTimersByTime(500)
       await nextTick()
 
@@ -159,11 +219,17 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
@@ -181,11 +247,17 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const authorInput = wrapper.find('input[placeholder="Enter author name..."]')
-      await authorInput.setValue('George Orwell')
+      const authorInput = document.querySelector('input[placeholder="Enter author name..."]')
+      authorInput.value = 'George Orwell'; authorInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
@@ -203,14 +275,20 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      const authorInput = wrapper.find('input[placeholder="Enter author name..."]')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      const authorInput = document.querySelector('input[placeholder="Enter author name..."]')
 
-      await titleInput.setValue('1984')
-      await authorInput.setValue('George Orwell')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
+      authorInput.value = 'George Orwell'; authorInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
@@ -224,16 +302,22 @@ describe('BookSearch Component', () => {
       mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
 
-      expect(wrapper.find('.animate-spin').exists()).toBe(true)
+      expect(document.querySelector('.animate-spin')).toBeTruthy()
     })
   })
 
@@ -245,17 +329,24 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
-      await nextTick() // Extra tick for error state
+      await nextTick()
+      await nextTick() // Extra ticks for error state to render
 
-      expect(wrapper.text()).toContain('Invalid search query')
+      expect(document.body.textContent).toContain('Invalid search query')
     })
 
     it('should handle 404 Not Found error', async () => {
@@ -265,17 +356,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Search service not found')
+      expect(document.body.textContent).toContain('Search service not found')
     })
 
     it('should handle 429 Too Many Requests error', async () => {
@@ -285,17 +384,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Too many requests')
+      expect(document.body.textContent).toContain('Too many requests')
     })
 
     it('should handle 500 Internal Server Error', async () => {
@@ -305,17 +412,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('experiencing issues')
+      expect(document.body.textContent).toContain('experiencing issues')
     })
 
     it('should handle 503 Service Unavailable error', async () => {
@@ -325,28 +440,42 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('temporarily unavailable')
+      expect(document.body.textContent).toContain('temporarily unavailable')
     })
 
     it('should handle timeout error', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
@@ -355,25 +484,34 @@ describe('BookSearch Component', () => {
       vi.advanceTimersByTime(TIMINGS.API_TIMEOUT + 100)
       await nextTick()
       await nextTick()
+      await nextTick()
 
-      expect(wrapper.text()).toContain('timed out')
+      expect(document.body.textContent).toContain('timed out')
     })
 
     it('should handle network error', async () => {
       mockFetch.mockRejectedValue(new Error('Failed to fetch'))
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Network error')
+      expect(document.body.textContent).toContain('Network error')
     })
   })
 
@@ -395,20 +533,28 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('1984')
-      expect(wrapper.text()).toContain('George Orwell')
-      expect(wrapper.text()).toContain('First published: 1949')
-      expect(wrapper.find('img[src*="12345"]').exists()).toBe(true)
+      expect(document.body.textContent).toContain('1984')
+      expect(document.body.textContent).toContain('George Orwell')
+      expect(document.body.textContent).toContain('First published: 1949')
+      expect(document.querySelector('img[src*="12345"]')).toBeTruthy()
     })
 
     it('should display placeholder icon when cover_i is missing', async () => {
@@ -426,17 +572,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('Book')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = 'Book'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Book Without Cover')
+      expect(document.body.textContent).toContain('Book Without Cover')
     })
 
     it('should handle missing author_name in results', async () => {
@@ -453,17 +607,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('Book')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = 'Book'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Book Without Author')
+      expect(document.body.textContent).toContain('Book Without Author')
     })
 
     it('should display "No books found" when results are empty', async () => {
@@ -473,17 +635,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('NonexistentBook12345')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = 'NonexistentBook12345'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('No books found')
+      expect(document.body.textContent).toContain('No books found')
     })
 
     it('should show manual add button when no results found', async () => {
@@ -493,17 +663,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('Custom Book')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = 'Custom Book'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Add "Custom Book" Manually')
+      expect(document.body.textContent).toContain('Add "Custom Book" Manually')
     })
 
     it('should show manual add button above results when results exist', async () => {
@@ -521,17 +699,25 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
+      await nextTick()
       await nextTick()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Add "1984" Manually')
+      expect(document.body.textContent).toContain('Add "1984" Manually')
     })
   })
 
@@ -544,18 +730,24 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
 
-      await titleInput.setValue('First')
+      titleInput.value = 'First'; titleInput.dispatchEvent(new Event('input')); await nextTick()
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
 
       const firstAbortSignal = abortSignal
 
-      await titleInput.setValue('Second')
+      titleInput.value = 'Second'; titleInput.dispatchEvent(new Event('input')); await nextTick()
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
 
@@ -570,11 +762,17 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
       await nextTick()
@@ -606,26 +804,32 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
       await nextTick()
       await nextTick()
 
       // Click on the book result
-      const bookButton = wrapper.findAll('button').find(b =>
-        b.text().includes('1984') && b.text().includes('George Orwell')
-      )
-      await bookButton.trigger('click')
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const bookButton = buttons.find(b => b.textContent.includes('1984') && b.textContent.includes('George Orwell'))
+      bookButton.click()
       await nextTick()
 
-      expect(wrapper.text()).toContain('1984')
-      expect(wrapper.text()).toContain('George Orwell')
-      expect(wrapper.text()).toContain('When did you read it?')
+      expect(document.body.textContent).toContain('1984')
+      expect(document.body.textContent).toContain('George Orwell')
+      expect(document.body.textContent).toContain('When did you read it?')
     })
 
     it('should have correct modal title for date picker step', async () => {
@@ -641,23 +845,29 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
       await nextTick()
       await nextTick()
 
-      const bookButton = wrapper.findAll('button').find(b =>
-        b.text().includes('1984')
-      )
-      await bookButton.trigger('click')
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const bookButton = buttons.find(b => b.textContent.includes('1984'))
+      bookButton.click()
       await nextTick()
 
-      expect(wrapper.text()).toContain('When did you read it?')
+      expect(document.body.textContent).toContain('When did you read it?')
     })
 
     it('should render back to search button in date picker step', async () => {
@@ -672,23 +882,29 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
       await nextTick()
       await nextTick()
 
-      const bookButton = wrapper.findAll('button').find(b =>
-        b.text().includes('1984')
-      )
-      await bookButton.trigger('click')
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const bookButton = buttons.find(b => b.textContent.includes('1984'))
+      bookButton.click()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Back to search')
+      expect(document.body.textContent).toContain('Back to search')
     })
   })
 
@@ -705,40 +921,51 @@ describe('BookSearch Component', () => {
       })
 
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('1984')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = '1984'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+      await flushPromises()
       await nextTick()
       await nextTick()
 
-      const bookButton = wrapper.findAll('button').find(b =>
-        b.text().includes('1984')
-      )
-      await bookButton.trigger('click')
+      let buttons = Array.from(document.querySelectorAll('button'));
+      const bookButton = buttons.find(b => b.textContent.includes('1984'))
+      bookButton.click()
       await nextTick()
 
-      const backButton = wrapper.findAll('button').find(b =>
-        b.text().includes('Back to search')
-      )
-      await backButton.trigger('click')
+      buttons = Array.from(document.querySelectorAll('button'));
+      const backButton = buttons.find(b => b.textContent.includes('Back to search'))
+      backButton.click()
       await nextTick()
 
-      expect(wrapper.find('input[placeholder="Enter book title..."]').exists()).toBe(true)
+      expect(document.querySelector('input[placeholder="Enter book title..."]')).toBeTruthy()
     })
   })
 
   describe('Modal Management', () => {
     it('should reset state when modal closes', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
-      const titleInput = wrapper.find('input[placeholder="Enter book title..."]')
-      await titleInput.setValue('Test Book')
+      const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
+      titleInput.value = 'Test Book'; titleInput.dispatchEvent(new Event('input')); await nextTick()
 
       await wrapper.setProps({ isOpen: false })
       await nextTick()
@@ -746,12 +973,18 @@ describe('BookSearch Component', () => {
       await wrapper.setProps({ isOpen: true })
       await nextTick()
 
-      expect(wrapper.find('input[placeholder="Enter book title..."]').element.value).toBe('')
+      expect(document.querySelector('input[placeholder="Enter book title..."]').value).toBe('')
     })
 
     it('should emit close event when modal is closed', async () => {
       wrapper = mount(BookSearch, {
-        props: { isOpen: true }
+        props: { isOpen: true },
+        attachTo: document.body,
+        global: {
+          provide: {
+            settingsStore: { settings: { allowScoring: true } }
+          }
+        }
       })
 
       // Find and click the close button (X icon)

@@ -9,7 +9,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/library'
+      redirect: '/library/timeline'
     },
     {
       path: '/library',
@@ -17,8 +17,8 @@ const router = createRouter({
       component: Library
     },
     {
-      path: '/library/:viewMode',
-      name: 'library-view',
+      path: '/library/timeline',
+      name: 'library-timeline',
       component: Library
     },
     {

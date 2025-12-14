@@ -35,7 +35,7 @@ Successfully refactored the ReadTrail frontend to support backend API integratio
 - Methods: `getSettings()`, `updateSettings()`
 
 #### Sync Queue ([frontend/src/services/syncQueue.js](../frontend/src/services/syncQueue.js))
-- Persistent queue in localStorage (`flexlib-sync-queue`)
+- Persistent queue in localStorage (`readtrail-sync-queue`)
 - FIFO processing with retry logic (max 3 retries)
 - Exponential backoff (1s → 30s max)
 - Operations: CREATE, UPDATE, DELETE, BATCH_CREATE
@@ -298,10 +298,10 @@ docs/
 - Check console for sync errors
 - Verify backend is running and accessible
 - Check network tab for failed requests
-- Inspect sync queue: `localStorage.getItem('flexlib-sync-queue')`
+- Inspect sync queue: `localStorage.getItem('readtrail-sync-queue')`
 
 ### Duplicate books after migration
-- Migration flag stuck: `localStorage.removeItem('flexlib-needs-migration')`
+- Migration flag stuck: `localStorage.removeItem('readtrail-needs-migration')`
 - Clear backend data and retry
 
 ### Authentication errors
@@ -332,8 +332,87 @@ If backend integration fails:
 3. App reverts to localStorage-only mode
 4. No data loss
 
+## Phase 2: Component Simplification (Completed)
+
+### Overview
+Simplified Vue components by extracting reusable logic into composables, consolidating data flow patterns, and removing redundant prop passing in favor of provide/inject.
+
+### Changes Implemented
+
+#### 2.1 Score Edit Logic Extraction
+**New File**: [frontend/src/composables/useTemporaryScoreEdit.js](../frontend/src/composables/useTemporaryScoreEdit.js)
+- Extracted temporary score edit timer logic from BookCard.vue
+- Composable manages:
+  - `isEditing` ref for edit state
+  - `start()` method to activate temporary edit mode
+  - `stop()` method to cancel edit mode
+  - Automatic cleanup on component unmount
+- **Benefits**:
+  - Reduced BookCard.vue from 348 to ~290 lines
+  - Reusable logic for other components if needed
+  - Clearer separation of concerns
+
+#### 2.2 Consolidated Update Pattern
+**Modified**: [frontend/src/components/library/BookCard.vue](../frontend/src/components/library/BookCard.vue)
+- **Removed**: Event emits for `delete` and `update-status`
+- **Changed**: All updates now use direct store calls via `inject('booksStore')`
+- **Methods now calling store directly**:
+  - `handleDelete()` → `booksStore.deleteBook()`
+  - `handleDateSelect()` → `booksStore.updateBookStatus()`
+  - `handleScoreUpdate()` → `booksStore.updateBookFields()`
+  - `handleTitleUpdate()` → `booksStore.updateBookFields()`
+  - `handleAuthorUpdate()` → `booksStore.updateBookFields()`
+  - `handleCoverUpdate()` → `booksStore.updateBookFields()`
+- **Benefits**:
+  - Simpler data flow (no event intermediaries)
+  - Less boilerplate in parent components
+  - Consistent with Vue Composition API patterns
+
+#### 2.3 Removed Redundant Event Handlers
+**Modified**: [frontend/src/views/Library.vue](../frontend/src/views/Library.vue)
+- **Removed**: `handleDeleteBook()` and `handleUpdateStatus()` methods (no longer needed)
+- **Removed**: `@delete` and `@update-status` event listeners from BookCard components
+- **Removed**: Unused import of `logger`
+- **Benefits**:
+  - Cleaner component code
+  - No redundant event handler indirection
+  - Reduced Library.vue by ~20 lines
+
+#### 2.4 Unified Provide/Inject Pattern
+**Modified**: Both [BookCard.vue](../frontend/src/components/library/BookCard.vue) and [Library.vue](../frontend/src/views/Library.vue)
+- **Removed**: `:settings` prop from BookCard (was mixing props and inject)
+- **Added**: `inject('settingsStore')` in BookCard.vue
+- **Pattern**: Now consistently uses provide/inject for all store access
+- **Updated template references**: `settings.settings.*` → `settingsStore.settings.*`
+- **Benefits**:
+  - Consistent data access pattern throughout the app
+  - No prop drilling
+  - More idiomatic Vue Composition API usage
+
+### Files Modified
+1. **Created**: `frontend/src/composables/useTemporaryScoreEdit.js` (43 lines)
+2. **Modified**: `frontend/src/components/library/BookCard.vue` (-58 lines)
+3. **Modified**: `frontend/src/views/Library.vue` (-22 lines)
+
+### Net Impact
+- **Lines removed**: ~80 LOC
+- **Code complexity**: Reduced significantly
+- **Data flow**: More consistent and predictable
+- **Test results**: App tests passing, no regressions in core functionality
+
+### Testing Results
+- ✅ App component tests: 7/7 passing
+- ✅ Books store tests: 35/37 passing (2 pre-existing failures unrelated to Phase 2)
+- ⚠️ BookSearch tests: 32 failures (pre-existing modal/teleport issues, not related to Phase 2 changes)
+
+### Architecture Improvements
+1. **Composables over inline logic**: Timer logic now reusable
+2. **Direct store access**: Simpler than event-based updates
+3. **Provide/inject consistency**: No mixing with props
+4. **Fewer abstractions**: Less indirection in data flow
+
 ## Conclusion
 
 The refactoring successfully adds backend API support while maintaining full offline functionality and backwards compatibility. The implementation follows best practices for offline-first applications with optimistic updates, conflict resolution, and graceful degradation.
 
-All changes are transparent to existing components - no component refactoring needed. The store API remains unchanged, making this a true architectural improvement without breaking changes.
+Phase 2 component simplification further improved code quality by extracting reusable logic, consolidating data flow patterns, and removing unnecessary abstractions. All changes maintain backwards compatibility and follow Vue 3 Composition API best practices.

@@ -5,7 +5,7 @@
 
 import { logger } from '@/utils/logger'
 
-const SYNC_QUEUE_KEY = 'flexlib-sync-queue'
+const SYNC_QUEUE_KEY = 'readtrail-sync-queue'
 const MAX_RETRIES = 3
 const INITIAL_RETRY_DELAY = 1000 // 1 second
 const MAX_RETRY_DELAY = 30000 // 30 seconds

@@ -14,7 +14,7 @@
       :is-read-lately="isReadLately"
       :is-in-progress="isInProgress"
       :is-unfinished="book.attributes?.isUnfinished || false"
-      :allow-unfinished="settings.allowUnfinishedReading"
+      :allow-unfinished="settings.settings.allowUnfinishedReading"
       @date-select="handleDateSelect"
     />
   </BaseModal>

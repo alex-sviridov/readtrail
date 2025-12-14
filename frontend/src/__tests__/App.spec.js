@@ -33,7 +33,7 @@ describe('App', () => {
     expect(wrapper.find('main').exists()).toBe(true)
   })
 
-  it('displays the FlexLib title in header', () => {
+  it('displays the readtrail title in header', () => {
     const wrapper = mount(App, {
       global: {
         plugins: [pinia, router]
@@ -41,7 +41,7 @@ describe('App', () => {
     })
 
     const header = wrapper.find('header')
-    expect(header.text()).toContain('FlexLib')
+    expect(header.text()).toContain('readtrail')
   })
 
   it('renders RouterView component', () => {

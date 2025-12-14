@@ -4,6 +4,8 @@
     <LibraryHeader
       :view-mode="viewMode"
       :hide-unfinished="hideUnfinished"
+      :search-query="searchQuery"
+      @update:search-query="searchQuery = $event"
       @set-view-mode="setViewMode"
       @toggle-filter="toggleFilter"
       @add-book="openSearchModal"
@@ -15,9 +17,6 @@
         v-for="book in filteredBooks"
         :key="book.id"
         :book="book"
-        :settings="settingsStore"
-        @delete="handleDeleteBook"
-        @update-status="handleUpdateStatus"
       />
     </div>
 
@@ -35,9 +34,6 @@
             v-for="book in group.books"
             :key="book.id"
             :book="book"
-            :settings="settingsStore"
-            @delete="handleDeleteBook"
-            @update-status="handleUpdateStatus"
           />
         </div>
       </div>
@@ -58,11 +54,11 @@ import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
+import { useBookSearch } from '@/composables/useBookSearch'
 import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
 import BookSearch from '@/components/library/BookSearch.vue'
 import LibraryHeader from '@/components/library/LibraryHeader.vue'
-import { logger } from '@/utils/logger'
 
 defineOptions({
   name: 'LibraryPage'
@@ -85,18 +81,26 @@ const settingsStore = useSettingsStore()
 // Provide settingsStore to child components
 provide('settingsStore', settingsStore)
 
+// Initialize search functionality
+const { searchQuery, searchedBooks } = useBookSearch(sortedBooks)
+
 // Filter toggle state - initialize from query parameter
 const hideUnfinished = ref(route.query.hideUnfinished === 'true')
 
-// Get view mode from route params (default to 'grid')
-const viewMode = computed(() => route.params.viewMode || 'grid')
+// Get view mode from route path
+const viewMode = computed(() => {
+  if (route.path === '/library/timeline') return 'timeline'
+  if (route.path === '/library/table') return 'table'
+  return 'grid'
+})
 
-// Filtered books based on hideUnfinished toggle
+// Filtered books based on search and hideUnfinished toggle
 const filteredBooks = computed(() => {
-  if (!hideUnfinished.value) {
-    return sortedBooks.value
+  let result = searchedBooks.value
+  if (hideUnfinished.value) {
+    result = result.filter(book => !book.attributes?.isUnfinished)
   }
-  return sortedBooks.value.filter(book => !book.attributes?.isUnfinished)
+  return result
 })
 
 // Group books by year for timeline view
@@ -183,20 +187,6 @@ const handleBookSelect = (bookData) => {
     bookData.isUnfinished || false,
     bookData.score || null
   )
-}
-
-// Handle deleting a book
-const handleDeleteBook = (id) => {
-  booksStore.deleteBook(id)
-}
-
-// Handle updating book status
-const handleUpdateStatus = ({ id, year, month, isUnfinished, score }) => {
-  const success = booksStore.updateBookStatus(id, year, month, isUnfinished, score)
-
-  if (!success) {
-    logger.error('Failed to update book status for book:', id)
-  }
 }
 
 </script>

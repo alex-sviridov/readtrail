@@ -36,6 +36,30 @@
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold text-gray-900">My Library</h1>
+
+      <!-- Search Input -->
+      <div class="flex-1 max-w-md mx-4">
+        <div class="relative">
+          <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            :value="searchQuery"
+            @input="$emit('update:search-query', $event.target.value)"
+            type="text"
+            placeholder="Search by title, author, or year..."
+            aria-label="Search books by title, author, or year"
+            class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            v-if="searchQuery"
+            @click="$emit('update:search-query', '')"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            title="Clear search"
+          >
+            <XMarkIcon class="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
       <div class="flex items-center gap-3">
         <!-- View Mode Toggle -->
         <div class="flex items-center bg-gray-200 rounded-lg p-1">
@@ -106,7 +130,7 @@
 <script setup>
 // 1. Imports
 import { ref, computed } from 'vue'
-import { PlusIcon, CalendarIcon, FunnelIcon, Squares2X2Icon, TableCellsIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, CalendarIcon, FunnelIcon, Squares2X2Icon, TableCellsIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { useBooksStore } from '@/stores/books'
 import { authManager } from '@/services/auth'
@@ -123,17 +147,22 @@ defineProps({
     type: Boolean,
     required: true,
     default: false
+  },
+  searchQuery: {
+    type: String,
+    required: false,
+    default: ''
   }
 })
 
-defineEmits(['set-view-mode', 'toggle-filter', 'add-book'])
+defineEmits(['set-view-mode', 'toggle-filter', 'add-book', 'update:search-query'])
 
 // 3. Store & Auth
 const booksStore = useBooksStore()
 const dismissedAuthPrompt = ref(false)
 
 // 4. Computed
-const booksCount = computed(() => booksStore.booksCount)
+const booksCount = computed(() => booksStore.books.length)
 const isGuest = computed(() => authManager.isGuestUser())
 const showAuthPrompt = computed(() => {
   return isGuest.value && booksCount.value >= 3

@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { useBooksStore } from './stores/books'
+import { useSettingsStore } from './stores/settings'
 import { logger } from './utils/logger'
 import './style.css'
 
@@ -18,10 +19,13 @@ app.mount('#app')
 async function initializeApp() {
   try {
     const booksStore = useBooksStore()
-    // Note: settingsStore no longer needs initialization - useStorage handles it automatically
+    const settingsStore = useSettingsStore()
 
-    // Load books from backend/localStorage
-    await booksStore.loadBooks()
+    // Load settings and books in parallel
+    await Promise.all([
+      settingsStore.loadSettings(),
+      booksStore.loadBooks()
+    ])
 
     logger.info('App initialized successfully')
   } catch (error) {

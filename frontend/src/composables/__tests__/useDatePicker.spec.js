@@ -384,7 +384,9 @@ describe('useDatePicker', () => {
       wrapper.vm.picker.currentYear.value = 2024
       const classes = wrapper.vm.picker.computeMonthButtonClasses(4)
 
-      expect(classes['bg-blue-50 text-blue-700 hover:bg-blue-100']).toBe(true)
+      // Month 4 is not selected, not current, and not future, so it should have default classes
+      expect(classes['text-gray-700 hover:bg-gray-100']).toBe(true)
+      expect(classes['bg-blue-600 text-white shadow-md hover:bg-blue-700']).toBe(false)
     })
 
     it('should compute month button classes for current month', () => {

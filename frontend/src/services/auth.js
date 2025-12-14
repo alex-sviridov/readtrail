@@ -81,16 +81,10 @@ class AuthManager {
     pb.authStore.clear()
 
     // Clear ALL application data - user starts fresh as guest after logout
-    const keysToRemove = [
-      'flexlib-books',
-      'flexlib-sync-queue',
-      'flexlib-needs-migration',
-      'flexlib-settings-showBookInfo',
-      'flexlib-settings-allowUnfinishedReading',
-      'flexlib-settings-allowScoring'
-    ]
-
-    keysToRemove.forEach(key => localStorage.removeItem(key))
+    // Use prefix-based clearing for resilience to new keys
+    Object.keys(localStorage)
+      .filter(key => key.startsWith('readtrail-'))
+      .forEach(key => localStorage.removeItem(key))
 
     logger.debug('[AuthManager] Cleared authentication and all data')
   }
@@ -128,14 +122,6 @@ class AuthManager {
   }
 
   /**
-   * Get authentication token
-   * @returns {string|null} JWT token or null
-   */
-  getToken() {
-    return pb.authStore.token
-  }
-
-  /**
    * Refresh authentication token
    * @returns {Promise<boolean>} True if refresh succeeded
    */
@@ -147,77 +133,6 @@ class AuthManager {
       logger.error('Failed to refresh auth:', error)
       return false
     }
-  }
-
-  /**
-   * Check if auth token is valid and not expired
-   * @returns {boolean} True if token is valid
-   */
-  isTokenValid() {
-    return pb.authStore.isValid
-  }
-
-  /**
-   * Get user ID
-   * @returns {string|null} User ID or null
-   */
-  getUserId() {
-    return pb.authStore.record?.id || null
-  }
-
-  /**
-   * Get user email
-   * @returns {string|null} User email or null
-   */
-  getUserEmail() {
-    return pb.authStore.record?.email || null
-  }
-
-  /**
-   * Set user (for backward compatibility)
-   * Note: With PocketBase, this is handled automatically via authStore
-   * @deprecated Use login() instead
-   * @param {string} user - User identifier
-   */
-  setUser(user) {
-    logger.warn('[AuthManager] setUser() is deprecated with PocketBase. Use login() instead.')
-  }
-
-  /**
-   * Clear authentication
-   * Alias for logout() for backward compatibility
-   */
-  clearAuth() {
-    this.logout()
-  }
-
-  /**
-   * Get authentication headers for API requests
-   * @deprecated PocketBase handles auth headers automatically
-   * @returns {Object} Empty object (PocketBase handles headers)
-   */
-  getAuthHeaders() {
-    // PocketBase SDK handles authentication headers automatically
-    // Keeping this method for backward compatibility but it's not needed
-    return {}
-  }
-
-  /**
-   * Check if authentication is enabled
-   * @deprecated Always returns true with PocketBase
-   * @returns {boolean} True
-   */
-  isAuthEnabled() {
-    return true
-  }
-
-  /**
-   * Get auth header name
-   * @deprecated Not used with PocketBase (uses Authorization header automatically)
-   * @returns {string} Auth header name
-   */
-  getAuthHeaderName() {
-    return 'Authorization'
   }
 }
 

@@ -6,6 +6,7 @@
 - [ ] Search by author is not working good
 - [ ] Import\Export
 - [ ] Connection to existing services for import 
+- [ ] enhanced search QL (like @year)
 
 # UI
 - [ ] Allow editing read date only in edit mode
