@@ -91,7 +91,7 @@
             <div class="flex-shrink-0 w-16 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded flex items-center justify-center">
               <img
                 v-if="book.cover_i"
-                :src="`https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg`"
+                :src="`https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`"
                 :alt="book.title"
                 class="w-full h-full object-cover rounded"
               />

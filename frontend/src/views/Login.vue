@@ -7,12 +7,12 @@
           Sign in to your account
         </h2>
         <p class="mt-2 text-center text-sm text-gray-600">
-          Or
+          Don't have an account?
           <router-link
-            to="/library"
+            to="/register"
             class="font-medium text-blue-600 hover:text-blue-500"
           >
-            continue as guest
+            Sign up
           </router-link>
         </p>
       </div>
@@ -92,12 +92,14 @@
 
         <!-- Continue as Guest Button -->
         <div>
-          <router-link
-            to="/library"
-            class="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          <component
+            :is="isLoading ? 'button' : 'router-link'"
+            :to="isLoading ? undefined : '/library'"
+            :disabled="isLoading"
+            class="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue as Guest
-          </router-link>
+          </component>
         </div>
       </form>
 

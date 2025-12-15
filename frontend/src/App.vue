@@ -16,11 +16,15 @@ const isLibraryActive = computed(() => {
 const isStatisticsActive = computed(() => {
   return route.path.startsWith('/statistics')
 })
+
+const shouldShowHeader = computed(() => {
+  return route.path !== '/login' && route.path !== '/register'
+})
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50">
-    <header class="bg-white shadow-sm">
+    <header v-if="shouldShowHeader" class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         <div class="flex items-center gap-8">
           <RouterLink to="/library" class="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
