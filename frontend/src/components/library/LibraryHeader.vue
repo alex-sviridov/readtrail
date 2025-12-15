@@ -47,7 +47,7 @@
             type="text"
             placeholder="Search by title, author, or year..."
             aria-label="Search books by title, author, or year"
-            class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="bg-white w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             v-if="searchQuery"

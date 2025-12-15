@@ -1,8 +1,10 @@
 import { ref } from 'vue'
 import { fetchImageAsFile } from '@/utils/imageFetcher'
+import { useToast } from 'vue-toastification'
 
 /**
  * Composable for image fetching state management
+ * Handles toast notifications for file size errors
  * @returns {Object} Image fetch state and methods
  */
 export function useImageFetch() {
@@ -10,6 +12,7 @@ export function useImageFetch() {
   const error = ref(null)
   const file = ref(null)
   const warning = ref(null)
+  const toast = useToast()
 
   async function fetchImage(url, filename = 'cover') {
     if (!url) {
@@ -31,6 +34,14 @@ export function useImageFetch() {
     } else {
       file.value = null
       error.value = result.error
+
+      // Show toast notification if file is too large and fallback should be used
+      if (result.useFallback && result.sizeInKB) {
+        toast.warning(
+          `Image file is too large (${result.sizeInKB}KB). Using URL link instead. Maximum file size: 512KB.`,
+          { timeout: 5000 }
+        )
+      }
     }
 
     return result
