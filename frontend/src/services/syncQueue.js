@@ -66,11 +66,24 @@ class SyncQueue {
    * @returns {string} Operation ID
    */
   enqueue(type, resource, data, tempId = null) {
+    const duplicate = this.findDuplicate(type, resource, data, tempId)
+    if (duplicate) {
+      logger.debug('Duplicate operation, skipping:', duplicate.id)
+      return duplicate.id
+    }
+
+    // Only destructure if file present
+    const hasFile = 'coverFile' in data && !!data.coverFile
+    const operationData = hasFile
+      ? (() => { const { coverFile, ...rest } = data; return rest })()
+      : data
+
     const operation = {
-      id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `op-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       type,
       resource,
-      data,
+      data: operationData,
+      hasFile,
       tempId,
       timestamp: Date.now(),
       retries: 0,
@@ -80,8 +93,43 @@ class SyncQueue {
     this.queue.push(operation)
     this.saveQueue()
 
-    logger.debug('Enqueued operation:', operation)
+    logger.debug('Enqueued:', operation.id)
     return operation.id
+  }
+
+  /**
+   * Get unique key for an operation
+   * @private
+   */
+  _getOperationKey(type, resource, data, tempId) {
+    if (type === OPERATION_TYPES.CREATE && tempId) {
+      return `${resource}:CREATE:${tempId}`
+    }
+    if ((type === OPERATION_TYPES.UPDATE || type === OPERATION_TYPES.DELETE) && data.id) {
+      return `${resource}:${type}:${data.id}`
+    }
+    if (type === OPERATION_TYPES.BATCH_CREATE && data.books) {
+      return `${resource}:BATCH_CREATE:${data.books.length}`
+    }
+    return null
+  }
+
+  /**
+   * Find duplicate operation in the queue
+   * @param {string} type - Operation type
+   * @param {string} resource - Resource type
+   * @param {Object} data - Operation data
+   * @param {string} tempId - Temporary ID (optional)
+   * @returns {Object|null} Duplicate operation or null
+   */
+  findDuplicate(type, resource, data, tempId) {
+    const key = this._getOperationKey(type, resource, data, tempId)
+    if (!key) return null
+
+    return this.queue.find(op => {
+      const opKey = this._getOperationKey(op.type, op.resource, op.data, op.tempId)
+      return opKey === key
+    })
   }
 
   /**
@@ -121,12 +169,41 @@ class SyncQueue {
   }
 
   /**
+   * Deduplicate operations in the queue
+   * Removes duplicate operations, keeping only the latest one
+   */
+  deduplicateQueue() {
+    const seen = new Map()
+
+    // Keep only the latest operation for each unique key
+    for (const op of this.queue) {
+      const key = this._getOperationKey(op.type, op.resource, op.data, op.tempId)
+      if (!key) continue // Skip operations without a clear identity
+
+      const existing = seen.get(key)
+      if (!existing || op.timestamp > existing.timestamp) {
+        seen.set(key, op)
+      }
+    }
+
+    const originalCount = this.queue.length
+    this.queue = Array.from(seen.values())
+
+    if (this.queue.length < originalCount) {
+      const removedCount = originalCount - this.queue.length
+      logger.info(`Removed ${removedCount} duplicate operations from queue`)
+      this.saveQueue()
+    }
+  }
+
+  /**
    * Process all queued operations
    * @param {Object} apiHandlers - Object with API handler functions
    * @param {Function} onProgress - Progress callback (operationId, status, result)
+   * @param {Function} getPendingFile - Callback to retrieve pending file by ID
    * @returns {Promise<Object>} Results object with successful and failed operations
    */
-  async processQueue(apiHandlers, onProgress = null) {
+  async processQueue(apiHandlers, onProgress = null, getPendingFile = null) {
     if (this.isProcessing) {
       logger.warn('Queue is already being processed')
       return { successful: [], failed: [] }
@@ -136,6 +213,9 @@ class SyncQueue {
       logger.debug('Queue is empty, nothing to process')
       return { successful: [], failed: [] }
     }
+
+    // Deduplicate before processing
+    this.deduplicateQueue()
 
     this.isProcessing = true
     logger.info(`Processing ${this.queue.length} queued operations`)
@@ -158,6 +238,19 @@ class SyncQueue {
             onProgress(operation.id, 'failed', { error: 'Max retries exceeded' })
           }
           continue
+        }
+
+        // Attach file if needed
+        if (operation.hasFile && getPendingFile) {
+          const fileId = operation.tempId || operation.data.id
+          const file = getPendingFile(fileId)
+
+          if (file) {
+            operation.data.coverFile = file
+            logger.debug(`Attached file to ${operation.id}:`, file.name)
+          } else {
+            logger.warn(`File missing for ${operation.id}, continuing without file`)
+          }
         }
 
         // Call appropriate API handler based on operation type and resource

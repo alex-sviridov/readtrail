@@ -54,7 +54,8 @@
 
     <!-- Book Cover -->
     <BookCover
-      :cover-link="book.coverLink"
+      :cover-link="book.coverDisplayLink"
+      :cover-url="book.coverLink"
       :alt-text="book.name"
       :editable="isEditMode"
       :use-custom-cover="book.attributes?.customCover"
@@ -258,7 +259,10 @@ function handleAuthorUpdate(author) {
 }
 
 function handleCoverUpdate(coverData) {
-  const updates = { coverLink: coverData.coverLink }
+  const updates = {
+    coverLink: coverData.coverLink,
+    coverFile: coverData.coverFile || null
+  }
   if (coverData.customCover !== null) {
     updates.attributes = { customCover: coverData.customCover }
   }

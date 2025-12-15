@@ -42,7 +42,7 @@
     <!-- Tab Content -->
     <div>
       <!-- Cover URL Tab -->
-      <div v-if="activeTab === 'url'">
+      <div v-if="activeTab === 'url'" class="space-y-2">
         <input
           id="cover-url"
           v-model="tempCoverUrl"
@@ -51,6 +51,30 @@
           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
           @input="handleUrlInput"
         />
+
+        <!-- Loading state -->
+        <div v-if="isLoading" class="text-sm text-blue-600 py-1 flex items-center gap-2">
+          <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Fetching image...</span>
+        </div>
+
+        <!-- Fetch error -->
+        <div v-if="error" class="text-sm text-red-600 py-1">
+          {{ error }}
+        </div>
+
+        <!-- Size warning -->
+        <div v-if="warning" class="text-sm text-amber-600 py-1">
+          {{ warning }}
+        </div>
+
+        <!-- Offline warning -->
+        <div v-if="!isOnline && tempCoverUrl" class="text-sm text-amber-600 py-1">
+          You're offline. Image will be fetched when connection is restored.
+        </div>
       </div>
 
       <!-- Generate Cover Tab -->
@@ -105,7 +129,7 @@
       </button>
       <button
         @click="saveCover"
-        :disabled="activeTab === 'url' && (!tempCoverUrl || imageError)"
+        :disabled="activeTab === 'url' && (!tempCoverUrl || imageError || isLoading)"
         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Save
@@ -117,8 +141,11 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { PhotoIcon } from '@heroicons/vue/24/outline'
+import { useDebounceFn } from '@vueuse/core'
 import BaseModal from '@/components/base/BaseModal.vue'
 import CustomBookCover from '@/components/library/CustomBookCover.vue'
+import { useImageFetch } from '@/composables/useImageFetch'
+import { useOnlineStatus } from '@/composables/useOnlineStatus'
 
 const props = defineProps({
   isOpen: {
@@ -133,59 +160,75 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-// Local State
+// Composables
+const { isOnline } = useOnlineStatus()
+const { isLoading, error, file, warning, fetchImage, reset } = useImageFetch()
+
+// Modal state
 const tempCoverUrl = ref('')
 const previewUrl = ref('')
 const imageError = ref(false)
-const activeTab = ref('url') // 'url' or 'generate'
+const activeTab = ref('url')
 
-// Computed values from book
+// Book data
 const bookName = ref('')
 const bookAuthor = ref('')
 const altText = ref('Book cover')
-const useCustomCover = ref(false)
 
-// Initialize modal state when it opens
-watch(() => props.isOpen, (isOpen) => {
-  if (isOpen && props.book) {
-    bookName.value = props.book.name || 'Untitled'
-    bookAuthor.value = props.book.author || null
-    altText.value = props.book.name || 'Book cover'
-    useCustomCover.value = props.book.customCover || false
+// Debounced image fetch
+const debouncedFetch = useDebounceFn(async (url) => {
+  if (!url || imageError.value || !isOnline.value) return
+  await fetchImage(url, 'book-cover')
+}, 500)
 
-    tempCoverUrl.value = props.book.coverLink || ''
-    previewUrl.value = props.book.coverLink || ''
-    imageError.value = false
-    activeTab.value = useCustomCover.value ? 'generate' : 'url'
-  }
+// Initialize on modal open
+watch(() => props.isOpen, (open) => {
+  if (!open) return
+
+  bookName.value = props.book?.name || 'Untitled'
+  bookAuthor.value = props.book?.author || null
+  altText.value = props.book?.name || 'Book cover'
+  tempCoverUrl.value = props.book?.coverLink || ''
+  previewUrl.value = props.book?.coverLink || ''
+  imageError.value = false
+  activeTab.value = props.book?.customCover ? 'generate' : 'url'
+  reset() // Clear image fetch state
 })
 
-function closeModal() {
-  emit('close')
-  // Reset state
-  tempCoverUrl.value = ''
-  previewUrl.value = ''
-  imageError.value = false
-  activeTab.value = 'url'
-}
+// Clear file when switching to generate tab
+watch(activeTab, (tab) => {
+  if (tab === 'generate') reset()
+})
 
 function handleUrlInput() {
   imageError.value = false
   previewUrl.value = tempCoverUrl.value
+  debouncedFetch(tempCoverUrl.value)
 }
 
 function handleImageError() {
   imageError.value = true
 }
 
+function closeModal() {
+  emit('close')
+  tempCoverUrl.value = ''
+  previewUrl.value = ''
+  imageError.value = false
+  activeTab.value = 'url'
+  reset()
+}
+
 function saveCover() {
   const useGenerate = activeTab.value === 'generate'
+
   emit('save', {
     id: props.book.id,
-    // Keep the URL even when using generated cover, so it can be restored later
     coverLink: tempCoverUrl.value || null,
+    coverFile: !useGenerate ? file.value : null,
     customCover: useGenerate
   })
+
   closeModal()
 }
 </script>

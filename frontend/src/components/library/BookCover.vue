@@ -12,12 +12,13 @@
     <!-- Cover Image or Placeholder -->
     <template v-else>
       <img
-        v-if="coverLink"
-        :src="coverLink"
+        v-if="displayImageSrc"
+        :src="displayImageSrc"
         :alt="altText"
         class="w-full h-full object-cover"
         :class="{ 'cursor-pointer': editable }"
         @click="handleCoverClick"
+        @error="handleImageError"
       />
       <svg
         v-else
@@ -76,6 +77,11 @@ const props = defineProps({
     required: false,
     default: ''
   },
+  coverUrl: {
+    type: String,
+    required: false,
+    default: null
+  },
   altText: {
     type: String,
     required: false,
@@ -122,20 +128,36 @@ const emit = defineEmits(['update', 'update:score'])
 
 // 3. Local State
 const isModalOpen = ref(false)
+const imageLoadError = ref(false)
 
 // Computed book data for modal
 const bookData = computed(() => ({
   name: props.bookName,
   author: props.bookAuthor,
-  coverLink: props.coverLink,
+  coverLink: props.coverUrl !== null ? props.coverUrl : props.coverLink,
   customCover: props.useCustomCover
 }))
+
+// Computed image source with fallback
+const displayImageSrc = computed(() => {
+  if (imageLoadError.value && props.coverUrl) {
+    return props.coverUrl
+  }
+  return props.coverLink
+})
 
 // 4. Methods
 function handleCoverClick(event) {
   if (props.editable) {
     event.stopPropagation()
     openModal()
+  }
+}
+
+function handleImageError() {
+  // If cached image fails and we have original URL, try fallback
+  if (!imageLoadError.value && props.coverUrl && props.coverLink !== props.coverUrl) {
+    imageLoadError.value = true
   }
 }
 
@@ -147,10 +169,14 @@ function closeModal() {
   isModalOpen.value = false
 }
 
-function handleSave({ coverLink, customCover }) {
+function handleSave(coverData) {
+  // Reset error state when updating cover
+  imageLoadError.value = false
+
   emit('update', {
-    coverLink: coverLink || null,
-    customCover: customCover
+    coverLink: coverData.coverLink || null,
+    coverFile: coverData.coverFile || null,
+    customCover: coverData.customCover
   })
 }
 </script>

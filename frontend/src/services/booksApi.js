@@ -28,11 +28,21 @@ function transformBookFromPocketBase(pbBook) {
     }
   }
 
+  // Determine cover display link: prioritize cover_file over cover_url
+  let coverDisplayLink = null
+  if (pbBook.cover_file) {
+    // Generate PocketBase file URL
+    coverDisplayLink = pb.files.getURL(pbBook, pbBook.cover_file, {'thumb': '200x300'})
+  } else if (pbBook.cover_url) {
+    coverDisplayLink = pbBook.cover_url
+  }
+
   return {
     id: pbBook.id,
     name: pbBook.name,
     author: pbBook.author || null,
     coverLink: pbBook.cover_url || null,
+    coverDisplayLink,
     year,
     month,
     attributes: {
@@ -46,25 +56,50 @@ function transformBookFromPocketBase(pbBook) {
 }
 
 /**
- * Transform book from store format to PocketBase format
- * @param {Object} storeBook - Book object from store
- * @returns {Object} Book object in PocketBase format
+ * Create FormData from data object
+ * @private
  */
-function transformBookToPocketBase(storeBook) {
-  // Convert {year, month} to read_date (ISO string "2024-03-01")
-  let read_date = null
+function createFormData(data, file) {
+  const formData = new FormData()
 
-  if (storeBook.year !== null && storeBook.month !== null) {
-    try {
-      const year = storeBook.year
-      const month = String(storeBook.month).padStart(2, '0')
-      read_date = `${year}-${month}-01`
-    } catch (error) {
-      logger.warn('[BooksApi] Invalid year/month format:', { year: storeBook.year, month: storeBook.month }, error)
-    }
+  // Add scalar fields
+  Object.entries(data).forEach(([key, value]) => {
+    if (value === null || value === undefined) return
+
+    const serializedValue = typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value)
+
+    formData.append(key, serializedValue)
+  })
+
+  // Add file
+  if (file) {
+    formData.append('cover_file', file)
+
+    logger.debug('[BooksApi] FormData created:', {
+      fileName: file.name,
+      fileSize: `${(file.size / 1024).toFixed(1)}KB`
+    })
   }
 
-  return {
+  return formData
+}
+
+/**
+ * Transform book from store format to PocketBase format
+ * @param {Object} storeBook - Book object from store
+ * @returns {Object|FormData} Book object in PocketBase format or FormData if file included
+ */
+function transformBookToPocketBase(storeBook) {
+  // Convert {year, month} to read_date
+  let read_date = null
+  if (storeBook.year && storeBook.month) {
+    const month = String(storeBook.month).padStart(2, '0')
+    read_date = `${storeBook.year}-${month}-01`
+  }
+
+  const data = {
     name: storeBook.name,
     author: storeBook.author || '',
     cover_url: storeBook.coverLink || '',
@@ -74,9 +109,13 @@ function transformBookToPocketBase(storeBook) {
       customCover: storeBook.attributes?.customCover ?? false,
       score: storeBook.attributes?.score ?? null
     },
-    // Set owner to current authenticated user
     owner: pb.authStore.record?.id
   }
+
+  // Return FormData if file present, otherwise plain object
+  return storeBook.coverFile
+    ? createFormData(data, storeBook.coverFile)
+    : data
 }
 
 /**

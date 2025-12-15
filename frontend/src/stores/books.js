@@ -24,7 +24,29 @@ export const useBooksStore = defineStore('books', () => {
   const syncStatus = ref('idle') // 'idle' | 'syncing' | 'error'
   const lastSyncTime = ref(null)
   const pendingIdMap = ref({}) // Map temp IDs to backend IDs
+  const pendingFiles = ref({}) // Map book IDs to File objects (in-memory, not serialized)
   const { isOnline } = useOnlineStatus(handleOnlineStatusChange)
+
+  // File management helpers
+  const fileOps = {
+    set: (id, file) => {
+      if (file) pendingFiles.value[id] = file
+    },
+
+    get: (id) => pendingFiles.value[id] || null,
+
+    move: (fromId, toId) => {
+      const file = fileOps.get(fromId)
+      if (file) {
+        fileOps.set(toId, file)
+        fileOps.delete(fromId)
+      }
+    },
+
+    delete: (id) => {
+      delete pendingFiles.value[id]
+    }
+  }
 
   // Getters (computed)
   const sortedBooks = computed(() => sortBooks(books.value))
@@ -58,11 +80,12 @@ export const useBooksStore = defineStore('books', () => {
    */
   function replaceTempId(tempId, backendId) {
     const book = books.value.find(b => b.id === tempId)
-    if (book) {
-      book.id = backendId
-      pendingIdMap.value[tempId] = backendId
-      saveToLocalStorage()
-    }
+    if (!book) return
+
+    book.id = backendId
+    pendingIdMap.value[tempId] = backendId
+    fileOps.move(tempId, backendId)
+    saveToLocalStorage()
   }
 
   /**
@@ -169,6 +192,7 @@ export const useBooksStore = defineStore('books', () => {
           name: bookTemplate.name,
           author: bookTemplate.author || null,
           coverLink: bookTemplate.coverLink || null,
+          coverDisplayLink: bookTemplate.coverLink || null,
           year: null,
           month: null,
           attributes: { ...DEFAULT_BOOK_ATTRIBUTES },
@@ -184,6 +208,7 @@ export const useBooksStore = defineStore('books', () => {
         name: bookTemplate.name,
         author: bookTemplate.author || null,
         coverLink: bookTemplate.coverLink || null,
+        coverDisplayLink: bookTemplate.coverLink || null,
         year,
         month,
         attributes: { ...DEFAULT_BOOK_ATTRIBUTES },
@@ -263,45 +288,29 @@ export const useBooksStore = defineStore('books', () => {
    * Sync with backend
    */
   async function syncWithBackend() {
-    if (!isOnline.value) {
-      logger.debug('Offline, skipping sync')
-      return
-    }
-
-    if (isGuestMode()) {
-      logger.debug('Guest mode, skipping sync')
-      return
-    }
-
-    if (syncQueue.isQueueProcessing()) {
-      logger.debug('Sync already in progress')
+    if (!isOnline.value || isGuestMode() || syncQueue.isQueueProcessing()) {
       return
     }
 
     try {
       syncStatus.value = 'syncing'
 
-      // Get API handlers from booksApi service
-      const apiHandlers = booksApi.getSyncHandlers(replaceTempId)
+      const results = await syncQueue.processQueue(
+        booksApi.getSyncHandlers(replaceTempId),
+        handleSyncProgress,
+        fileOps.get // Pass getter directly
+      )
 
-      // Process queue
-      const results = await syncQueue.processQueue(apiHandlers, (operationId, status, result) => {
-        logger.debug(`Operation ${operationId}: ${status}`, result)
-      })
-
-      // Sync succeeded, mark API as available
       setApiAvailability(true)
-
       syncStatus.value = 'idle'
       lastSyncTime.value = new Date()
 
-      logger.info(`Sync completed: ${results.successful.length} successful, ${results.failed.length} failed`)
+      logger.info(`Sync: ${results.successful.length} ok, ${results.failed.length} failed`)
 
       if (results.failed.length > 0) {
         lastError.value = `Sync completed with ${results.failed.length} errors`
       }
     } catch (error) {
-      // Sync failed, mark API as unavailable
       setApiAvailability(false)
       logger.error('Sync failed:', error)
       syncStatus.value = 'error'
@@ -309,14 +318,23 @@ export const useBooksStore = defineStore('books', () => {
     }
   }
 
+  function handleSyncProgress(operationId, status, result) {
+    logger.debug(`Operation ${operationId}: ${status}`, result)
+
+    if (status === 'success' && result?.id) {
+      fileOps.delete(result.id)
+    }
+  }
+
   // Add a new book
-  function addBook(name, year = null, month = null, author = null, coverLink = null, isUnfinished = false, score = null) {
+  function addBook(name, year = null, month = null, author = null, coverLink = null, coverFile = null, isUnfinished = false, score = null) {
     const tempId = generateTempId()
     const book = {
       id: tempId,
       name,
       author,
       coverLink,
+      coverDisplayLink: coverLink,
       year,
       month,
       attributes: {
@@ -326,16 +344,17 @@ export const useBooksStore = defineStore('books', () => {
       createdAt: new Date()
     }
 
-    // Optimistically add to local state
+    fileOps.set(tempId, coverFile)
+
     books.value.push(book)
     saveToLocalStorage()
 
-    // Queue for sync if online and authenticated
     if (isOnline.value && !isGuestMode()) {
       syncQueue.enqueue(OPERATION_TYPES.CREATE, 'books', {
         name,
         author,
         coverLink,
+        coverFile,
         year,
         month,
         attributes: {
@@ -344,7 +363,6 @@ export const useBooksStore = defineStore('books', () => {
         }
       }, tempId)
 
-      // Try to sync immediately
       syncWithBackend()
     }
 
@@ -359,29 +377,37 @@ export const useBooksStore = defineStore('books', () => {
     const book = books.value.find(b => b.id === id)
     if (!book) return false
 
-    // Apply direct property updates
-    Object.assign(book, updates)
+    // Handle file separately
+    const { coverFile, ...bookUpdates } = updates
+    fileOps.set(id, coverFile)
 
-    // Handle attributes merging
+    // Apply updates
+    Object.assign(book, bookUpdates)
+
+    // Merge attributes
     if (updates.attributes) {
       book.attributes = { ...book.attributes, ...updates.attributes }
     }
 
+    // Sync coverDisplayLink with coverLink
+    if (updates.coverLink !== undefined && !updates.coverDisplayLink) {
+      book.coverDisplayLink = updates.coverLink
+    }
+
     saveToLocalStorage()
 
-    // Queue for sync if not temp ID, online, and authenticated
+    // Queue sync
     if (!isTempId(id) && isOnline.value && !isGuestMode()) {
-      const fullData = {
+      syncQueue.enqueue(OPERATION_TYPES.UPDATE, 'books', {
         id,
         name: book.name,
         author: book.author,
         coverLink: book.coverLink,
+        coverFile: fileOps.get(id),
         year: book.year,
         month: book.month,
         attributes: book.attributes
-      }
-
-      syncQueue.enqueue(OPERATION_TYPES.UPDATE, 'books', fullData)
+      })
       syncWithBackend()
     }
 
