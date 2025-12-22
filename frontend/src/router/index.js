@@ -3,6 +3,8 @@ import Library from '@/views/Library.vue'
 import LibraryTable from '@/views/LibraryTable.vue'
 import Statistics from '@/views/Statistics.vue'
 import Settings from '@/views/Settings.vue'
+import SettingsAccount from '@/views/SettingsAccount.vue'
+import SettingsApplication from '@/views/SettingsApplication.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
 
@@ -35,8 +37,20 @@ const router = createRouter({
     },
     {
       path: '/settings',
-      name: 'settings',
-      component: Settings
+      component: Settings,
+      redirect: '/settings/account',
+      children: [
+        {
+          path: 'account',
+          name: 'settings-account',
+          component: SettingsAccount
+        },
+        {
+          path: 'application',
+          name: 'settings-application',
+          component: SettingsApplication
+        }
+      ]
     },
     {
       path: '/login',

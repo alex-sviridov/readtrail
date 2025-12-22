@@ -134,6 +134,33 @@ class AuthManager {
       return false
     }
   }
+
+  /**
+   * Change password for the current user
+   * @param {string} oldPassword - Current password
+   * @param {string} newPassword - New password
+   * @param {string} passwordConfirm - New password confirmation
+   * @returns {Promise<Object>} Updated user record
+   */
+  async changePassword(oldPassword, newPassword, passwordConfirm) {
+    try {
+      const user = this.getCurrentUser()
+      if (!user) {
+        throw new Error('No authenticated user')
+      }
+
+      const data = {
+        oldPassword,
+        password: newPassword,
+        passwordConfirm
+      }
+
+      const record = await pb.collection('users').update(user.id, data)
+      return record
+    } catch (error) {
+      throw adaptPocketBaseError(error)
+    }
+  }
 }
 
 // Create and export singleton instance

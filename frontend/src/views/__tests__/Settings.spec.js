@@ -3,7 +3,30 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import Settings from '../Settings.vue'
+import SettingsAccount from '../SettingsAccount.vue'
+import SettingsApplication from '../SettingsApplication.vue'
 import { useSettingsStore } from '@/stores/settings'
+
+// Mock authManager
+vi.mock('@/services/auth', () => ({
+  authManager: {
+    isGuestUser: vi.fn(() => false),
+    getCurrentUser: vi.fn(() => ({ id: 'user123', email: 'test@example.com' })),
+    logout: vi.fn(),
+    changePassword: vi.fn()
+  }
+}))
+
+// Mock vue-toastification
+vi.mock('vue-toastification', () => ({
+  useToast: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn()
+  }),
+  POSITION: { TOP_RIGHT: 'top-right' }
+}))
 
 describe('Settings View', () => {
   let wrapper
@@ -15,16 +38,24 @@ describe('Settings View', () => {
     setActivePinia(createPinia())
     store = useSettingsStore()
 
-    // Create router with memory history
+    // Create router with memory history matching the actual route structure
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/settings', name: 'settings', component: Settings },
+        {
+          path: '/settings',
+          component: Settings,
+          redirect: '/settings/account',
+          children: [
+            { path: 'account', name: 'settings-account', component: SettingsAccount },
+            { path: 'application', name: 'settings-application', component: SettingsApplication }
+          ]
+        },
         { path: '/library', name: 'library', component: { template: '<div>Library</div>' } }
       ]
     })
 
-    await router.push('/settings')
+    await router.push('/settings/account')
     await router.isReady()
 
     // Clear localStorage before each test
@@ -49,227 +80,109 @@ describe('Settings View', () => {
       expect(wrapper.find('p').text()).toBe('Manage your application preferences')
     })
 
-    it('should render all sections from settingsConfig', () => {
+    it('should render tab navigation', () => {
       wrapper = mount(Settings, {
         global: {
           plugins: [router, createPinia()]
         }
       })
 
-      const sections = wrapper.findAll('h2')
-      expect(sections.length).toBeGreaterThan(0)
-      // First section is Account, second is Display Settings
-      expect(sections[0].text()).toBe('Account')
-      expect(sections[1].text()).toBe('Display Settings')
+      const nav = wrapper.find('nav[aria-label="Tabs"]')
+      const tabs = nav.findAllComponents({ name: 'RouterLink' })
+      expect(tabs.length).toBe(2)
+      expect(tabs[0].text()).toBe('Account')
+      expect(tabs[1].text()).toBe('Application')
     })
 
-    it('should render all settings items with labels and descriptions', () => {
+    it('should highlight active tab', async () => {
       wrapper = mount(Settings, {
         global: {
           plugins: [router, createPinia()]
         }
       })
 
-      // Check for "Show Book Information" setting
-      expect(wrapper.text()).toContain('Show Book Information')
-      expect(wrapper.text()).toContain('Display book title and author on book cards in the library')
-
-      // Check for "Allow Unfinished Reading" setting
-      expect(wrapper.text()).toContain('Allow Unfinished Reading')
-      expect(wrapper.text()).toContain('Enable marking books as unfinished when setting their completion date')
+      const nav = wrapper.find('nav[aria-label="Tabs"]')
+      const accountTab = nav.findAllComponents({ name: 'RouterLink' })[0]
+      expect(accountTab.classes()).toContain('border-blue-600')
+      expect(accountTab.classes()).toContain('text-blue-600')
     })
 
-    it('should render toggle switches for each setting', () => {
+    it('should render child route content', () => {
       wrapper = mount(Settings, {
         global: {
           plugins: [router, createPinia()]
         }
       })
 
-      const toggleButtons = wrapper.findAll('button[role="switch"]')
-      expect(toggleButtons.length).toBe(3)
-    })
-
-    it('should render back to library button', () => {
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, createPinia()]
-        }
-      })
-
-      const backButton = wrapper.find('button:not([role="switch"])')
-      expect(backButton.text()).toContain('Back to Library')
+      // Since we're on /settings/account, should show account content
+      expect(wrapper.text()).toContain('Email')
     })
   })
 
-  describe('toggle switches', () => {
-    it('should display toggle switch in correct state based on store value', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.showBookInfo = true
-
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
-
-      const toggles = wrapper.findAll('button[role="switch"]')
-      const showBookInfoToggle = toggles[0]
-
-      expect(showBookInfoToggle.attributes('aria-checked')).toBe('true')
-      expect(showBookInfoToggle.classes()).toContain('bg-blue-600')
-    })
-
-    it('should toggle showBookInfo when clicked', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.showBookInfo = true
-
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
-
-      const toggles = wrapper.findAll('button[role="switch"]')
-      const showBookInfoToggle = toggles[0]
-
-      await showBookInfoToggle.trigger('click')
-
-      expect(settingsStore.settings.showBookInfo).toBe(false)
-    })
-
-    it('should toggle allowUnfinishedReading when clicked', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.allowUnfinishedReading = true
-
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
-
-      const toggles = wrapper.findAll('button[role="switch"]')
-      const allowUnfinishedToggle = toggles[1]
-
-      await allowUnfinishedToggle.trigger('click')
-
-      expect(settingsStore.settings.allowUnfinishedReading).toBe(false)
-    })
-
-    it('should update toggle visual state when value changes', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.showBookInfo = false
-
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
-
-      const toggles = wrapper.findAll('button[role="switch"]')
-      const showBookInfoToggle = toggles[0]
-
-      expect(showBookInfoToggle.classes()).toContain('bg-gray-300')
-
-      await showBookInfoToggle.trigger('click')
-      await wrapper.vm.$nextTick()
-
-      expect(showBookInfoToggle.classes()).toContain('bg-blue-600')
-    })
-  })
-
-  describe('store integration', () => {
-    it('should reflect store changes in the UI', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-
-      wrapper = mount(Settings, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
-
-      settingsStore.settings.showBookInfo = true
-      await wrapper.vm.$nextTick()
-
-      const toggles = wrapper.findAll('button[role="switch"]')
-      expect(toggles[0].attributes('aria-checked')).toBe('true')
-
-      settingsStore.settings.showBookInfo = false
-      await wrapper.vm.$nextTick()
-
-      expect(toggles[0].attributes('aria-checked')).toBe('false')
-    })
-  })
-
-  describe('router navigation', () => {
-    it('should navigate to library when back button is clicked', async () => {
+  describe('tab navigation', () => {
+    it('should navigate to application settings tab', async () => {
       wrapper = mount(Settings, {
         global: {
           plugins: [router, createPinia()]
         }
       })
 
-      // Find the "Back to Library" button (not the logout button or toggle switches)
-      const buttons = wrapper.findAll('button')
-      const backButton = buttons.find(btn => {
-        const text = btn.text()
-        return text.includes('Back to Library') || text.includes('← Back to Library')
-      })
-
-      expect(backButton).toBeTruthy()
-
-      // Trigger the click and wait for navigation
-      await backButton.trigger('click')
+      const applicationTab = wrapper.findAll('nav[aria-label="Tabs"] > a')[1]
+      await router.push('/settings/application')
+      await router.isReady()
       await wrapper.vm.$nextTick()
 
-      // Wait for the route to actually change
-      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(router.currentRoute.value.path).toBe('/settings/application')
+    })
+
+    it('should highlight correct tab based on route', async () => {
+      await router.push('/settings/application')
       await router.isReady()
 
-      expect(router.currentRoute.value.path).toBe('/library')
+      wrapper = mount(Settings, {
+        global: {
+          plugins: [router, createPinia()]
+        }
+      })
+
+      const applicationTab = wrapper.findAll('nav[aria-label="Tabs"] > a')[1]
+      expect(applicationTab.classes()).toContain('border-blue-600')
+      expect(applicationTab.classes()).toContain('text-blue-600')
+    })
+
+    it('should redirect /settings to /settings/account', async () => {
+      await router.push('/settings')
+      await router.isReady()
+
+      expect(router.currentRoute.value.path).toBe('/settings/account')
     })
   })
 
   describe('accessibility', () => {
-    it('should have proper ARIA attributes on toggle switches', () => {
+    it('should have proper navigation labels', () => {
       wrapper = mount(Settings, {
         global: {
           plugins: [router, createPinia()]
         }
       })
 
-      const toggles = wrapper.findAll('button[role="switch"]')
-
-      toggles.forEach(toggle => {
-        expect(toggle.attributes('role')).toBe('switch')
-        expect(toggle.attributes('aria-checked')).toBeDefined()
-      })
+      const nav = wrapper.find('nav')
+      expect(nav.attributes('aria-label')).toBe('Tabs')
     })
 
-    it('should have focus ring styles on toggle switches', () => {
+    it('should have proper tab structure', () => {
       wrapper = mount(Settings, {
         global: {
           plugins: [router, createPinia()]
         }
       })
 
-      const toggles = wrapper.findAll('button[role="switch"]')
+      const nav = wrapper.find('nav[aria-label="Tabs"]')
+      const tabs = nav.findAllComponents({ name: 'RouterLink' })
+      expect(tabs.length).toBe(2)
 
-      toggles.forEach(toggle => {
-        const classes = toggle.classes().join(' ')
-        expect(classes).toContain('focus:outline-none')
-        expect(classes).toContain('focus:ring-2')
-        expect(classes).toContain('focus:ring-blue-500')
+      tabs.forEach(tab => {
+        expect(tab.element.tagName).toBe('A')
       })
     })
   })
