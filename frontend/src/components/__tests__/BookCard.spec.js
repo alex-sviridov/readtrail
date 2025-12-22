@@ -237,7 +237,8 @@ describe('BookCard', () => {
       await nextTick()
 
       expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', {
-        coverLink: 'https://example.com/cover.jpg'
+        coverLink: 'https://example.com/cover.jpg',
+        coverFile: null
       })
     })
   })
