@@ -8,7 +8,7 @@
 - [ ] Import\Export
 - [ ] Connection to existing services for import 
 - [ ] enhanced search QL (like @year)
-- [-] User change password
+- [x] User change password
 - [ ] Email confirmation
 - [ ] GDPR (delete account, download data)
 
