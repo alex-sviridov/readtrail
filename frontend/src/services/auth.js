@@ -161,6 +161,33 @@ class AuthManager {
       throw adaptPocketBaseError(error)
     }
   }
+
+  /**
+   * Delete the current user account
+   * This will cascade delete all user data including books
+   * @returns {Promise<void>}
+   * @throws {ApiError} If deletion fails
+   */
+  async deleteAccount() {
+    try {
+      const user = this.getCurrentUser()
+      if (!user) {
+        throw new Error('No authenticated user')
+      }
+
+      logger.debug('[AuthManager] Deleting user account:', user.id)
+
+      // Delete the user record (PocketBase will cascade delete books)
+      await pb.collection('users').delete(user.id)
+
+      // Clear local auth state and all data
+      this.logout()
+
+      logger.debug('[AuthManager] Account deleted successfully')
+    } catch (error) {
+      throw adaptPocketBaseError(error)
+    }
+  }
 }
 
 // Create and export singleton instance

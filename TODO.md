@@ -3,24 +3,24 @@
 
 # Functional
 - [x] Allow like\dislike
+- [x] User change password
+- [x] GDPR (delete account, download data)
 - [ ] Add books backlog
 - [ ] Search by author is not working good
 - [ ] Import\Export
 - [ ] Connection to existing services for import 
 - [ ] enhanced search QL (like @year)
-- [x] User change password
 - [ ] Email confirmation
-- [ ] GDPR (delete account, download data)
 
 # UI
-- [ ] Allow editing read date only in edit mode
 - [x] Allow generating cover
-- [ ] Bulk add flow (initial addition)
 - [x] Table view
+- [ ] Allow editing read date only in edit mode
+- [ ] Bulk add flow (initial addition)
 - [ ] Save library view type when moving back and forth
 
 # Prettify
-- [ ] unfiniche checkbox to be prettier
+- [ ] unfinished checkbox to be prettier
 - [ ] timeline switch
 
 # Performance
