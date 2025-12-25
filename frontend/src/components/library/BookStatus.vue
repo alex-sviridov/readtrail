@@ -1,7 +1,7 @@
 <template>
   <div
-    @click="$emit('open-picker')"
-    class="flex justify-end relative cursor-pointer"
+    @click="handleClick"
+    class="flex justify-end relative"
     :class="buttonClasses"
     :title="buttonTitle"
   >
@@ -30,10 +30,15 @@ const props = defineProps({
     type: Number,
     required: false,
     default: null
+  },
+  isDateEditable: {
+    type: Boolean,
+    required: false,
+    default: false
   }
 })
 
-defineEmits(['open-picker'])
+const emit = defineEmits(['open-picker'])
 
 // 3. Composables
 const { formatYearMonth } = useDateHelpers()
@@ -43,18 +48,23 @@ const hasDate = computed(() => !!props.year && !!props.month)
 const isReadLongAgo = computed(() => BOOK_STATUS.isReadLongAgo(props.year))
 const isReadLately = computed(() => BOOK_STATUS.isReadLately(props.year))
 const buttonClasses = computed(() => {
+  const baseClasses = props.isDateEditable ? 'cursor-pointer' : 'cursor-default'
+
   if (!hasDate.value) {
-    return 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold'
+    return `${baseClasses} text-blue-600 ${props.isDateEditable ? 'hover:text-blue-800 hover:bg-blue-50' : ''} font-semibold`
   }
   if (isReadLongAgo.value || isReadLately.value) {
-    return 'text-gray-700 bg-gray-50 hover:bg-gray-100 font-semibold'
+    return `${baseClasses} text-gray-700 bg-gray-50 ${props.isDateEditable ? 'hover:bg-gray-100' : ''} font-semibold`
   }
-  return 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+  return `${baseClasses} text-gray-700 ${props.isDateEditable ? 'hover:text-gray-900 hover:bg-gray-100' : ''}`
 })
 
-const buttonTitle = computed(() =>
-  hasDate.value ? 'Click to change completion date' : 'Click to set completion date'
-)
+const buttonTitle = computed(() => {
+  if (!props.isDateEditable) {
+    return hasDate.value ? formatYearMonth(props.year, props.month) : 'Currently reading'
+  }
+  return hasDate.value ? 'Click to change completion date' : 'Click to set completion date'
+})
 
 const buttonText = computed(() => {
   if (isReadLongAgo.value) {
@@ -67,4 +77,11 @@ const buttonText = computed(() => {
     ? formatYearMonth(props.year, props.month)
     : 'Reading...'
 })
+
+// 5. Methods
+function handleClick() {
+  if (props.isDateEditable) {
+    emit('open-picker')
+  }
+}
 </script>

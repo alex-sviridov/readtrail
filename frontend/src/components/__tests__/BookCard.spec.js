@@ -244,7 +244,7 @@ describe('BookCard', () => {
   })
 
   describe('Date Picker Mode', () => {
-    it('opens date picker when BookStatus is clicked', async () => {
+    it('opens date picker when BookStatus is clicked for in-progress book', async () => {
       const wrapper = createWrapper(inProgressBook)
 
       const bookStatus = wrapper.findComponent(BookStatus)
@@ -256,6 +256,62 @@ describe('BookCard', () => {
 
       // Normal card content should be hidden
       expect(wrapper.findAllComponents(EditableText).length).toBe(0)
+    })
+
+    it('does NOT open date picker for completed book when NOT in edit mode', async () => {
+      const wrapper = createWrapper(completedBook)
+
+      const bookStatus = wrapper.findComponent(BookStatus)
+      await bookStatus.vm.$emit('open-picker')
+      await nextTick()
+
+      // DatePickerCard should NOT be shown
+      expect(wrapper.findComponent(DatePickerCard).exists()).toBe(false)
+
+      // Normal card content should still be visible
+      expect(wrapper.findAllComponents(EditableText).length).toBeGreaterThan(0)
+    })
+
+    it('opens date picker for completed book when in edit mode', async () => {
+      const wrapper = createWrapper(completedBook)
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      const bookStatus = wrapper.findComponent(BookStatus)
+      await bookStatus.vm.$emit('open-picker')
+      await nextTick()
+
+      // DatePickerCard should be shown
+      expect(wrapper.findComponent(DatePickerCard).exists()).toBe(true)
+    })
+
+    it('passes isDateEditable as true for in-progress book', () => {
+      const wrapper = createWrapper(inProgressBook)
+
+      const bookStatus = wrapper.findComponent(BookStatus)
+      expect(bookStatus.props('isDateEditable')).toBe(true)
+    })
+
+    it('passes isDateEditable as false for completed book not in edit mode', () => {
+      const wrapper = createWrapper(completedBook)
+
+      const bookStatus = wrapper.findComponent(BookStatus)
+      expect(bookStatus.props('isDateEditable')).toBe(false)
+    })
+
+    it('passes isDateEditable as true for completed book in edit mode', async () => {
+      const wrapper = createWrapper(completedBook)
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      const bookStatus = wrapper.findComponent(BookStatus)
+      expect(bookStatus.props('isDateEditable')).toBe(true)
     })
 
     it('calls updateBookStatus when date is selected', async () => {
@@ -295,6 +351,11 @@ describe('BookCard', () => {
 
     it('handles "In Progress" selection (null date)', async () => {
       const wrapper = createWrapper(completedBook)
+
+      // Enter edit mode first (required for completed books)
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
 
       // Open picker
       const bookStatus = wrapper.findComponent(BookStatus)

@@ -9,6 +9,7 @@ describe('BookStatus', () => {
       props: {
         year: null,
         month: null,
+        isDateEditable: false,
         ...props
       }
     })
@@ -44,14 +45,23 @@ describe('BookStatus', () => {
       expect(span.classes()).toContain('italic')
     })
 
-    it('applies blue styling for in-progress books', () => {
-      const wrapper = createWrapper()
+    it('applies blue styling for in-progress books when not editable', () => {
+      const wrapper = createWrapper({ isDateEditable: false })
       const container = wrapper.find('.flex')
 
       expect(container.classes()).toContain('text-blue-600')
-      expect(container.classes()).toContain('hover:text-blue-800')
-      expect(container.classes()).toContain('hover:bg-blue-50')
       expect(container.classes()).toContain('font-semibold')
+      // When not editable, should not have hover styles
+      expect(container.classes()).toContain('cursor-default')
+    })
+
+    it('applies blue styling with hover for in-progress books when editable', () => {
+      const wrapper = createWrapper({ isDateEditable: true })
+      const container = wrapper.find('.flex')
+
+      expect(container.classes()).toContain('text-blue-600')
+      expect(container.classes()).toContain('font-semibold')
+      expect(container.classes()).toContain('cursor-pointer')
     })
   })
 
@@ -103,13 +113,20 @@ describe('BookStatus', () => {
       expect(span.classes()).not.toContain('italic')
     })
 
-    it('applies standard gray styling for regular dates', () => {
-      const wrapper = createWrapper({ year: 2020, month: 6 })
+    it('applies standard gray styling for regular dates when not editable', () => {
+      const wrapper = createWrapper({ year: 2020, month: 6, isDateEditable: false })
       const container = wrapper.find('.flex')
 
       expect(container.classes()).toContain('text-gray-700')
-      expect(container.classes()).toContain('hover:text-gray-900')
-      expect(container.classes()).toContain('hover:bg-gray-100')
+      expect(container.classes()).toContain('cursor-default')
+    })
+
+    it('applies standard gray styling with hover for regular dates when editable', () => {
+      const wrapper = createWrapper({ year: 2020, month: 6, isDateEditable: true })
+      const container = wrapper.find('.flex')
+
+      expect(container.classes()).toContain('text-gray-700')
+      expect(container.classes()).toContain('cursor-pointer')
     })
   })
 
@@ -152,36 +169,38 @@ describe('BookStatus', () => {
       expect(span.classes()).not.toContain('italic')
     })
 
-    it('applies gray background styling for "Read Long Ago"', () => {
+    it('applies gray background styling for "Read Long Ago" when not editable', () => {
       const wrapper = createWrapper({
         year: BOOK_STATUS.SENTINEL_YEAR,
-        month: BOOK_STATUS.SENTINEL_MONTH
+        month: BOOK_STATUS.SENTINEL_MONTH,
+        isDateEditable: false
       })
       const container = wrapper.find('.flex')
 
       expect(container.classes()).toContain('text-gray-700')
       expect(container.classes()).toContain('bg-gray-50')
-      expect(container.classes()).toContain('hover:bg-gray-100')
       expect(container.classes()).toContain('font-semibold')
+      expect(container.classes()).toContain('cursor-default')
     })
 
-    it('applies gray background styling for "Read Lately"', () => {
+    it('applies gray background styling for "Read Lately" when editable', () => {
       const wrapper = createWrapper({
         year: BOOK_STATUS.SENTINEL_YEAR_LATELY,
-        month: BOOK_STATUS.SENTINEL_MONTH
+        month: BOOK_STATUS.SENTINEL_MONTH,
+        isDateEditable: true
       })
       const container = wrapper.find('.flex')
 
       expect(container.classes()).toContain('text-gray-700')
       expect(container.classes()).toContain('bg-gray-50')
-      expect(container.classes()).toContain('hover:bg-gray-100')
       expect(container.classes()).toContain('font-semibold')
+      expect(container.classes()).toContain('cursor-pointer')
     })
   })
 
   describe('Click Event Handling', () => {
-    it('emits "open-picker" event when clicked', async () => {
-      const wrapper = createWrapper({ year: 2024, month: 5 })
+    it('emits "open-picker" event when clicked and editable', async () => {
+      const wrapper = createWrapper({ year: 2024, month: 5, isDateEditable: true })
 
       await wrapper.trigger('click')
 
@@ -189,8 +208,16 @@ describe('BookStatus', () => {
       expect(wrapper.emitted('open-picker')).toHaveLength(1)
     })
 
-    it('emits "open-picker" event when in-progress book is clicked', async () => {
-      const wrapper = createWrapper()
+    it('does NOT emit "open-picker" event when clicked and NOT editable', async () => {
+      const wrapper = createWrapper({ year: 2024, month: 5, isDateEditable: false })
+
+      await wrapper.trigger('click')
+
+      expect(wrapper.emitted('open-picker')).toBeFalsy()
+    })
+
+    it('emits "open-picker" event when in-progress book is clicked and editable', async () => {
+      const wrapper = createWrapper({ isDateEditable: true })
 
       await wrapper.trigger('click')
 
@@ -198,10 +225,19 @@ describe('BookStatus', () => {
       expect(wrapper.emitted('open-picker')).toHaveLength(1)
     })
 
-    it('emits "open-picker" event when special status is clicked', async () => {
+    it('does NOT emit when in-progress book is clicked and NOT editable', async () => {
+      const wrapper = createWrapper({ isDateEditable: false })
+
+      await wrapper.trigger('click')
+
+      expect(wrapper.emitted('open-picker')).toBeFalsy()
+    })
+
+    it('emits "open-picker" event when special status is clicked and editable', async () => {
       const wrapper = createWrapper({
         year: BOOK_STATUS.SENTINEL_YEAR,
-        month: BOOK_STATUS.SENTINEL_MONTH
+        month: BOOK_STATUS.SENTINEL_MONTH,
+        isDateEditable: true
       })
 
       await wrapper.trigger('click')
@@ -210,15 +246,22 @@ describe('BookStatus', () => {
       expect(wrapper.emitted('open-picker')).toHaveLength(1)
     })
 
-    it('has cursor pointer styling', () => {
-      const wrapper = createWrapper()
+    it('has cursor pointer styling when editable', () => {
+      const wrapper = createWrapper({ isDateEditable: true })
       const container = wrapper.find('.flex')
 
       expect(container.classes()).toContain('cursor-pointer')
     })
 
-    it('multiple clicks emit multiple events', async () => {
-      const wrapper = createWrapper({ year: 2024, month: 5 })
+    it('has cursor default styling when not editable', () => {
+      const wrapper = createWrapper({ isDateEditable: false })
+      const container = wrapper.find('.flex')
+
+      expect(container.classes()).toContain('cursor-default')
+    })
+
+    it('multiple clicks emit multiple events when editable', async () => {
+      const wrapper = createWrapper({ year: 2024, month: 5, isDateEditable: true })
 
       await wrapper.trigger('click')
       await wrapper.trigger('click')
@@ -226,27 +269,52 @@ describe('BookStatus', () => {
 
       expect(wrapper.emitted('open-picker')).toHaveLength(3)
     })
+
+    it('multiple clicks do NOT emit events when not editable', async () => {
+      const wrapper = createWrapper({ year: 2024, month: 5, isDateEditable: false })
+
+      await wrapper.trigger('click')
+      await wrapper.trigger('click')
+      await wrapper.trigger('click')
+
+      expect(wrapper.emitted('open-picker')).toBeFalsy()
+    })
   })
 
   describe('Title Attribute', () => {
-    it('shows "Click to set completion date" when no date is provided', () => {
-      const wrapper = createWrapper()
+    it('shows "Click to set completion date" when no date is provided and editable', () => {
+      const wrapper = createWrapper({ isDateEditable: true })
       const container = wrapper.find('.flex')
 
       expect(container.attributes('title')).toBe('Click to set completion date')
     })
 
-    it('shows "Click to change completion date" when date is provided', () => {
-      const wrapper = createWrapper({ year: 2024, month: 5 })
+    it('shows "Currently reading" when no date is provided and not editable', () => {
+      const wrapper = createWrapper({ isDateEditable: false })
+      const container = wrapper.find('.flex')
+
+      expect(container.attributes('title')).toBe('Currently reading')
+    })
+
+    it('shows "Click to change completion date" when date is provided and editable', () => {
+      const wrapper = createWrapper({ year: 2024, month: 5, isDateEditable: true })
       const container = wrapper.find('.flex')
 
       expect(container.attributes('title')).toBe('Click to change completion date')
     })
 
-    it('shows "Click to change completion date" for special status', () => {
+    it('shows formatted date when date is provided and not editable', () => {
+      const wrapper = createWrapper({ year: 2024, month: 5, isDateEditable: false })
+      const container = wrapper.find('.flex')
+
+      expect(container.attributes('title')).toBe('May 2024')
+    })
+
+    it('shows "Click to change completion date" for special status when editable', () => {
       const wrapper = createWrapper({
         year: BOOK_STATUS.SENTINEL_YEAR,
-        month: BOOK_STATUS.SENTINEL_MONTH
+        month: BOOK_STATUS.SENTINEL_MONTH,
+        isDateEditable: true
       })
       const container = wrapper.find('.flex')
 

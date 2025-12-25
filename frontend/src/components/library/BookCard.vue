@@ -92,6 +92,7 @@
         <BookStatus
           :year="book.year"
           :month="book.month"
+          :is-date-editable="isDateEditable"
           @open-picker="openPicker"
         />
       </div>
@@ -174,6 +175,8 @@ const cardClasses = computed(() => ({
 
 const isScoreEditable = computed(() => isEditMode.value || temporaryScoreEdit.isEditing.value)
 
+const isDateEditable = computed(() => isInProgress.value || isEditMode.value)
+
 // 6. Methods
 function toggleEditMode() {
   isEditMode.value = !isEditMode.value
@@ -185,6 +188,11 @@ function toggleEditMode() {
 }
 
 function openPicker() {
+  // Only allow opening picker if book is in progress or in edit mode
+  if (!isDateEditable.value) {
+    return
+  }
+
   isEditMode.value = false
   selectedDate.value = initialPickerDate.value
   previousWasInProgress.value = isInProgress.value
