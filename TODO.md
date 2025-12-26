@@ -15,7 +15,7 @@
 # UI
 - [x] Allow generating cover
 - [x] Table view
-- [ ] Allow editing read date only in edit mode
+- [x] Allow editing read date only in edit mode
 - [ ] Bulk add flow (initial addition)
 - [ ] Save library view type when moving back and forth
 

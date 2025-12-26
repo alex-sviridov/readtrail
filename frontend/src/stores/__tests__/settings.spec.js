@@ -41,6 +41,7 @@ describe('useSettingsStore', () => {
       expect(store.settings.showBookInfo).toBe(true)
       expect(store.settings.allowUnfinishedReading).toBe(true)
       expect(store.settings.allowScoring).toBe(true)
+      expect(store.settings.lastLibraryView).toBe('timeline')
     })
 
     it('should have initial loading and sync states', () => {
@@ -100,6 +101,7 @@ describe('useSettingsStore', () => {
       expect(store.settings.showBookInfo).toBe(true)
       expect(store.settings.allowUnfinishedReading).toBe(true)
       expect(store.settings.allowScoring).toBe(true)
+      expect(store.settings.lastLibraryView).toBe('timeline')
     })
 
     it('should fall back to localStorage on backend error', async () => {
@@ -142,7 +144,8 @@ describe('useSettingsStore', () => {
       expect(JSON.parse(newKey)).toEqual({
         showBookInfo: false,
         allowUnfinishedReading: false,
-        allowScoring: true
+        allowScoring: true,
+        lastLibraryView: 'timeline'
       })
 
       // Old keys should be removed
@@ -213,7 +216,8 @@ describe('useSettingsStore', () => {
       localStorage.setItem('readtrail-settings', JSON.stringify({
         showBookInfo: false,
         allowUnfinishedReading: true,
-        allowScoring: false
+        allowScoring: false,
+        lastLibraryView: 'grid'
       }))
       localStorage.setItem('readtrail-settings-migration', 'true')
 
@@ -221,7 +225,8 @@ describe('useSettingsStore', () => {
       settingsApi.updateSettings = vi.fn().mockResolvedValue({
         showBookInfo: false,
         allowUnfinishedReading: true,
-        allowScoring: false
+        allowScoring: false,
+        lastLibraryView: 'grid'
       })
 
       await store.loadSettings()
@@ -230,7 +235,8 @@ describe('useSettingsStore', () => {
       expect(settingsApi.updateSettings).toHaveBeenCalledWith({
         showBookInfo: false,
         allowUnfinishedReading: true,
-        allowScoring: false
+        allowScoring: false,
+        lastLibraryView: 'grid'
       })
 
       // Migration flag should be removed
@@ -262,7 +268,8 @@ describe('useSettingsStore', () => {
         {
           showBookInfo: false,
           allowUnfinishedReading: true,
-          allowScoring: true
+          allowScoring: true,
+          lastLibraryView: 'timeline'
         }
       )
     })
@@ -330,12 +337,14 @@ describe('useSettingsStore', () => {
       store.updateSetting('showBookInfo', false)
       store.updateSetting('allowUnfinishedReading', false)
       store.updateSetting('allowScoring', false)
+      store.updateSetting('lastLibraryView', 'grid')
 
       store.$reset()
 
       expect(store.settings.showBookInfo).toBe(true)
       expect(store.settings.allowUnfinishedReading).toBe(true)
       expect(store.settings.allowScoring).toBe(true)
+      expect(store.settings.lastLibraryView).toBe('timeline')
       expect(store.lastError).toBe(null)
       expect(store.syncStatus).toBe('idle')
     })

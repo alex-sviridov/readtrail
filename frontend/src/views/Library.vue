@@ -123,6 +123,7 @@ const hideUnfinished = ref(route.query.hideUnfinished === 'true')
 const viewMode = computed(() => {
   if (route.path === '/library/timeline') return 'timeline'
   if (route.path === '/library/table') return 'table'
+  if (route.path === '/library/grid') return 'grid'
   return 'grid'
 })
 
@@ -169,8 +170,11 @@ const booksGroupedByYear = computed(() => {
 
 // Set view mode and navigate to appropriate route
 const setViewMode = (mode) => {
+  // Save preference BEFORE navigation
+  settingsStore.updateSetting('lastLibraryView', mode)
+
   if (mode === 'grid') {
-    router.push('/library')
+    router.push('/library/grid')
   } else if (mode === 'timeline') {
     router.push('/library/timeline')
   } else if (mode === 'table') {

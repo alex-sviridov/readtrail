@@ -14,7 +14,8 @@ import { logger } from '@/utils/logger'
 export const DEFAULT_SETTINGS = {
   showBookInfo: true,
   allowUnfinishedReading: true,
-  allowScoring: true
+  allowScoring: true,
+  lastLibraryView: 'timeline'
 }
 
 /**

@@ -74,8 +74,11 @@ const filteredBooks = computed(() => {
 
 // Set view mode and navigate to appropriate route
 const setViewMode = (mode) => {
+  // Save preference BEFORE navigation
+  settingsStore.updateSetting('lastLibraryView', mode)
+
   if (mode === 'grid') {
-    router.push('/library')
+    router.push('/library/grid')
   } else if (mode === 'timeline') {
     router.push('/library/timeline')
   }

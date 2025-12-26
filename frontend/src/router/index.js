@@ -9,16 +9,44 @@ import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
 import Privacy from '@/views/Privacy.vue'
 
+/**
+ * Get last used library view from localStorage
+ * @returns {'grid' | 'timeline' | 'table'}
+ */
+function getLastLibraryView() {
+  const VALID_VIEWS = ['grid', 'timeline', 'table']
+  const DEFAULT_VIEW = 'timeline'
+
+  try {
+    const stored = localStorage.getItem('readtrail-settings')
+    if (stored) {
+      const settings = JSON.parse(stored)
+      const lastView = settings.lastLibraryView
+      if (lastView && VALID_VIEWS.includes(lastView)) {
+        return lastView
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read lastLibraryView:', error)
+  }
+
+  return DEFAULT_VIEW
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      redirect: '/library/timeline'
+      redirect: () => `/library/${getLastLibraryView()}`
     },
     {
       path: '/library',
-      name: 'library',
+      redirect: () => `/library/${getLastLibraryView()}`
+    },
+    {
+      path: '/library/grid',
+      name: 'library-grid',
       component: Library
     },
     {

@@ -50,7 +50,8 @@ describe('settingsApi', () => {
       expect(DEFAULT_SETTINGS).toEqual({
         showBookInfo: true,
         allowUnfinishedReading: true,
-        allowScoring: true
+        allowScoring: true,
+        lastLibraryView: 'timeline'
       })
     })
   })
@@ -107,7 +108,8 @@ describe('settingsApi', () => {
       expect(result).toEqual({
         showBookInfo: false,
         allowUnfinishedReading: true,
-        allowScoring: true
+        allowScoring: true,
+        lastLibraryView: 'timeline'
       })
     })
 
@@ -131,7 +133,8 @@ describe('settingsApi', () => {
       expect(result).toEqual({
         showBookInfo: false,
         allowUnfinishedReading: false,
-        allowScoring: false
+        allowScoring: false,
+        lastLibraryView: 'timeline'
       })
     })
 
@@ -155,6 +158,7 @@ describe('settingsApi', () => {
       expect(result.showBookInfo).toBe(false)
       expect(result.allowUnfinishedReading).toBe(true)
       expect(result.allowScoring).toBe(true)
+      expect(result.lastLibraryView).toBe('timeline')
     })
   })
 
@@ -187,7 +191,10 @@ describe('settingsApi', () => {
 
       expect(pb.collection).toHaveBeenCalledWith('users')
       expect(mockCollection.getOne).toHaveBeenCalledWith('test-user-id')
-      expect(result).toEqual(mockUser.settings)
+      expect(result).toEqual({
+        ...mockUser.settings,
+        lastLibraryView: 'timeline'
+      })
     })
 
     it('should throw error when no authenticated user', async () => {
@@ -294,7 +301,10 @@ describe('settingsApi', () => {
       expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
         settings: newSettings
       })
-      expect(result).toEqual(newSettings)
+      expect(result).toEqual({
+        ...newSettings,
+        lastLibraryView: 'timeline'
+      })
     })
 
     it('should transform settings from returned user record', async () => {
@@ -321,7 +331,8 @@ describe('settingsApi', () => {
       expect(result).toEqual({
         showBookInfo: false,
         allowUnfinishedReading: true,
-        allowScoring: true
+        allowScoring: true,
+        lastLibraryView: 'timeline'
       })
     })
 
@@ -396,7 +407,10 @@ describe('settingsApi', () => {
       expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
         settings: newSettings
       })
-      expect(result).toEqual(newSettings)
+      expect(result).toEqual({
+        ...newSettings,
+        lastLibraryView: 'timeline'
+      })
     })
   })
 
@@ -423,7 +437,10 @@ describe('settingsApi', () => {
       const retrieved = await settingsApi.getSettings()
 
       expect(retrieved).toEqual(updated)
-      expect(retrieved).toEqual(originalSettings)
+      expect(retrieved).toEqual({
+        ...originalSettings,
+        lastLibraryView: 'timeline'
+      })
     })
 
     it('should handle settings with defaults through round-trip', async () => {
@@ -449,7 +466,8 @@ describe('settingsApi', () => {
       expect(updated).toEqual({
         showBookInfo: false,
         allowUnfinishedReading: true,
-        allowScoring: true
+        allowScoring: true,
+        lastLibraryView: 'timeline'
       })
       expect(retrieved).toEqual(updated)
     })
@@ -494,6 +512,7 @@ describe('settingsApi', () => {
         showBookInfo: false,
         allowUnfinishedReading: true,
         allowScoring: true,
+        lastLibraryView: 'timeline',
         unknownProperty: 'should be preserved'
       })
     })
@@ -520,7 +539,10 @@ describe('settingsApi', () => {
 
         const result = await settingsApi.getSettings()
 
-        expect(result).toEqual(settings)
+        expect(result).toEqual({
+          ...settings,
+          lastLibraryView: 'timeline'
+        })
       }
     })
   })
