@@ -1,12 +1,12 @@
 <template>
   <div
-    class="min-h-0 flex items-center overflow-hidden px-3"
+    class="min-h-0 flex items-center overflow-hidden px-2 py-1"
     :class="containerClasses"
   >
     <component
       :is="as"
       ref="elementRef"
-      class="w-full leading-tight break-words overflow-hidden p-1 rounded"
+      class="w-full leading-tight break-words overflow-hidden px-1 rounded"
       :class="textClasses"
       :style="{ fontSize: fontSize }"
       :contenteditable="isEditing"

@@ -52,21 +52,46 @@
     </div>
 
 
-    <!-- Book Cover -->
-    <BookCover
-      :cover-link="book.coverDisplayLink"
-      :cover-url="book.coverLink"
-      :alt-text="book.name"
-      :editable="isEditMode"
-      :use-custom-cover="book.attributes?.customCover"
-      :book-name="book.name"
-      :book-author="book.author"
-      :score="book.attributes?.score"
-      :is-score-editable="isScoreEditable"
-      :allow-scoring="settingsStore.settings.allowScoring"
-      @update="handleCoverUpdate"
-      @update:score="handleScoreUpdate"
-    />
+    <!-- Book Cover with conditional overlay -->
+    <div class="relative">
+      <BookCover
+        :cover-link="book.coverDisplayLink"
+        :cover-url="book.coverLink"
+        :alt-text="book.name"
+        :editable="isEditMode"
+        :use-custom-cover="book.attributes?.customCover"
+        :book-name="book.name"
+        :book-author="book.author"
+        :score="book.attributes?.score"
+        :is-score-editable="isScoreEditable"
+        :allow-scoring="settingsStore.settings.allowScoring"
+        @update="handleCoverUpdate"
+        @update:score="handleScoreUpdate"
+      />
+
+      <!-- Book Info Overlay (when showBookInfo is false and in edit mode) -->
+      <div
+        v-if="!settingsStore.settings.showBookInfo && isEditMode"
+        class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-1 z-10"
+      >
+        <EditableText
+          :value="book.name"
+          as="h3"
+          variant="title"
+          editable
+          @update="handleTitleUpdate"
+        />
+
+        <EditableText
+          v-if="book.author"
+          :value="book.author"
+          as="p"
+          variant="author"
+          editable
+          @update="handleAuthorUpdate"
+        />
+      </div>
+    </div>
 
     <!-- Card Content -->
     <div class="flex flex-col flex-1 gap-1">

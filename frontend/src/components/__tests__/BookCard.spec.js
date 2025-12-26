@@ -458,4 +458,130 @@ describe('BookCard', () => {
       expect(wrapper.text()).not.toContain('Unfinished')
     })
   })
+
+  describe('Book Info Overlay in Edit Mode', () => {
+    it('does not show overlay when showBookInfo is true', async () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: true })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Should not have overlay (book info is in normal position)
+      const overlay = wrapper.find('.absolute.bottom-0')
+      expect(overlay.exists()).toBe(false)
+    })
+
+    it('does not show overlay when showBookInfo is false but not in edit mode', () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
+
+      // Should not have overlay (not in edit mode)
+      const overlay = wrapper.find('.absolute.bottom-0')
+      expect(overlay.exists()).toBe(false)
+    })
+
+    it('shows overlay when showBookInfo is false and in edit mode', async () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Should have overlay
+      const overlay = wrapper.find('.absolute.bottom-0')
+      expect(overlay.exists()).toBe(true)
+    })
+
+    it('overlay contains editable title and author fields', async () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Find EditableText components
+      const editableTexts = wrapper.findAllComponents(EditableText)
+      expect(editableTexts.length).toBe(2) // title and author
+
+      const titleComponent = editableTexts.find(c => c.props('variant') === 'title')
+      const authorComponent = editableTexts.find(c => c.props('variant') === 'author')
+
+      expect(titleComponent).toBeDefined()
+      expect(titleComponent.props('value')).toBe('In Progress Book')
+      expect(titleComponent.props('editable')).toBe(true)
+
+      expect(authorComponent).toBeDefined()
+      expect(authorComponent.props('value')).toBe('Test Author')
+      expect(authorComponent.props('editable')).toBe(true)
+    })
+
+    it('overlay only shows title when author is missing', async () => {
+      const bookWithoutAuthor = { ...inProgressBook, author: null }
+      const wrapper = createWrapper(bookWithoutAuthor, { showBookInfo: false })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Should only have title EditableText
+      const editableTexts = wrapper.findAllComponents(EditableText)
+      expect(editableTexts.length).toBe(1)
+      expect(editableTexts[0].props('variant')).toBe('title')
+    })
+
+    it('updates title through overlay', async () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Update title through overlay
+      const titleComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'title')
+      await titleComponent.vm.$emit('update', 'Updated via Overlay')
+      await nextTick()
+
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { name: 'Updated via Overlay' })
+    })
+
+    it('updates author through overlay', async () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Update author through overlay
+      const authorComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'author')
+      await authorComponent.vm.$emit('update', 'New Author via Overlay')
+      await nextTick()
+
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { author: 'New Author via Overlay' })
+    })
+
+    it('overlay disappears when exiting edit mode', async () => {
+      const wrapper = createWrapper(inProgressBook, { showBookInfo: false })
+
+      // Enter edit mode
+      const editIcon = wrapper.findAllComponents(IconButton).find(b => b.props('title') === 'Edit book')
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Overlay should exist
+      expect(wrapper.find('.absolute.bottom-0').exists()).toBe(true)
+
+      // Exit edit mode
+      await editIcon.vm.$emit('click')
+      await nextTick()
+
+      // Overlay should be gone
+      expect(wrapper.find('.absolute.bottom-0').exists()).toBe(false)
+    })
+  })
 })
