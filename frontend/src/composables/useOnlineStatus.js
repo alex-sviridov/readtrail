@@ -72,13 +72,19 @@ if (typeof window !== 'undefined') {
 export function useOnlineStatus(onChange = null) {
   // Register callback if provided
   if (onChange && typeof onChange === 'function') {
-    onMounted(() => {
-      listeners.add(onChange)
-    })
+    // Check if we're in a component context (has onMounted)
+    try {
+      onMounted(() => {
+        listeners.add(onChange)
+      })
 
-    onUnmounted(() => {
-      listeners.delete(onChange)
-    })
+      onUnmounted(() => {
+        listeners.delete(onChange)
+      })
+    } catch {
+      // Not in component context (e.g., Pinia store), register directly
+      listeners.add(onChange)
+    }
   }
 
   // Return combined status: both network AND API must be available
@@ -93,14 +99,22 @@ export function useOnlineStatus(onChange = null) {
   updateCombinedStatus()
 
   // Add internal listener to keep combined status in sync
-  onMounted(() => {
-    const internalListener = () => updateCombinedStatus()
-    listeners.add(internalListener)
+  const internalListener = () => updateCombinedStatus()
 
-    onUnmounted(() => {
-      listeners.delete(internalListener)
+  // Try to use lifecycle hooks if in component context, otherwise register directly
+  try {
+    onMounted(() => {
+      listeners.add(internalListener)
+
+      onUnmounted(() => {
+        listeners.delete(internalListener)
+      })
     })
-  })
+  } catch {
+    // Not in component context (e.g., Pinia store), register directly
+    // This listener will stay active for the lifetime of the store
+    listeners.add(internalListener)
+  }
 
   return {
     isOnline: combinedStatus,

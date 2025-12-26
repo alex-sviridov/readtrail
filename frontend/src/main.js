@@ -22,8 +22,6 @@ app.use(Toast, {
   draggable: true
 })
 
-app.mount('#app')
-
 // Initialize stores on startup (async)
 async function initializeApp() {
   try {
@@ -42,4 +40,7 @@ async function initializeApp() {
   }
 }
 
-initializeApp()
+// Wait for initialization before mounting
+initializeApp().then(() => {
+  app.mount('#app')
+})

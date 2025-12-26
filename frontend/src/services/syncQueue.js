@@ -67,16 +67,23 @@ class SyncQueue {
    */
   enqueue(type, resource, data, tempId = null) {
     const duplicate = this.findDuplicate(type, resource, data, tempId)
-    if (duplicate) {
-      logger.debug('Duplicate operation, skipping:', duplicate.id)
-      return duplicate.id
-    }
 
     // Only destructure if file present
     const hasFile = 'coverFile' in data && !!data.coverFile
     const operationData = hasFile
       ? (() => { const { coverFile, ...rest } = data; return rest })()
       : data
+
+    if (duplicate) {
+      // Update existing operation with new data and reset retries
+      duplicate.data = operationData
+      duplicate.timestamp = Date.now()
+      duplicate.retries = 0
+      duplicate.lastError = null
+      this.saveQueue()
+      logger.debug('Updated duplicate operation:', duplicate.id)
+      return duplicate.id
+    }
 
     const operation = {
       id: `op-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
@@ -107,6 +114,10 @@ class SyncQueue {
     }
     if ((type === OPERATION_TYPES.UPDATE || type === OPERATION_TYPES.DELETE) && data.id) {
       return `${resource}:${type}:${data.id}`
+    }
+    // Special handling for settings (no id field)
+    if (resource === 'settings' && type === OPERATION_TYPES.UPDATE) {
+      return `${resource}:UPDATE`
     }
     if (type === OPERATION_TYPES.BATCH_CREATE && data.books) {
       return `${resource}:BATCH_CREATE:${data.books.length}`
