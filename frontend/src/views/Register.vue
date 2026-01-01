@@ -341,7 +341,7 @@ async function handleRegister() {
     // Migrate guest data if any
     if (hasGuestData) {
       logger.info('[Register] Migrating guest data to backend...')
-      await booksStore.migrateLocalDataToBackend()
+      await booksStore.performMigration()
 
       // Clear localStorage after migration
       localStorage.removeItem('readtrail-books')

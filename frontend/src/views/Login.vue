@@ -154,7 +154,7 @@ async function handleLogin() {
     // Login successful - trigger migration of guest data if any
     if (hasGuestData) {
       logger.info('[Login] Migrating guest data to backend...')
-      await booksStore.migrateLocalDataToBackend()
+      await booksStore.performMigration()
 
       // Clear localStorage after migration - we'll reload from backend
       localStorage.removeItem('readtrail-books')

@@ -2,6 +2,7 @@ import { computed } from 'vue'
 
 const SENTINEL_YEAR = 1900
 const SENTINEL_YEAR_LATELY = 1910
+const SENTINEL_YEAR_TO_READ = 2100
 
 export function useStatistics(books) {
   // Basic stats
@@ -41,7 +42,7 @@ export function useStatistics(books) {
     // Group books by year-month
     books.value.forEach(book => {
       if (!book.year || !book.month) return
-      if (book.year === SENTINEL_YEAR || book.year === SENTINEL_YEAR_LATELY) return
+      if (book.year === SENTINEL_YEAR || book.year === SENTINEL_YEAR_LATELY || book.year === SENTINEL_YEAR_TO_READ) return
 
       const key = `${book.year}-${String(book.month).padStart(2, '0')}`
 

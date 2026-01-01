@@ -90,9 +90,9 @@ const userInitials = computed(() => {
     : name.substring(0, 2).toUpperCase()
 })
 
-function handleLogout() {
+async function handleLogout() {
   isOpen.value = false
-  authManager.logout()
+  await authManager.logout()
   // Reload to ensure clean state
   window.location.href = '/login'
 }

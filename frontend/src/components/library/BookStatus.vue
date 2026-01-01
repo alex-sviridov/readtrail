@@ -47,11 +47,15 @@ const { formatYearMonth } = useDateHelpers()
 const hasDate = computed(() => !!props.year && !!props.month)
 const isReadLongAgo = computed(() => BOOK_STATUS.isReadLongAgo(props.year))
 const isReadLately = computed(() => BOOK_STATUS.isReadLately(props.year))
+const isToRead = computed(() => BOOK_STATUS.isToRead(props.year))
 const buttonClasses = computed(() => {
   const baseClasses = props.isDateEditable ? 'cursor-pointer' : 'cursor-default'
 
   if (!hasDate.value) {
     return `${baseClasses} text-blue-600 ${props.isDateEditable ? 'hover:text-blue-800 hover:bg-blue-50' : ''} font-semibold`
+  }
+  if (isToRead.value) {
+    return `${baseClasses} text-purple-700 bg-purple-50 ${props.isDateEditable ? 'hover:bg-purple-100' : ''} font-semibold`
   }
   if (isReadLongAgo.value || isReadLately.value) {
     return `${baseClasses} text-gray-700 bg-gray-50 ${props.isDateEditable ? 'hover:bg-gray-100' : ''} font-semibold`
@@ -67,6 +71,9 @@ const buttonTitle = computed(() => {
 })
 
 const buttonText = computed(() => {
+  if (isToRead.value) {
+    return 'To Read'
+  }
   if (isReadLongAgo.value) {
     return 'Read Long Ago'
   }

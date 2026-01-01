@@ -4,8 +4,11 @@
     <LibraryHeader
       view-mode="table"
       :hide-unfinished="hideUnfinished"
+      :hide-to-read="hideToRead"
       @set-view-mode="setViewMode"
       @toggle-filter="toggleFilter"
+      @toggle-to-read-filter="toggleToReadFilter"
+      @clear-all-filters="clearAllFilters"
       @add-book="openSearchModal"
     />
 
@@ -30,11 +33,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, provide } from 'vue'
+import { ref, computed, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
+import { BOOK_STATUS } from '@/constants'
 import BookSearch from '@/components/library/BookSearch.vue'
 import LibraryHeader from '@/components/library/LibraryHeader.vue'
 import BooksTable from '@/components/library/BooksTable.vue'
@@ -61,15 +65,20 @@ const settingsStore = useSettingsStore()
 // Provide settingsStore to child components
 provide('settingsStore', settingsStore)
 
-// Filter toggle state - initialize from query parameter
-const hideUnfinished = ref(route.query.hideUnfinished === 'true')
+// Filter toggle state - use settings store (computed for reactivity)
+const hideUnfinished = computed(() => settingsStore.settings.hideUnfinished)
+const hideToRead = computed(() => settingsStore.settings.hideToRead)
 
-// Filtered books based on hideUnfinished toggle
+// Filtered books based on hideUnfinished and hideToRead toggles
 const filteredBooks = computed(() => {
+  let result = sortedBooks.value
   if (!hideUnfinished.value) {
-    return sortedBooks.value
+    result = result.filter(book => !book.attributes?.isUnfinished)
   }
-  return sortedBooks.value.filter(book => !book.attributes?.isUnfinished)
+  if (!hideToRead.value) {
+    result = result.filter(book => !BOOK_STATUS.isToRead(book.year))
+  }
+  return result
 })
 
 // Set view mode and navigate to appropriate route
@@ -85,21 +94,21 @@ const setViewMode = (mode) => {
   // Already on table view, no need to navigate
 }
 
-// Toggle filter view and update URL
+// Toggle filter and save to settings
 const toggleFilter = () => {
-  hideUnfinished.value = !hideUnfinished.value
-  router.push({
-    query: {
-      ...route.query,
-      hideUnfinished: hideUnfinished.value ? 'true' : undefined
-    }
-  })
+  settingsStore.updateSetting('hideUnfinished', !hideUnfinished.value)
 }
 
-// Watch for route changes to update filter state
-watch(() => route.query.hideUnfinished, (newValue) => {
-  hideUnfinished.value = newValue === 'true'
-})
+// Toggle To Read filter and save to settings
+const toggleToReadFilter = () => {
+  settingsStore.updateSetting('hideToRead', !hideToRead.value)
+}
+
+// Clear all filters
+const clearAllFilters = () => {
+  settingsStore.updateSetting('hideUnfinished', true)
+  settingsStore.updateSetting('hideToRead', true)
+}
 
 // Search modal state
 const isSearchModalOpen = ref(false)

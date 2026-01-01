@@ -2,14 +2,17 @@
 export const BOOK_STATUS = {
   SENTINEL_YEAR: 1900,        // Represents "Read Long Ago"
   SENTINEL_YEAR_LATELY: 1910, // Represents "Read Lately"
+  SENTINEL_YEAR_TO_READ: 2100, // Represents "To Read"
   SENTINEL_MONTH: 1,
 
   // Helper functions
   isReadLongAgo: (year) => year === 1900,
   isReadLately: (year) => year === 1910,
-  isSentinelYear: (year) => year === 1900 || year === 1910,
+  isToRead: (year) => year === 2100,
+  isSentinelYear: (year) => year === 1900 || year === 1910 || year === 2100,
   isUnfinished: (book) => book?.attributes?.isUnfinished === true,
   getTimelineLabel: (year) => {
+    if (year === 2100) return 'To Read'
     if (year === 1910) return 'Read Lately'
     if (year <= 1900) return 'Long Time Ago'
     return year

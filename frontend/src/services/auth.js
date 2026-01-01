@@ -74,7 +74,7 @@ class AuthManager {
    * Logout (clear authentication and all user data)
    * Clears auth and all data to start fresh as guest
    */
-  logout() {
+  async logout() {
     logger.debug('[AuthManager] Logging out and clearing all data')
 
     // Clear PocketBase auth
@@ -85,6 +85,16 @@ class AuthManager {
     Object.keys(localStorage)
       .filter(key => key.startsWith('readtrail-'))
       .forEach(key => localStorage.removeItem(key))
+
+    // Reset Pinia stores to clear in-memory state
+    const { useBooksStore } = await import('@/stores/books')
+    const { useSettingsStore } = await import('@/stores/settings')
+
+    const booksStore = useBooksStore()
+    const settingsStore = useSettingsStore()
+
+    booksStore.$reset()
+    settingsStore.$reset()
 
     logger.debug('[AuthManager] Cleared authentication and all data')
   }

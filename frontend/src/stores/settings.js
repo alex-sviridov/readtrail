@@ -26,7 +26,9 @@ export const useSettingsStore = defineStore('settings', () => {
     showBookInfo: true,
     allowUnfinishedReading: true,
     allowScoring: true,
-    lastLibraryView: 'timeline'
+    lastLibraryView: 'timeline',
+    hideUnfinished: true,
+    hideToRead: true
   })
 
   const settingsLoading = ref(false)
@@ -53,7 +55,9 @@ export const useSettingsStore = defineStore('settings', () => {
       showBookInfo: newSettings.showBookInfo ?? true,
       allowUnfinishedReading: newSettings.allowUnfinishedReading ?? true,
       allowScoring: newSettings.allowScoring ?? true,
-      lastLibraryView: newSettings.lastLibraryView ?? 'timeline'
+      lastLibraryView: newSettings.lastLibraryView ?? 'timeline',
+      hideUnfinished: newSettings.hideUnfinished ?? true,
+      hideToRead: newSettings.hideToRead ?? true
     }
   }
 

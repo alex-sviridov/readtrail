@@ -224,8 +224,8 @@ const handlePasswordChange = async (passwordData) => {
   }
 }
 
-const handleLogout = () => {
-  authManager.logout()
+const handleLogout = async () => {
+  await authManager.logout()
   toast.success('Signed out successfully')
   // Small delay to show toast before redirect
   setTimeout(() => {

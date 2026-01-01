@@ -7,7 +7,7 @@ export function useDatePicker(props, emit) {
 
   // 3. Helper Functions
   function isSentinelYear(year) {
-    return year === BOOK_STATUS.SENTINEL_YEAR || year === BOOK_STATUS.SENTINEL_YEAR_LATELY
+    return year === BOOK_STATUS.SENTINEL_YEAR || year === BOOK_STATUS.SENTINEL_YEAR_LATELY || year === BOOK_STATUS.SENTINEL_YEAR_TO_READ
   }
 
   function getCurrentInitialYear() {
@@ -126,6 +126,17 @@ export function useDatePicker(props, emit) {
     })
   }
 
+  function handleToRead() {
+    // Set unfinished to false (mutually exclusive)
+    isUnfinishedToggled.value = false
+
+    emit('date-select', {
+      year: BOOK_STATUS.SENTINEL_YEAR_TO_READ,
+      month: SENTINEL_MONTH_INDEX,
+      isUnfinished: false
+    })
+  }
+
   function handleInProgress() {
     emit('date-select', null)
   }
@@ -209,6 +220,7 @@ export function useDatePicker(props, emit) {
     // Toggle Handlers
     handleReadLongAgo,
     handleReadLately,
+    handleToRead,
     handleInProgress,
     getToggleButtonClasses,
 

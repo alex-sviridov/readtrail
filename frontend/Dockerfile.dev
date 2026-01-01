@@ -1,0 +1,22 @@
+ARG NODE_VERSION=23.11.0-alpine
+
+FROM node:${NODE_VERSION} AS dev
+
+ENV NODE_ENV=development
+
+WORKDIR /app
+
+COPY --chown=node:node package.json package-lock.json ./
+
+RUN --mount=type=cache,target=/root/.npm npm install
+
+COPY --chown=node:node . .
+
+# Copy .env file if it exists (for local development)
+COPY --chown=node:node .env* ./
+
+# USER node - Commented out for dev to allow Vite write access
+
+EXPOSE 5173
+
+CMD [ "npm", "run", "dev", "--", "--host" ]

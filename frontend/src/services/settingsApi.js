@@ -15,7 +15,9 @@ export const DEFAULT_SETTINGS = {
   showBookInfo: true,
   allowUnfinishedReading: true,
   allowScoring: true,
-  lastLibraryView: 'timeline'
+  lastLibraryView: 'timeline',
+  hideUnfinished: true,
+  hideToRead: true
 }
 
 /**

@@ -101,19 +101,14 @@
           </button>
         </div>
 
-        <BaseButton
-          title="Hide Unfinished"
-          @click="$emit('toggle-filter')"
-          :class="[
-            hideUnfinished
-              ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
-        >
-          <template #icon>
-            <FunnelIcon class="w-5 h-5" />
-          </template>
-        </BaseButton>
+        <FilterDropdown
+          :hide-unfinished="hideUnfinished"
+          :hide-to-read="hideToRead"
+          :allow-unfinished-reading="settingsStore.settings.allowUnfinishedReading"
+          @toggle-hide-unfinished="$emit('toggle-filter')"
+          @toggle-hide-to-read="$emit('toggle-to-read-filter')"
+          @clear-all="$emit('clear-all-filters')"
+        />
         <BaseButton
           title="Add Book"
           @click="$emit('add-book')"
@@ -130,9 +125,11 @@
 <script setup>
 // 1. Imports
 import { ref, computed } from 'vue'
-import { PlusIcon, CalendarIcon, FunnelIcon, Squares2X2Icon, TableCellsIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, CalendarIcon, Squares2X2Icon, TableCellsIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '@/components/base/BaseButton.vue'
+import FilterDropdown from '@/components/library/FilterDropdown.vue'
 import { useBooksStore } from '@/stores/books'
+import { useSettingsStore } from '@/stores/settings'
 import { authManager } from '@/services/auth'
 
 // 2. Props & Emits
@@ -148,6 +145,11 @@ defineProps({
     required: true,
     default: false
   },
+  hideToRead: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
   searchQuery: {
     type: String,
     required: false,
@@ -155,10 +157,11 @@ defineProps({
   }
 })
 
-defineEmits(['set-view-mode', 'toggle-filter', 'add-book', 'update:search-query'])
+defineEmits(['set-view-mode', 'toggle-filter', 'toggle-to-read-filter', 'add-book', 'update:search-query', 'clear-all-filters'])
 
 // 3. Store & Auth
 const booksStore = useBooksStore()
+const settingsStore = useSettingsStore()
 const dismissedAuthPrompt = ref(false)
 
 // 4. Computed

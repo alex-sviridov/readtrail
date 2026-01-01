@@ -96,6 +96,7 @@ import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import BookCoverModal from './BookCoverModal.vue'
 import BookDateModal from './BookDateModal.vue'
 import CustomBookCover from './CustomBookCover.vue'
+import { BOOK_STATUS } from '@/constants'
 
 const props = defineProps({
   books: {
@@ -292,9 +293,11 @@ const columns = [
         }, 'In Progress')
       }
 
-      // Handle sentinel years (1900 = Long Time Ago, 1910 = Read Lately)
+      // Handle sentinel years (2100 = To Read, 1910 = Read Lately, 1900 = Long Time Ago)
       let dateStr
-      if (book.year === 1910) {
+      if (book.year === 2100) {
+        dateStr = 'To Read'
+      } else if (book.year === 1910) {
         dateStr = 'Read Lately'
       } else if (book.year <= 1900) {
         dateStr = 'Long Time Ago'
@@ -428,24 +431,35 @@ const table = useVueTable({
     ]
   },
   sortingFns: {
-    // Custom sort function for year column that matches Library.vue behavior
+    // Custom sort function that maintains To Read → In Progress → Completed priority
     auto: (rowA, rowB, columnId) => {
+      const a = rowA.original
+      const b = rowB.original
+
+      // Primary sort: Always maintain To Read → In Progress → Completed order
+      const aToRead = BOOK_STATUS.isToRead(a.year)
+      const bToRead = BOOK_STATUS.isToRead(b.year)
+
+      // To Read books come first
+      if (aToRead && !bToRead) return -1
+      if (!aToRead && bToRead) return 1
+
+      const aInProgress = a.year === null || a.month === null
+      const bInProgress = b.year === null || b.month === null
+
+      // In-progress books come after To Read but before completed
+      if (aInProgress && !bInProgress) return -1
+      if (!aInProgress && bInProgress) return 1
+
+      // Secondary sort: Within same status group, sort by the column
       if (columnId === 'year') {
-        const a = rowA.original
-        const b = rowB.original
-
-        // In-progress books (no year/month) come first
-        const aCompleted = a.year !== null && a.month !== null
-        const bCompleted = b.year !== null && b.month !== null
-
-        if (!aCompleted && bCompleted) return -1
-        if (aCompleted && !bCompleted) return 1
-
-        // Both in-progress - sort by createdAt (newest first)
-        if (!aCompleted && !bCompleted) {
+        // For year column: sort by createdAt for To Read/In Progress, year/month for completed
+        if (aToRead && bToRead) {
           return new Date(b.createdAt) - new Date(a.createdAt)
         }
-
+        if (aInProgress && bInProgress) {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        }
         // Both completed - sort by year and month (newest first)
         if (a.year !== b.year) {
           return b.year - a.year
@@ -453,7 +467,7 @@ const table = useVueTable({
         return b.month - a.month
       }
 
-      // Default sorting for other columns
+      // For other columns: standard comparison
       const aValue = rowA.getValue(columnId)
       const bValue = rowB.getValue(columnId)
       return aValue > bValue ? 1 : aValue < bValue ? -1 : 0

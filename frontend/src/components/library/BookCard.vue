@@ -131,6 +131,7 @@
         :year-range="yearRange"
         :is-read-long-ago="isReadLongAgo"
         :is-read-lately="isReadLately"
+        :is-to-read="isToRead"
         :is-in-progress="isInProgress"
         :is-unfinished="book.attributes?.isUnfinished"
         :allow-unfinished="settingsStore.settings.allowUnfinishedReading"
@@ -178,10 +179,11 @@ const previousWasInProgress = ref(false)
 const hasDate = computed(() => !!props.book.year && !!props.book.month)
 const isReadLongAgo = computed(() => BOOK_STATUS.isReadLongAgo(props.book.year))
 const isReadLately = computed(() => BOOK_STATUS.isReadLately(props.book.year))
+const isToRead = computed(() => BOOK_STATUS.isToRead(props.book.year))
 const isInProgress = computed(() => !hasDate.value)
 
 const initialPickerDate = computed(() => {
-  if (props.book.year && props.book.month && !isReadLongAgo.value && !isReadLately.value) {
+  if (props.book.year && props.book.month && !isReadLongAgo.value && !isReadLately.value && !isToRead.value) {
     return { year: props.book.year, month: props.book.month - 1 }
   }
   return null
