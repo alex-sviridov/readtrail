@@ -1,3 +1,9 @@
+<script>
+export default {
+  name: 'LoginPage'
+}
+</script>
+
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
@@ -118,14 +124,12 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { authManager } from '@/services/auth'
 import { useBooksStore } from '@/stores/books'
 import { logger } from '@/utils/logger'
 
 const toast = useToast()
-const router = useRouter()
 const booksStore = useBooksStore()
 
 // Form state

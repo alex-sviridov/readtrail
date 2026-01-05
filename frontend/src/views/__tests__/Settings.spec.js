@@ -31,12 +31,11 @@ vi.mock('vue-toastification', () => ({
 describe('Settings View', () => {
   let wrapper
   let router
-  let store
 
   beforeEach(async () => {
     // Create fresh pinia instance
     setActivePinia(createPinia())
-    store = useSettingsStore()
+    useSettingsStore()
 
     // Create router with memory history matching the actual route structure
     router = createRouter({
@@ -127,7 +126,6 @@ describe('Settings View', () => {
         }
       })
 
-      const applicationTab = wrapper.findAll('nav[aria-label="Tabs"] > a')[1]
       await router.push('/settings/application')
       await router.isReady()
       await wrapper.vm.$nextTick()

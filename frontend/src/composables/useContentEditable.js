@@ -1,4 +1,4 @@
-import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { calculateOptimalFontSize } from '@/utils/fontSizing'
 
 /**

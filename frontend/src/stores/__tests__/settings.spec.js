@@ -42,6 +42,8 @@ describe('useSettingsStore', () => {
       expect(store.settings.allowUnfinishedReading).toBe(true)
       expect(store.settings.allowScoring).toBe(true)
       expect(store.settings.lastLibraryView).toBe('timeline')
+      expect(store.settings.hideUnfinished).toBe(true)
+      expect(store.settings.hideToRead).toBe(true)
     })
 
     it('should have initial loading and sync states', () => {
@@ -102,6 +104,8 @@ describe('useSettingsStore', () => {
       expect(store.settings.allowUnfinishedReading).toBe(true)
       expect(store.settings.allowScoring).toBe(true)
       expect(store.settings.lastLibraryView).toBe('timeline')
+      expect(store.settings.hideUnfinished).toBe(true)
+      expect(store.settings.hideToRead).toBe(true)
     })
 
     it('should fall back to localStorage on backend error', async () => {
@@ -145,7 +149,9 @@ describe('useSettingsStore', () => {
         showBookInfo: false,
         allowUnfinishedReading: false,
         allowScoring: true,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
 
       // Old keys should be removed
@@ -186,7 +192,7 @@ describe('useSettingsStore', () => {
       })
 
       // Don't await - let it run in background so migration doesn't complete
-      const loadPromise = store.loadSettings()
+      store.loadSettings()
 
       // Wait a bit for the migration flag to be set
       await new Promise(resolve => setTimeout(resolve, 10))
@@ -236,7 +242,9 @@ describe('useSettingsStore', () => {
         showBookInfo: false,
         allowUnfinishedReading: true,
         allowScoring: false,
-        lastLibraryView: 'grid'
+        lastLibraryView: 'grid',
+        hideUnfinished: true,
+        hideToRead: true
       })
 
       // Migration flag should be removed
@@ -269,7 +277,9 @@ describe('useSettingsStore', () => {
           showBookInfo: false,
           allowUnfinishedReading: true,
           allowScoring: true,
-          lastLibraryView: 'timeline'
+          lastLibraryView: 'timeline',
+          hideUnfinished: true,
+          hideToRead: true
         }
       )
     })
@@ -345,6 +355,8 @@ describe('useSettingsStore', () => {
       expect(store.settings.allowUnfinishedReading).toBe(true)
       expect(store.settings.allowScoring).toBe(true)
       expect(store.settings.lastLibraryView).toBe('timeline')
+      expect(store.settings.hideUnfinished).toBe(true)
+      expect(store.settings.hideToRead).toBe(true)
       expect(store.lastError).toBe(null)
       expect(store.syncStatus).toBe('idle')
     })

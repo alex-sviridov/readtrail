@@ -35,7 +35,7 @@
 <script setup>
 import { ref, computed, provide } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
 import { BOOK_STATUS } from '@/constants'
@@ -50,7 +50,6 @@ defineOptions({
 
 // Router
 const router = useRouter()
-const route = useRoute()
 
 // Initialize the books store
 const booksStore = useBooksStore()

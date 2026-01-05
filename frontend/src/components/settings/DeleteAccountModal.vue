@@ -81,7 +81,7 @@ import { ref, computed } from 'vue'
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import BaseModal from '@/components/base/BaseModal.vue'
 
-const props = defineProps({
+defineProps({
   isOpen: {
     type: Boolean,
     required: true

@@ -1,13 +1,9 @@
 import PocketBase from 'pocketbase'
 
 // Initialize PocketBase client with base URL from environment
-const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8090/api/'
+const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/').trim()
 
-// PocketBase expects the base URL without the /api/ suffix
-// If VITE_API_BASE_URL includes /api/, remove it
-const pbUrl = baseUrl.replace(/\/api\/?$/, '')
-
-const pb = new PocketBase(pbUrl)
+const pb = new PocketBase(baseUrl)
 
 // Disable auto-cancellation to allow parallel requests
 pb.autoCancellation(false)

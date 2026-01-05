@@ -2,20 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BookSearch from '../BookSearch.vue'
-import { TIMINGS, DATE_PICKER } from '@/constants'
+import { TIMINGS } from '@/constants'
 
 describe('BookSearch Component', () => {
   let wrapper
   let mockFetch
-
-  // Helper to get teleported elements
-  const getInput = (placeholder) => document.querySelector(`input[placeholder="${placeholder}"]`)
-  const setInputValue = async (placeholder, value) => {
-    const input = getInput(placeholder)
-    input.value = value
-    input.dispatchEvent(new Event('input'))
-    await nextTick()
-  }
 
   beforeEach(() => {
     // Mock fetch globally

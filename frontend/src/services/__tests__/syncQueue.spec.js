@@ -421,10 +421,8 @@ describe('SyncQueue', () => {
     })
 
     it('should handle operation failures with retries', async () => {
-      let attempts = 0
       const handlers = {
         'books_CREATE': vi.fn(async () => {
-          attempts++
           throw new Error('API Error')
         })
       }

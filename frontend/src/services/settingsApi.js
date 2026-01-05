@@ -6,7 +6,6 @@
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
 import { isGuestMode, requireAuth } from './guestMode'
-import { logger } from '@/utils/logger'
 
 /**
  * Default settings structure

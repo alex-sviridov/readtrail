@@ -5,7 +5,6 @@ import { useContentEditable } from '../useContentEditable'
 
 describe('useContentEditable', () => {
   let wrapper
-  let mockElement
 
   beforeEach(() => {
     // Mock DOM APIs
@@ -193,9 +192,6 @@ describe('useContentEditable', () => {
       })
 
       wrapper = mount(TestComponent)
-
-      // Store initial font size
-      const initialFontSize = wrapper.vm.editable.fontSize.value
 
       await wrapper.vm.editable.startEditing()
 
@@ -570,9 +566,6 @@ describe('useContentEditable', () => {
       })
 
       wrapper = mount(TestComponent)
-
-      // Store initial font size
-      const initialFontSize = wrapper.vm.editable.fontSize.value
 
       wrapper.vm.editable.handleInput()
 

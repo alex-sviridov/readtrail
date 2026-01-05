@@ -1,6 +1,6 @@
 <template>
   <BaseModal
-    :is-open="isOpen"
+    :is-open="props.isOpen"
     title="Change Password"
     content-class="max-w-md w-full"
     :close-on-overlay-click="!isChangingPassword"

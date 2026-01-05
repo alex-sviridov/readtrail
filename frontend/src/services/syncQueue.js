@@ -68,10 +68,10 @@ class SyncQueue {
   enqueue(type, resource, data, tempId = null) {
     const duplicate = this.findDuplicate(type, resource, data, tempId)
 
-    // Only destructure if file present
+    // Only destructure if file present - remove coverFile from data to avoid serialization issues
     const hasFile = 'coverFile' in data && !!data.coverFile
     const operationData = hasFile
-      ? (() => { const { coverFile, ...rest } = data; return rest })()
+      ? (() => { const { coverFile, ...rest } = data; void coverFile; return rest })()
       : data
 
     if (duplicate) {

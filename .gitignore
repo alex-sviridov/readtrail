@@ -23,3 +23,8 @@ dist-ssr
 *.sw?
 
 *.env
+*.pem
+
+# SSL certificates (keep README only)
+webproxy/ssl/*
+!webproxy/ssl/README.md

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import BookCard from '../library/BookCard.vue'
@@ -36,12 +36,15 @@ vi.mock('@/constants', () => ({
   BOOK_STATUS: {
     SENTINEL_YEAR: 1900,
     SENTINEL_YEAR_LATELY: 1910,
+    SENTINEL_YEAR_TO_READ: 2100,
     SENTINEL_MONTH: 1,
     isReadLongAgo: (year) => year === 1900,
     isReadLately: (year) => year === 1910,
-    isSentinelYear: (year) => year === 1900 || year === 1910,
+    isToRead: (year) => year === 2100,
+    isSentinelYear: (year) => year === 1900 || year === 1910 || year === 2100,
     isUnfinished: (book) => book?.attributes?.isUnfinished === true,
     getTimelineLabel: (year) => {
+      if (year === 2100) return 'To Read'
       if (year === 1910) return 'Read Lately'
       if (year <= 1900) return 'Long Time Ago'
       return year

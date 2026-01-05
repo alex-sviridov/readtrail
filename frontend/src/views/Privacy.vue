@@ -105,7 +105,7 @@
 import { computed } from 'vue'
 
 defineOptions({
-  name: 'Privacy'
+  name: 'PrivacyPage'
 })
 
 const lastUpdated = computed(() => {

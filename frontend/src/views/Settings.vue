@@ -37,19 +37,14 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 defineOptions({
   name: 'SettingsPage'
 })
 
-const router = useRouter()
 const route = useRoute()
 
 const isAccountActive = computed(() => route.path.includes('/settings/account'))
 const isApplicationActive = computed(() => route.path.includes('/settings/application'))
-
-const goToLibrary = () => {
-  router.push('/library')
-}
 </script>

@@ -90,7 +90,7 @@
                     />
                   </svg>
                 </div>
-                <span class="text-sm text-gray-900">Unfinished</span>
+                <span class="text-sm text-gray-900">Hide Unfinished</span>
               </div>
             </button>
 
@@ -123,7 +123,7 @@
                     />
                   </svg>
                 </div>
-                <span class="text-sm text-gray-900">Unread</span>
+                <span class="text-sm text-gray-900">Hide Unread</span>
               </div>
             </button>
           </div>
@@ -164,14 +164,14 @@ const dropdownRef = ref(null)
 
 // Computed
 const hasActiveFilters = computed(() => {
-  const unfinishedActive = props.allowUnfinishedReading && !props.hideUnfinished
-  return unfinishedActive || !props.hideToRead
+  const unfinishedActive = props.allowUnfinishedReading && props.hideUnfinished
+  return unfinishedActive || props.hideToRead
 })
 
 const activeFilterCount = computed(() => {
   let count = 0
-  if (props.allowUnfinishedReading && !props.hideUnfinished) count++
-  if (!props.hideToRead) count++
+  if (props.allowUnfinishedReading && props.hideUnfinished) count++
+  if (props.hideToRead) count++
   return count
 })
 

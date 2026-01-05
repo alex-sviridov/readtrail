@@ -26,5 +26,10 @@ export default defineConfig([
   {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
   },
 ])

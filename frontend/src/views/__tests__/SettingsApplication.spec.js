@@ -8,11 +8,10 @@ import { useSettingsStore } from '@/stores/settings'
 describe('SettingsApplication', () => {
   let wrapper
   let router
-  let store
 
   beforeEach(async () => {
     setActivePinia(createPinia())
-    store = useSettingsStore()
+    useSettingsStore()
 
     router = createRouter({
       history: createMemoryHistory(),

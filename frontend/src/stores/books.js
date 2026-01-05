@@ -7,7 +7,7 @@ import { useOnlineStatus, setApiAvailability } from '@/composables/useOnlineStat
 import { isGuestMode } from '@/services/guestMode'
 import { logger } from '@/utils/logger'
 import { handleStorageError } from '@/utils/storageErrors'
-import { DEFAULT_BOOK_ATTRIBUTES, normalizeBookAttributes } from '@/utils/bookSchema'
+import { DEFAULT_BOOK_ATTRIBUTES } from '@/utils/bookSchema'
 import { sortBooks } from '@/utils/bookSorting'
 import { serializeBook, deserializeBook } from '@/utils/bookSerialization'
 import { migrateLocalDataToBackend, needsMigration, markForMigration } from '@/services/migration'

@@ -1,46 +1,26 @@
 services:
-  frontend-dev:
+  frontend:
     build:
       context: frontend/
-      dockerfile: Dockerfile.dev
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api/
-      - VITE_API_TIMEOUT=10000
-      - VITE_AUTH_ENABLED=true
-      - VITE_GUEST_USER_ENABLED=true
-    port:
-      - "5173:5173"
+      dockerfile: Dockerfile
     volumes:
-      - ./frontend/.env:/app/.env
-    develop:
-      watch:
-        - path: ./frontend/src
-          target: /app/src
-          action: sync
-        - path: ./frontend/package.json
-          target: /app/package.json
-          action: restart
-        - path: ./frontend/vite.config.js
-          target: /app/vite.config.js
-          action: restart
-
-  backend-dev:
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
+  backend:
     build:
       context: backend/
-      dockerfile: Dockerfile.dev
-    ports:
-      - "8090:8090"
+      dockerfile: Dockerfile
     volumes:
-      - ./backend/pb_data:/app/pb_data
-      - ./backend/pb_hooks:/app/pb_hooks
-      - ./backend/pb_migrations:/app/pb_migrations
+      - ./backend/pb_data:/pb/pb_data
 
-  nginx-dev:
+  nginx:
     image: nginx:alpine
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./webproxy/nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      - ./webproxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./webproxy/ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
+      - ./webproxy/ssl/key.pem:/etc/nginx/ssl/key.pem:ro
     depends_on:
-      - frontend-dev
-      - backend-dev
+      - frontend
+      - backend

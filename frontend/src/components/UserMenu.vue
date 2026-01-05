@@ -69,12 +69,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { ChevronDownIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { authManager } from '@/services/auth'
 import pb from '@/services/pocketbase'
 
-const router = useRouter()
 const isOpen = ref(false)
 const authState = ref(pb.authStore.isValid)
 

@@ -51,7 +51,9 @@ describe('settingsApi', () => {
         showBookInfo: true,
         allowUnfinishedReading: true,
         allowScoring: true,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
   })
@@ -109,7 +111,9 @@ describe('settingsApi', () => {
         showBookInfo: false,
         allowUnfinishedReading: true,
         allowScoring: true,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
 
@@ -134,7 +138,9 @@ describe('settingsApi', () => {
         showBookInfo: false,
         allowUnfinishedReading: false,
         allowScoring: false,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
 
@@ -193,20 +199,16 @@ describe('settingsApi', () => {
       expect(mockCollection.getOne).toHaveBeenCalledWith('test-user-id')
       expect(result).toEqual({
         ...mockUser.settings,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
 
     it('should throw error when no authenticated user', async () => {
       pb.authStore.record = null
 
-      try {
-        await settingsApi.getSettings()
-        // If we get here, the test should fail
-        expect.fail('Should have thrown an error')
-      } catch (error) {
-        expect(error.message).toBe('No authenticated user')
-      }
+      await expect(settingsApi.getSettings()).rejects.toThrow('No authenticated user')
     })
 
     it('should return null on 404 error', async () => {
@@ -249,13 +251,8 @@ describe('settingsApi', () => {
       }
       pb.collection.mockReturnValue(mockCollection)
 
-      try {
-        await settingsApi.getSettings()
-        expect.fail('Should have thrown an error')
-      } catch (error) {
-        expect(error).toEqual(mockError)
-        expect(adaptPocketBaseError).toHaveBeenCalledWith(mockError)
-      }
+      await expect(settingsApi.getSettings()).rejects.toEqual(mockError)
+      expect(adaptPocketBaseError).toHaveBeenCalledWith(mockError)
     })
   })
 
@@ -303,7 +300,9 @@ describe('settingsApi', () => {
       })
       expect(result).toEqual({
         ...newSettings,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
 
@@ -332,7 +331,9 @@ describe('settingsApi', () => {
         showBookInfo: false,
         allowUnfinishedReading: true,
         allowScoring: true,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
 
@@ -409,7 +410,9 @@ describe('settingsApi', () => {
       })
       expect(result).toEqual({
         ...newSettings,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
   })
@@ -439,7 +442,9 @@ describe('settingsApi', () => {
       expect(retrieved).toEqual(updated)
       expect(retrieved).toEqual({
         ...originalSettings,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
     })
 
@@ -467,7 +472,9 @@ describe('settingsApi', () => {
         showBookInfo: false,
         allowUnfinishedReading: true,
         allowScoring: true,
-        lastLibraryView: 'timeline'
+        lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true
       })
       expect(retrieved).toEqual(updated)
     })
@@ -513,6 +520,8 @@ describe('settingsApi', () => {
         allowUnfinishedReading: true,
         allowScoring: true,
         lastLibraryView: 'timeline',
+        hideUnfinished: true,
+        hideToRead: true,
         unknownProperty: 'should be preserved'
       })
     })
@@ -541,7 +550,9 @@ describe('settingsApi', () => {
 
         expect(result).toEqual({
           ...settings,
-          lastLibraryView: 'timeline'
+          lastLibraryView: 'timeline',
+          hideUnfinished: true,
+          hideToRead: true
         })
       }
     })
