@@ -1,8 +1,6 @@
 services:
   frontend:
     image: ghcr.io/alex-sviridov/readtrail/frontend
-    volumes:
-      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
   backend:
     image: ghcr.io/alex-sviridov/readtrail/backend
     volumes:
@@ -14,9 +12,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./webproxy/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./webproxy/ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
-      - ./webproxy/ssl/key.pem:/etc/nginx/ssl/key.pem:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
+      - ./ssl/key.pem:/etc/nginx/ssl/key.pem:ro
     depends_on:
       - frontend
       - backend

@@ -1,8 +1,8 @@
 services:
 
-  frontend-dev:
+  frontend:
     build:
-      context: frontend/
+      context: ../frontend/
       dockerfile: Dockerfile.dev
     environment:
       - VITE_API_BASE_URL=http://localhost:8080/api/
@@ -12,36 +12,36 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend/.env:/app/.env
+      - .../frontend/.env:/app/.env
     develop:
       watch:
-        - path: ./frontend/src
+        - path: ../frontend/src
           target: /app/src
           action: sync
-        - path: ./frontend/package.json
+        - path: ../frontend/package.json
           target: /app/package.json
           action: restart
-        - path: ./frontend/vite.config.js
+        - path: ../frontend/vite.config.js
           target: /app/vite.config.js
           action: restart
 
-  backend-dev:
+  backend:
     build:
-      context: backend/
+      context: ../backend/
       dockerfile: Dockerfile.dev
     ports:
       - "8090:8090"
     volumes:
-      - ./backend/pb_data:/app/pb_data
-      - ./backend/pb_hooks:/app/pb_hooks
-      - ./backend/pb_migrations:/app/pb_migrations
+      - ../backend/pb_data:/app/pb_data
+      - ../backend/pb_hooks:/app/pb_hooks
+      - ../backend/pb_migrations:/app/pb_migrations
 
-  nginx-dev:
+  nginx:
     image: nginx:alpine
     ports:
       - "8080:80"
     volumes:
-      - ./webproxy/nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-dev.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - frontend-dev
-      - backend-dev
+      - frontend
+      - backend
