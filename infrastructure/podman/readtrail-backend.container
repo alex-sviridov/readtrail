@@ -1,0 +1,17 @@
+[Unit]
+Description=ReadTrail Backend Container
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=ghcr.io/alex-sviridov/readtrail/backend:latest
+Volume=readtrail-backenddata.volume:/pb/pb_data
+Network=readtrail.network
+AutoUpdate=registry
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

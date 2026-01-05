@@ -1,0 +1,7 @@
+[Unit]
+Description=ReadTrail Network
+
+[Network]
+
+[Install]
+WantedBy=default.target
