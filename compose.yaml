@@ -1,14 +1,10 @@
 services:
   frontend:
-    build:
-      context: frontend/
-      dockerfile: Dockerfile
+    image: ghcr.io/alex-sviridov/readtrail/frontend
     volumes:
       - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
   backend:
-    build:
-      context: backend/
-      dockerfile: Dockerfile
+    image: ghcr.io/alex-sviridov/readtrail/backend
     volumes:
       - ./backend/pb_data:/pb/pb_data
 
