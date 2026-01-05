@@ -1,0 +1,20 @@
+[Unit]
+Description=ReadTrail Nginx Proxy Container
+After=network-online.target readtrail-frontend.service readtrail-backend.service
+Wants=network-online.target
+Requires=readtrail-frontend.service readtrail-backend.service
+
+[Container]
+Image=docker.io/library/nginx:alpine
+PublishPort=2081:443
+Volume=%h/.config/containers/static/readtrail/nginx.conf:/etc/nginx/nginx.conf:ro
+Volume=%h/.config/containers/static/readtrail/ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
+Volume=%h/.config/containers/static/readtrail/ssl/key.pem:/etc/nginx/ssl/key.pem:ro
+Network=readtrail.network
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=ReadTrail Frontend Container
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=ghcr.io/alex-sviridov/readtrail/frontend:latest
+Network=readtrail.network
+AutoUpdate=registry
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target
