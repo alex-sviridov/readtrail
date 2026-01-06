@@ -1,12 +1,12 @@
 services:
-  frontend:
+  readtrail-frontend:
     image: ghcr.io/alex-sviridov/readtrail/frontend
-  backend:
+  readtrail-backend:
     image: ghcr.io/alex-sviridov/readtrail/backend
     volumes:
       - ./backend/pb_data:/pb/pb_data
 
-  nginx:
+  readtrail-nginx:
     image: nginx:alpine
     ports:
       - "80:80"
@@ -16,5 +16,5 @@ services:
       - ./ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
       - ./ssl/key.pem:/etc/nginx/ssl/key.pem:ro
     depends_on:
-      - frontend
-      - backend
+      - readtrail-frontend
+      - readtrail-backend
