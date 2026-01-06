@@ -4,6 +4,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Container]
+ContainerName=readtrail-backend
 Image=ghcr.io/alex-sviridov/readtrail/backend:latest
 Volume=readtrail-backenddata.volume:/pb/pb_data
 Network=readtrail.network
