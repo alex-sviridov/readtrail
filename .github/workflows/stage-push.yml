@@ -121,6 +121,17 @@ jobs:
           target: ".config/containers/static/readtrail-stage/nginx.conf"
           overwrite: true
 
+      - name: Write SSL certificates to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            mkdir -p ~/.config/containers/static/readtrail-stage/certs
+            echo "${{ secrets.STAGING_SSL_CERT }}" > ~/.config/containers/static/readtrail-stage/certs/cert.pem
+            echo "${{ secrets.STAGING_SSL_KEY }}" > ~/.config/containers/static/readtrail-stage/certs/key.pem
+
       - name: Deploy to Staging via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
