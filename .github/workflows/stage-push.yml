@@ -118,7 +118,7 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           source: "infrastructure/nginx/nginx-stage.conf"
-          target: "~/.config/containers/static/readtrail-stage/"
+          target: ~/.config/containers/static/readtrail-stage/
           overwrite: true
 
       - name: Write SSL certificates to server
