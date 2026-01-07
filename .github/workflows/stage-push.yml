@@ -10,14 +10,20 @@ env:
   BACKEND_IMAGE: ${{ github.repository }}/backend
 
 jobs:
-  retag-frontend:
-    name: Retag Frontend Image
+  build-frontend:
+    name: Build and Push Frontend Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
@@ -25,27 +31,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull SHA-tagged image
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:sha-${{ github.sha }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=stage
 
-      - name: Tag as stage
-        run: |
-          docker tag ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:sha-${{ github.sha }} \
-                     ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:stage
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Push stage tag
-        run: |
-          docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:stage
-
-  retag-backend:
-    name: Retag Backend Image
+  build-backend:
+    name: Build and Push Backend Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
@@ -53,23 +72,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull SHA-tagged image
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=stage
 
-      - name: Tag as stage
-        run: |
-          docker tag ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }} \
-                     ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:stage
-
-      - name: Push stage tag
-        run: |
-          docker push ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:stage
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to Staging Server
     runs-on: ubuntu-latest
-    needs: [retag-frontend, retag-backend]
+    needs: [build-frontend, build-backend]
 
     steps:
       - name: Checkout code
@@ -91,7 +117,7 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
-          source: "infrastructure/nginx-stage.conf"
+          source: "infrastructure/nginx/stage.conf"
           target: ".config/containers/static/readtrail-stage/nginx.conf"
           overwrite: true
 
