@@ -129,8 +129,8 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
             mkdir -p ~/.config/containers/static/readtrail-stage/certs
-            echo "${{ secrets.STAGING_SSL_CERT }}" > ~/.config/containers/static/readtrail-stage/certs/cert.pem
-            echo "${{ secrets.STAGING_SSL_KEY }}" > ~/.config/containers/static/readtrail-stage/certs/key.pem
+            echo "${{ secrets.STAGING_SSL_CERT }}" > ~/.config/containers/static/readtrail-stage/ssl/cert.pem
+            echo "${{ secrets.STAGING_SSL_KEY }}" > ~/.config/containers/static/readtrail-stage/ssl/key.pem
 
       - name: Deploy to Staging via SSH
         uses: appleboy/ssh-action@v1.0.3
