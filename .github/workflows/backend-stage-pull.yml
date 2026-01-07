@@ -1,15 +1,15 @@
-name: Frontend CI/CD
+name: Backend CI/CD
 
 on:
-  push:
+  pull_request:
     branches: [ stage ]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-stage-push.yml'
+      - 'backend/**'
+      - '.github/workflows/backend-stage-pull.yml'
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/frontend
+  IMAGE_NAME: ${{ github.repository }}/backend
 
 jobs:
   build-and-push:
@@ -39,16 +39,16 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=stage
-            type=sha
+            type=sha,prefix=sha-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+

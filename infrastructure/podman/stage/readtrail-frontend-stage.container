@@ -1,0 +1,17 @@
+[Unit]
+Description=ReadTrail Frontend Staging Container
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=readtrail-frontend-stage
+Image=ghcr.io/alex-sviridov/readtrail/frontend:stage
+Network=readtrail-stage.network
+AutoUpdate=registry
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target
