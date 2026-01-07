@@ -8,8 +8,7 @@ Requires=readtrail-frontend-stage.service readtrail-backend-stage.service
 Image=docker.io/library/nginx:alpine
 PublishPort=2082:443
 Volume=%h/.config/containers/static/readtrail-stage/nginx-stage.conf:/etc/nginx/nginx.conf:ro
-Volume=%h/.config/containers/static/readtrail-stage/ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
-Volume=%h/.config/containers/static/readtrail-stage/ssl/key.pem:/etc/nginx/ssl/key.pem:ro
+Volume=%h/.config/containers/static/readtrail-stage/ssl:/etc/nginx/ssl:ro
 Network=readtrail-stage.network
 
 [Service]
