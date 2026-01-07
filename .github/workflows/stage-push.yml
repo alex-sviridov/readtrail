@@ -118,7 +118,7 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           source: "infrastructure/nginx/nginx-stage.conf"
-          target: "~/.config/containers/static/readtrail-stage/"
+          target: ~/.config/containers/static/readtrail-stage/
           overwrite: true
 
       - name: Write SSL certificates to server
@@ -162,16 +162,40 @@ jobs:
             echo "Staging deployment completed successfully!"
 
       - name: Health Check
-        env:
-          STAGING_URL: https://stage.readtrail.net
         run: |
           echo "Waiting for staging environment to be ready..."
           sleep 10
 
           # Check if staging is accessible
-          if curl -f --max-time 30 "$STAGING_URL/"; then
+          if curl -f --max-time 30 "${{ secrets.STAGING_URL }}"; then
             echo "✓ Staging environment is healthy!"
           else
             echo "✗ Health check failed!"
             exit 1
           fi
+
+  e2e-test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./e2e
+    env:
+      BASE_URL: ${{ secrets.STAGING_URL }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    - name: Run Playwright tests
+      run: npx playwright test
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: e2e/playwright-report/
+        retention-days: 30
