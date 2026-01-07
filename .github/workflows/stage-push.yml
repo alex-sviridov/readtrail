@@ -112,17 +112,17 @@ jobs:
           strip_components: 3
 
       - name: Sync nginx config to server
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           source: "infrastructure/nginx/nginx-stage.conf"
-          target: ".config/containers/static/readtrail-stage/"
+          target: "~/.config/containers/static/readtrail-stage/"
           overwrite: true
 
       - name: Write SSL certificates to server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
@@ -133,7 +133,7 @@ jobs:
             echo "${{ secrets.STAGING_SSL_KEY }}" > ~/.config/containers/static/readtrail-stage/ssl/key.pem
 
       - name: Deploy to Staging via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
