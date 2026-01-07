@@ -117,7 +117,7 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
-          source: "infrastructure/nginx-stage.conf"
+          source: "infrastructure/nginx/stage.conf"
           target: ".config/containers/static/readtrail-stage/nginx.conf"
           overwrite: true
 
