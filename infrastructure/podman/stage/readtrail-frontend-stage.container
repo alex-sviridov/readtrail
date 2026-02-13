@@ -1,11 +1,12 @@
 [Unit]
-Description=ReadTrail Frontend Container
+Description=ReadTrail Frontend Staging Container
 After=network-online.target
 Wants=network-online.target
 
 [Container]
-Image=ghcr.io/alex-sviridov/readtrail/frontend:latest
-Network=readtrail.network
+ContainerName=readtrail-frontend-stage
+Image=ghcr.io/alex-sviridov/readtrail/frontend:stage
+Network=readtrail-stage.network
 AutoUpdate=registry
 
 [Service]

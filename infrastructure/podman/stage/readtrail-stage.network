@@ -1,0 +1,7 @@
+[Unit]
+Description=ReadTrail Staging Network
+
+[Network]
+
+[Install]
+WantedBy=default.target

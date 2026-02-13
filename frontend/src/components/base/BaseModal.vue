@@ -8,6 +8,7 @@
         @click.self="handleOverlayClick"
       >
         <div
+          role="dialog"
           class="bg-white rounded-lg shadow-xl flex flex-col"
           :class="[contentClass, maxHeightClass]"
         >

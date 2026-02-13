@@ -2,10 +2,10 @@ name: Frontend CI/CD
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ stage ]
     paths:
       - 'frontend/**'
-      - '.github/workflows/frontend.yml'
+      - '.github/workflows/frontend-stage-pull.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -32,7 +32,6 @@ jobs:
 
   build-and-push:
     name: Build and Push Docker Image
-    needs: lint-and-test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,8 +57,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=pr
-            type=sha
+            type=sha,prefix=sha-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -71,3 +69,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+

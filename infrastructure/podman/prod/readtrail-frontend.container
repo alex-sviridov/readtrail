@@ -1,11 +1,11 @@
 [Unit]
-Description=ReadTrail Backend Container
+Description=ReadTrail Frontend Container
 After=network-online.target
 Wants=network-online.target
 
 [Container]
-Image=ghcr.io/alex-sviridov/readtrail/backend:latest
-Volume=readtrail-backenddata.volume:/pb/pb_data
+ContainerName=readtrail-frontend
+Image=ghcr.io/alex-sviridov/readtrail/frontend:latest
 Network=readtrail.network
 AutoUpdate=registry
 

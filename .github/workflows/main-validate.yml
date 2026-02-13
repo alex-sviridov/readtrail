@@ -1,0 +1,19 @@
+
+name: Validate PR Source to main branch
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR source branch
+        if: github.head_ref != 'stage'
+        run: |
+          echo "❌ PRs to main must come from stage branch, not '${{ github.head_ref }}'"
+          exit 1
+      - name: Source branch OK
+        if: github.head_ref == 'stage'
+        run: echo "✅ PR is from stage branch"

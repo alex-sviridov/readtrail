@@ -1,0 +1,204 @@
+name: Stage Deploy
+
+on:
+  push:
+    branches: [ stage ]
+
+env:
+  REGISTRY: ghcr.io
+  FRONTEND_IMAGE: ${{ github.repository }}/frontend
+  BACKEND_IMAGE: ${{ github.repository }}/backend
+
+jobs:
+  build-frontend:
+    name: Build and Push Frontend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=stage
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-backend:
+    name: Build and Push Backend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=stage
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Staging Server
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-backend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Sync Quadlet files to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          source: "infrastructure/podman/stage/*"
+          target: ".config/containers/systemd/"
+          strip_components: 3
+
+      - name: Sync nginx config to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          source: "infrastructure/nginx/nginx-stage.conf"
+          target: ~/.config/containers/static/readtrail-stage/
+          overwrite: true
+
+      - name: Write SSL certificates to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            mkdir -p ~/.config/containers/static/readtrail-stage/ssl
+            echo "${{ secrets.STAGING_SSL_CERT }}" > ~/.config/containers/static/readtrail-stage/ssl/cert.pem
+            echo "${{ secrets.STAGING_SSL_KEY }}" > ~/.config/containers/static/readtrail-stage/ssl/key.pem
+
+      - name: Deploy to Staging via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            # Reload systemd to pick up Quadlet changes
+            systemctl --user daemon-reload
+
+            # Pull new stage images
+            podman pull ghcr.io/${{ github.repository }}/frontend:stage
+            podman pull ghcr.io/${{ github.repository }}/backend:stage
+
+            # Restart staging services
+            systemctl --user restart readtrail-frontend-stage.service
+            systemctl --user restart readtrail-backend-stage.service
+            systemctl --user restart readtrail-nginx-stage.service
+
+            # Wait for services to be ready
+            sleep 5
+
+            # Verify services are running
+            systemctl --user is-active readtrail-frontend-stage.service
+            systemctl --user is-active readtrail-backend-stage.service
+            systemctl --user is-active readtrail-nginx-stage.service
+
+            echo "Staging deployment completed successfully!"
+
+      - name: Health Check
+        run: |
+          echo "Waiting for staging environment to be ready..."
+          sleep 10
+
+          # Check if staging is accessible
+          if curl -f --max-time 30 "${{ secrets.STAGING_URL }}"; then
+            echo "✓ Staging environment is healthy!"
+          else
+            echo "✗ Health check failed!"
+            exit 1
+          fi
+
+  e2e-test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    defaults:
+      run:
+        working-directory: ./e2e
+    env:
+      BASE_URL: ${{ secrets.STAGING_URL }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 23.11
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+    - name: Install dependencies
+      run: npm ci
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    - name: Run Playwright tests
+      run: npx playwright test
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: e2e/playwright-report/
+        retention-days: 30
