@@ -3,7 +3,7 @@
     <!-- Auth Prompt Banner -->
     <div
       v-if="showAuthPrompt && !dismissedAuthPrompt"
-      class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between"
+      class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
     >
       <div class="flex items-center">
         <div class="flex-shrink-0">
@@ -17,16 +17,16 @@
           </p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-shrink-0">
         <router-link
           to="/login"
-          class="text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1 hover:bg-blue-100 rounded transition-colors"
+          class="text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1 hover:bg-blue-100 rounded transition-colors whitespace-nowrap"
         >
           Create Account
         </router-link>
         <button
           @click="dismissAuthPrompt"
-          class="text-sm font-medium text-gray-600 hover:text-gray-700 px-3 py-1 hover:bg-gray-100 rounded transition-colors"
+          class="text-sm font-medium text-gray-600 hover:text-gray-700 px-3 py-1 hover:bg-gray-100 rounded transition-colors whitespace-nowrap"
         >
           Dismiss
         </button>
@@ -34,34 +34,12 @@
     </div>
 
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">My Library</h1>
+    <div class="space-y-4 mb-6">
+      <!-- Title and Actions Row -->
+      <div class="flex justify-between items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">My Library</h1>
 
-      <!-- Search Input -->
-      <div class="flex-1 max-w-md mx-4">
-        <div class="relative">
-          <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            :value="searchQuery"
-            @input="$emit('update:search-query', $event.target.value)"
-            type="text"
-            placeholder="Search by title, author, or year..."
-            aria-label="Search books by title, author, or year"
-            class="bg-white w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            v-if="searchQuery"
-            @click="$emit('update:search-query', '')"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            title="Clear search"
-          >
-            <XMarkIcon class="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <!-- View Mode Toggle -->
+        <!-- View Mode Toggle - All screens -->
         <div class="flex items-center bg-gray-200 rounded-lg p-1">
           <button
             @click="$emit('set-view-mode', 'grid')"
@@ -99,6 +77,31 @@
           >
             <TableCellsIcon class="w-5 h-5" />
           </button>
+        </div>
+      </div>
+
+      <!-- Search and Actions Row -->
+      <div class="flex items-center gap-3">
+        <div class="flex-1">
+          <div class="relative">
+            <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              :value="searchQuery"
+              @input="$emit('update:search-query', $event.target.value)"
+              type="text"
+              placeholder="Search by title, author, or year..."
+              aria-label="Search books by title, author, or year"
+              class="bg-white w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              v-if="searchQuery"
+              @click="$emit('update:search-query', '')"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              title="Clear search"
+            >
+              <XMarkIcon class="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <FilterDropdown

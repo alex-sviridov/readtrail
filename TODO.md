@@ -1,3 +1,6 @@
+# Bugs
+- [ ] When added with unfinished flag or score, its not set
+
 # Infrastructure
 - [ ] Self-host openlibrary https://openlibrary.org/developers/dumps
 
