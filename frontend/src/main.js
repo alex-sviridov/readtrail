@@ -1,10 +1,12 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
 import App from './App.vue'
 import router from './router'
+import { queryClient, installQueryPersistence } from './services/queryClient'
 import { useBooksStore } from './stores/books'
 import { useSettingsStore } from './stores/settings'
 import { logger } from './utils/logger'
@@ -14,6 +16,7 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+app.use(VueQueryPlugin, { queryClient })
 app.use(Toast, {
   position: 'top-right',
   timeout: 4000,
@@ -22,25 +25,14 @@ app.use(Toast, {
   draggable: true
 })
 
-// Initialize stores on startup (async)
-async function initializeApp() {
-  try {
-    const booksStore = useBooksStore()
-    const settingsStore = useSettingsStore()
+installQueryPersistence(queryClient)
 
-    // Load settings and books in parallel
-    await Promise.all([
-      settingsStore.loadSettings(),
-      booksStore.loadBooks()
-    ])
-
-    logger.info('App initialized successfully')
-  } catch (error) {
-    logger.error('Failed to initialize app:', error)
-  }
-}
-
-// Wait for initialization before mounting
-initializeApp().then(() => {
-  app.mount('#app')
+// Instantiate stores to start their queries immediately at boot
+app.runWithContext(() => {
+  useBooksStore()
+  useSettingsStore()
 })
+
+app.mount('#app')
+
+logger.info('App mounted')
