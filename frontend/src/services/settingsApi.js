@@ -6,18 +6,9 @@
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
 import { isGuestMode, requireAuth } from './guestMode'
+import { DEFAULT_SETTINGS } from '@/constants'
 
-/**
- * Default settings structure
- */
-export const DEFAULT_SETTINGS = {
-  showBookInfo: true,
-  allowUnfinishedReading: true,
-  allowScoring: true,
-  lastLibraryView: 'timeline',
-  hideUnfinished: true,
-  hideToRead: true
-}
+export { DEFAULT_SETTINGS }
 
 /**
  * Transform settings from PocketBase user record
