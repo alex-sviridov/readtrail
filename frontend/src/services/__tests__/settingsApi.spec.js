@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SettingsApi, DEFAULT_SETTINGS } from '../settingsApi'
 import pb from '../pocketbase'
-import { isGuestMode, requireAuth } from '../guestMode'
+import { isGuestMode } from '../guestMode'
 import { adaptPocketBaseError } from '@/utils/errors'
 import { getGuestSettings } from '../guestStore'
 
@@ -17,8 +17,7 @@ vi.mock('../pocketbase', () => ({
 
 // Mock guestMode module
 vi.mock('../guestMode', () => ({
-  isGuestMode: vi.fn(() => false),
-  requireAuth: vi.fn()
+  isGuestMode: vi.fn(() => false)
 }))
 
 // Mock errors module
@@ -34,24 +33,6 @@ vi.mock('@/utils/logger', () => ({
   }
 }))
 
-// Mock guestStore module
-let mockGuestStoreState = {
-  showBookInfo: true,
-  lastLibraryView: 'timeline',
-  allowUnfinishedReading: true,
-  allowScoring: true,
-  hideUnfinished: true,
-  hideToRead: true
-}
-
-vi.mock('../guestStore', () => ({
-  getGuestSettings: vi.fn(() => ({ ...mockGuestStoreState })),
-  updateGuestSettings: vi.fn((partial) => {
-    mockGuestStoreState = { ...mockGuestStoreState, ...partial }
-    return { ...mockGuestStoreState }
-  })
-}))
-
 describe('settingsApi', () => {
   let settingsApi
 
@@ -62,15 +43,6 @@ describe('settingsApi', () => {
     pb.authStore.record = { id: 'test-user-id' }
     // Reset isGuestMode to false by default
     isGuestMode.mockReturnValue(false)
-    // Reset mock guest store state
-    mockGuestStoreState = {
-      showBookInfo: true,
-      lastLibraryView: 'timeline',
-      allowUnfinishedReading: true,
-      allowScoring: true,
-      hideUnfinished: true,
-      hideToRead: true
-    }
   })
 
   describe('DEFAULT_SETTINGS', () => {
@@ -202,7 +174,7 @@ describe('settingsApi', () => {
 
       const result = await settingsApi.getSettings()
 
-      expect(result).toEqual(mockGuestStoreState)
+      expect(result).toEqual(DEFAULT_SETTINGS)
       expect(pb.collection).not.toHaveBeenCalled()
     })
 
@@ -285,30 +257,6 @@ describe('settingsApi', () => {
   })
 
   describe('updateSettings', () => {
-    it('should update settings for authenticated user without requireAuth guard', async () => {
-      const newSettings = {
-        showBookInfo: false,
-        allowUnfinishedReading: false,
-        allowScoring: true
-      }
-
-      const mockCollection = {
-        update: vi.fn().mockResolvedValue({
-          id: 'test-user-id',
-          settings: newSettings
-        })
-      }
-      pb.collection.mockReturnValue(mockCollection)
-
-      const result = await settingsApi.updateSettings(newSettings)
-
-      expect(pb.collection).toHaveBeenCalledWith('users')
-      expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
-        settings: newSettings
-      })
-      expect(result).toBeDefined()
-    })
-
     it('should update settings for authenticated user', async () => {
       const newSettings = {
         showBookInfo: false,

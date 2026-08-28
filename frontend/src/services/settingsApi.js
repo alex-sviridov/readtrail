@@ -5,7 +5,7 @@
 
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
-import { isGuestMode, requireAuth } from './guestMode'
+import { isGuestMode } from './guestMode'
 import { getGuestSettings, updateGuestSettings } from './guestStore'
 import { DEFAULT_SETTINGS } from '@/constants'
 
@@ -36,7 +36,7 @@ function transformSettingsFromPocketBase(user) {
 class SettingsApi {
   /**
    * Fetch settings for the current user
-   * @returns {Promise<Object|null>} Settings object, or null if guest mode
+   * @returns {Promise<Object|null>} Settings object; null only on backend errors (404/403/network)
    */
   async getSettings() {
     if (isGuestMode()) {
