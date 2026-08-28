@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { QueryClient } from '@tanstack/vue-query'
 import { queryClient, installQueryPersistence } from '../queryClient'
 

@@ -6,6 +6,7 @@
 import { QueryClient } from '@tanstack/vue-query'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { persistQueryClient } from '@tanstack/query-persist-client-core'
+import { logger } from '@/utils/logger'
 
 const PERSIST_KEY = 'readtrail-query-cache'
 const MAX_CACHE_AGE_MS = 1000 * 60 * 60 * 24 * 7 // 1 week
@@ -44,7 +45,7 @@ export function installQueryPersistence(client) {
   // Ensure the promise is handled (restores from storage and sets up subscription)
   // We don't need to await it since it happens in the background
   persistPromise.catch((err) => {
-    console.error('Failed to restore persisted query cache:', err)
+    logger.error('Failed to restore persisted query cache:', err)
   })
 
   return unsubscribe
