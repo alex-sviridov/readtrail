@@ -6,6 +6,7 @@
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
 import { isGuestMode, requireAuth } from './guestMode'
+import { getGuestSettings, updateGuestSettings } from './guestStore'
 import { DEFAULT_SETTINGS } from '@/constants'
 
 export { DEFAULT_SETTINGS }
@@ -38,9 +39,8 @@ class SettingsApi {
    * @returns {Promise<Object|null>} Settings object, or null if guest mode
    */
   async getSettings() {
-    // If guest mode, return null (will use localStorage)
     if (isGuestMode()) {
-      return null
+      return getGuestSettings()
     }
 
     try {
@@ -52,7 +52,6 @@ class SettingsApi {
       const user = await pb.collection('users').getOne(userId)
       return transformSettingsFromPocketBase(user)
     } catch (error) {
-      // If 404 or no auth, return null to fall back to localStorage
       if (error.status === 404 || error.status === 403 || error.status === 0) {
         return null
       }
@@ -66,7 +65,9 @@ class SettingsApi {
    * @returns {Promise<Object>} Updated settings object
    */
   async updateSettings(settings) {
-    requireAuth('update settings')
+    if (isGuestMode()) {
+      return updateGuestSettings(settings)
+    }
 
     try {
       const userId = pb.authStore.record?.id
@@ -74,11 +75,7 @@ class SettingsApi {
         throw new Error('No authenticated user')
       }
 
-      // Update user record with new settings
-      const user = await pb.collection('users').update(userId, {
-        settings
-      })
-
+      const user = await pb.collection('users').update(userId, { settings })
       return transformSettingsFromPocketBase(user)
     } catch (error) {
       throw adaptPocketBaseError(error)

@@ -3,6 +3,7 @@ import { SettingsApi, DEFAULT_SETTINGS } from '../settingsApi'
 import pb from '../pocketbase'
 import { isGuestMode, requireAuth } from '../guestMode'
 import { adaptPocketBaseError } from '@/utils/errors'
+import { getGuestSettings } from '../guestStore'
 
 // Mock the pocketbase module
 vi.mock('../pocketbase', () => ({
@@ -33,6 +34,24 @@ vi.mock('@/utils/logger', () => ({
   }
 }))
 
+// Mock guestStore module
+let mockGuestStoreState = {
+  showBookInfo: true,
+  lastLibraryView: 'timeline',
+  allowUnfinishedReading: true,
+  allowScoring: true,
+  hideUnfinished: true,
+  hideToRead: true
+}
+
+vi.mock('../guestStore', () => ({
+  getGuestSettings: vi.fn(() => ({ ...mockGuestStoreState })),
+  updateGuestSettings: vi.fn((partial) => {
+    mockGuestStoreState = { ...mockGuestStoreState, ...partial }
+    return { ...mockGuestStoreState }
+  })
+}))
+
 describe('settingsApi', () => {
   let settingsApi
 
@@ -43,6 +62,15 @@ describe('settingsApi', () => {
     pb.authStore.record = { id: 'test-user-id' }
     // Reset isGuestMode to false by default
     isGuestMode.mockReturnValue(false)
+    // Reset mock guest store state
+    mockGuestStoreState = {
+      showBookInfo: true,
+      lastLibraryView: 'timeline',
+      allowUnfinishedReading: true,
+      allowScoring: true,
+      hideUnfinished: true,
+      hideToRead: true
+    }
   })
 
   describe('DEFAULT_SETTINGS', () => {
@@ -169,12 +197,12 @@ describe('settingsApi', () => {
   })
 
   describe('getSettings', () => {
-    it('should return null in guest mode', async () => {
+    it('should return guest settings in guest mode', async () => {
       isGuestMode.mockReturnValue(true)
 
       const result = await settingsApi.getSettings()
 
-      expect(result).toBeNull()
+      expect(result).toEqual(mockGuestStoreState)
       expect(pb.collection).not.toHaveBeenCalled()
     })
 
@@ -257,7 +285,7 @@ describe('settingsApi', () => {
   })
 
   describe('updateSettings', () => {
-    it('should call requireAuth before updating', async () => {
+    it('should update settings for authenticated user without requireAuth guard', async () => {
       const newSettings = {
         showBookInfo: false,
         allowUnfinishedReading: false,
@@ -272,9 +300,13 @@ describe('settingsApi', () => {
       }
       pb.collection.mockReturnValue(mockCollection)
 
-      await settingsApi.updateSettings(newSettings)
+      const result = await settingsApi.updateSettings(newSettings)
 
-      expect(requireAuth).toHaveBeenCalledWith('update settings')
+      expect(pb.collection).toHaveBeenCalledWith('users')
+      expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
+        settings: newSettings
+      })
+      expect(result).toBeDefined()
     })
 
     it('should update settings for authenticated user', async () => {
@@ -372,6 +404,27 @@ describe('settingsApi', () => {
       expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
         settings: partialSettings
       })
+    })
+  })
+
+  describe('guest mode', () => {
+    beforeEach(() => {
+      isGuestMode.mockReturnValue(true)
+      localStorage.clear()
+    })
+
+    it('getSettings returns guest settings instead of null', async () => {
+      const settings = await settingsApi.getSettings()
+
+      expect(settings.showBookInfo).toBe(true)
+      expect(settings.lastLibraryView).toBe('timeline')
+    })
+
+    it('updateSettings persists to the guest store', async () => {
+      const updated = await settingsApi.updateSettings({ hideUnfinished: false })
+
+      expect(updated.hideUnfinished).toBe(false)
+      expect(getGuestSettings().hideUnfinished).toBe(false)
     })
   })
 
