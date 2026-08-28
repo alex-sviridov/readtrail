@@ -84,6 +84,19 @@ describe('useBooksQuery', () => {
 
       expect(queryClient.getQueryData(BOOKS_QUERY_KEY)).toEqual([{ id: '1', name: 'Dune Messiah' }])
     })
+
+    it('rolls back the optimistic update on failure', async () => {
+      booksApi.updateBook.mockRejectedValue(new Error('network error'))
+
+      const { queryClient, result } = mountWithQuery(() => useUpdateBook())
+      queryClient.setQueryData(BOOKS_QUERY_KEY, [{ id: '1', name: 'Dune' }])
+
+      await expect(
+        result.mutateAsync({ id: '1', updates: { name: 'Dune Messiah' } })
+      ).rejects.toThrow('network error')
+
+      expect(queryClient.getQueryData(BOOKS_QUERY_KEY)).toEqual([{ id: '1', name: 'Dune' }])
+    })
   })
 
   describe('useDeleteBook', () => {
