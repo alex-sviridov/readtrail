@@ -2,7 +2,7 @@
   <div class="relative">
     <!-- Filter Button -->
     <button
-      popovertarget="filter-dropdown-menu"
+      :popovertarget="menuId"
       :class="[
         'flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm border-none cursor-pointer',
         hasActiveFilters
@@ -32,7 +32,7 @@
 
     <!-- Dropdown Menu -->
     <div
-      id="filter-dropdown-menu"
+      :id="menuId"
       ref="menuRef"
       popover
       class="dropdown-popover absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200"
@@ -129,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, useId } from 'vue'
 import { FunnelIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -155,6 +155,7 @@ const emit = defineEmits(['toggle-hide-unfinished', 'toggle-hide-to-read', 'clea
 // State
 const isOpen = ref(false)
 const menuRef = ref(null)
+const menuId = useId()
 
 // Computed
 const hasActiveFilters = computed(() => {

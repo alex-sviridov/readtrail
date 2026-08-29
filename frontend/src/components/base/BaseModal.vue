@@ -4,7 +4,7 @@
     class="bg-white rounded-lg shadow-xl flex flex-col p-0 border-none"
     :class="[contentClass, maxHeightClass]"
     @click="handleDialogClick"
-    @close="handleNativeClose"
+    @cancel="handleCancel"
   >
     <!-- Modal Header -->
     <div class="flex items-center justify-between p-6 border-b" :class="headerClass">
@@ -63,7 +63,7 @@ const props = defineProps({
   contentClass: {
     type: String,
     required: false,
-    default: 'max-w-2xl w-full'
+    default: 'max-w-2xl w-[calc(100%-2rem)]'
   },
   maxHeightClass: {
     type: String,
@@ -99,7 +99,8 @@ const dialogRef = ref(null)
 
 // 4. Methods
 function requestClose() {
-  dialogRef.value?.close()
+  emit('close')
+  emit('update:isOpen', false)
 }
 
 function handleDialogClick(event) {
@@ -108,9 +109,13 @@ function handleDialogClick(event) {
   }
 }
 
-function handleNativeClose() {
-  emit('close')
-  emit('update:isOpen', false)
+function handleCancel(event) {
+  // Prevent the dialog from closing itself on Escape. Closing is a request
+  // (requestClose) that the parent may veto by not updating isOpen (e.g.
+  // ChangePasswordModal/DeleteAccountModal while an operation is in flight)
+  // -- the watch below is the only thing that ever actually closes the dialog.
+  event.preventDefault()
+  requestClose()
 }
 
 // 5. Lifecycle - keep the <dialog>'s native open state in sync with isOpen

@@ -3,7 +3,7 @@
     <!-- User Button (Authenticated) -->
     <button
       v-if="isAuthenticated"
-      popovertarget="user-menu"
+      :popovertarget="menuId"
       class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
       :class="{ 'bg-gray-100': isOpen }"
       aria-haspopup="true"
@@ -31,7 +31,7 @@
     <!-- Dropdown Menu -->
     <div
       v-if="isAuthenticated"
-      id="user-menu"
+      :id="menuId"
       popover
       class="user-menu-popover absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1"
       :class="{ hidden: !isOpen }"
@@ -46,7 +46,7 @@
       <!-- Menu Items -->
       <RouterLink
         to="/settings"
-        popovertarget="user-menu"
+        :popovertarget="menuId"
         popovertargetaction="hide"
         class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
       >
@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, useId } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ChevronDownIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { authManager } from '@/services/auth'
@@ -75,6 +75,7 @@ import { isRemoteUserModeActive } from '@/services/remoteUserMode'
 import pb from '@/services/pocketbase'
 
 const isOpen = ref(false)
+const menuId = useId()
 const canLogout = !isRemoteUserModeActive()
 const authState = ref(pb.authStore.isValid)
 

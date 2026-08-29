@@ -114,9 +114,12 @@ describe('BaseModal Component', () => {
       expect(wrapper.emitted('update:isOpen')[0][0]).toBe(false)
     })
 
-    it('closes the underlying dialog when the close button is clicked', async () => {
+    it('does not close the dialog on its own when the close button is clicked -- only the parent updating isOpen does', async () => {
       wrapper = mountModal()
       await wrapper.get('button[aria-label="Close"]').trigger('click')
+      expect(wrapper.get('dialog').element.open).toBe(true)
+
+      await wrapper.setProps({ isOpen: false })
       expect(wrapper.get('dialog').element.open).toBe(false)
     })
   })
@@ -145,13 +148,34 @@ describe('BaseModal Component', () => {
     })
   })
 
-  describe('escape key handling', () => {
-    it('should close modal when Escape key is pressed', async () => {
+  describe('cancel event handling (native Escape)', () => {
+    it('emits close and update:isOpen when the dialog receives a cancel event, and prevents the native close', async () => {
       wrapper = mountModal()
-      wrapper.get('dialog').element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-      wrapper.get('dialog').element.close()
+      const cancelEvent = new Event('cancel', { cancelable: true })
+      wrapper.get('dialog').element.dispatchEvent(cancelEvent)
       await nextTick()
+
+      expect(cancelEvent.defaultPrevented).toBe(true)
       expect(wrapper.emitted('close')).toBeTruthy()
+      expect(wrapper.emitted('update:isOpen')).toBeTruthy()
+      expect(wrapper.emitted('update:isOpen')[0][0]).toBe(false)
+      // The dialog does not close itself -- only the parent updating isOpen does
+      expect(wrapper.get('dialog').element.open).toBe(true)
+    })
+
+    it('closes once the parent responds by setting isOpen to false', async () => {
+      wrapper = mountModal()
+      wrapper.get('dialog').element.dispatchEvent(new Event('cancel', { cancelable: true }))
+      await wrapper.setProps({ isOpen: false })
+      expect(wrapper.get('dialog').element.open).toBe(false)
+    })
+
+    it('stays open if the parent declines to update isOpen (a vetoing consumer, e.g. an in-flight operation)', async () => {
+      wrapper = mountModal()
+      wrapper.get('dialog').element.dispatchEvent(new Event('cancel', { cancelable: true }))
+      await nextTick()
+      // Parent chose not to update isOpen -- dialog must remain open
+      expect(wrapper.get('dialog').element.open).toBe(true)
     })
   })
 
