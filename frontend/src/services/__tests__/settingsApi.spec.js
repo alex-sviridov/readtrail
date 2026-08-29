@@ -376,48 +376,6 @@ describe('settingsApi', () => {
     })
   })
 
-  describe('getSyncHandlers', () => {
-    it('should return handlers object with settings_UPDATE', () => {
-      const handlers = settingsApi.getSyncHandlers()
-
-      expect(handlers).toHaveProperty('settings_UPDATE')
-      expect(typeof handlers['settings_UPDATE']).toBe('function')
-    })
-
-    it('should call updateSettings from sync handler', async () => {
-      const newSettings = {
-        showBookInfo: false,
-        allowUnfinishedReading: true,
-        allowScoring: false
-      }
-
-      const mockCollection = {
-        update: vi.fn().mockResolvedValue({
-          id: 'test-user-id',
-          settings: newSettings
-        })
-      }
-      pb.collection.mockReturnValue(mockCollection)
-
-      const handlers = settingsApi.getSyncHandlers()
-      const operation = {
-        data: newSettings
-      }
-
-      const result = await handlers['settings_UPDATE'](operation)
-
-      expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
-        settings: newSettings
-      })
-      expect(result).toEqual({
-        ...newSettings,
-        lastLibraryView: 'timeline',
-        hideUnfinished: true,
-        hideToRead: true
-      })
-    })
-  })
-
   describe('round-trip transformation', () => {
     it('should maintain data integrity through update and retrieve', async () => {
       const originalSettings = {

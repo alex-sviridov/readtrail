@@ -248,33 +248,6 @@ class BooksApi {
       throw adaptPocketBaseError(error)
     }
   }
-
-  /**
-   * Get sync handlers for the sync queue
-   * Provides API operation handlers for different operation types
-   * @param {Function} replaceTempId - Callback to replace temp IDs with backend IDs
-   * @returns {Object} Handler functions keyed by 'resource_OPERATION' pattern
-   */
-  getSyncHandlers(replaceTempId) {
-    return {
-      'books_CREATE': async (operation) => {
-        const createdBook = await this.createBook(operation.data)
-        if (replaceTempId && operation.tempId) {
-          replaceTempId(operation.tempId, createdBook.id)
-        }
-        return createdBook
-      },
-      'books_UPDATE': async (operation) => {
-        return await this.updateBook(operation.data.id, operation.data)
-      },
-      'books_DELETE': async (operation) => {
-        return await this.deleteBook(operation.data.id)
-      },
-      'books_BATCH_CREATE': async (operation) => {
-        return await this.batchCreateBooks(operation.data.books)
-      }
-    }
-  }
 }
 
 // Create and export singleton instance

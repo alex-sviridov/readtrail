@@ -81,19 +81,6 @@ class SettingsApi {
       throw adaptPocketBaseError(error)
     }
   }
-
-  /**
-   * Get sync handlers for the sync queue
-   * Provides API operation handlers for different operation types
-   * @returns {Object} Handler functions keyed by 'resource_OPERATION' pattern
-   */
-  getSyncHandlers() {
-    return {
-      'settings_UPDATE': async (operation) => {
-        return await this.updateSettings(operation.data)
-      }
-    }
-  }
 }
 
 // Create and export singleton instance
