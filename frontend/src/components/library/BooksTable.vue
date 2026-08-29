@@ -84,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref } from 'vue'
 import {
   useVueTable,
   getCoreRowModel,
@@ -92,11 +92,10 @@ import {
   getFilteredRowModel,
   FlexRender
 } from '@tanstack/vue-table'
-import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import BookCoverModal from './BookCoverModal.vue'
 import BookDateModal from './BookDateModal.vue'
-import CustomBookCover from './CustomBookCover.vue'
-import { BOOK_STATUS } from '@/constants'
+import { bookPriority, compareBooksByStatusAndDate } from '@/utils/bookSorting'
+import { useBooksTableColumns } from '@/composables/useBooksTableColumns'
 
 const props = defineProps({
   books: {
@@ -118,36 +117,6 @@ const globalFilter = ref('')
 const coverModalOpen = ref(false)
 const dateModalOpen = ref(false)
 const selectedBook = ref(null)
-
-// Editing state
-const editingCell = ref(null)
-const editingValue = ref('')
-
-// Start inline editing
-const startEdit = (bookId, field, currentValue) => {
-  editingCell.value = `${bookId}-${field}`
-  editingValue.value = currentValue || ''
-}
-
-// Save inline edit
-const saveEdit = (bookId, field) => {
-  if (editingValue.value === '') return
-
-  if (field === 'title') {
-    emit('update-title', { id: bookId, title: editingValue.value })
-  } else if (field === 'author') {
-    emit('update-author', { id: bookId, author: editingValue.value })
-  }
-
-  editingCell.value = null
-  editingValue.value = ''
-}
-
-// Cancel inline edit
-const cancelEdit = () => {
-  editingCell.value = null
-  editingValue.value = ''
-}
 
 // Open cover modal
 const openCoverModal = (book) => {
@@ -172,231 +141,7 @@ const handleDateSave = (data) => {
 }
 
 // Column definitions
-const columns = [
-  {
-    accessorKey: 'coverLink',
-    header: 'Cover',
-    cell: ({ row }) => {
-      const book = row.original
-      return h('div', {
-        class: 'flex items-center cursor-pointer',
-        onClick: () => openCoverModal(book)
-      }, [
-        // Show custom cover if enabled (check attributes.customCover)
-        book.attributes?.customCover
-          ? h('div', { class: 'w-10 h-14 rounded shadow-sm hover:shadow-md transition-shadow overflow-hidden' }, [
-              h(CustomBookCover, {
-                title: book.name,
-                author: book.author
-              })
-            ])
-          : h('img', {
-              src: book.coverLink || 'https://via.placeholder.com/40x60?text=No+Cover',
-              alt: book.name,
-              class: 'w-10 h-14 object-cover rounded shadow-sm hover:shadow-md transition-shadow',
-              onerror: (e) => {
-                e.target.src = 'https://via.placeholder.com/40x60?text=No+Cover'
-              }
-            })
-      ])
-    },
-    enableSorting: false,
-    size: 80
-  },
-  {
-    accessorKey: 'name',
-    header: 'Title',
-    cell: ({ row }) => {
-      const book = row.original
-      const cellId = `${book.id}-title`
-      const isEditing = editingCell.value === cellId
-
-      if (isEditing) {
-        return h('input', {
-          type: 'text',
-          value: editingValue.value,
-          class: 'w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500',
-          onInput: (e) => { editingValue.value = e.target.value },
-          onBlur: () => saveEdit(book.id, 'title'),
-          onKeydown: (e) => {
-            if (e.key === 'Enter') {
-              saveEdit(book.id, 'title')
-            } else if (e.key === 'Escape') {
-              cancelEdit()
-            }
-          },
-          onClick: (e) => e.stopPropagation()
-        })
-      }
-
-      return h('div', {
-        class: 'font-medium text-gray-900 max-w-xs truncate cursor-pointer hover:text-blue-600 group flex items-center gap-2',
-        onClick: () => startEdit(book.id, 'title', book.name)
-      }, [
-        h('span', {}, book.name),
-        h(PencilIcon, {
-          class: 'w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity'
-        })
-      ])
-    },
-    size: 300
-  },
-  {
-    accessorKey: 'author',
-    header: 'Author',
-    cell: ({ row }) => {
-      const book = row.original
-      const cellId = `${book.id}-author`
-      const isEditing = editingCell.value === cellId
-
-      if (isEditing) {
-        return h('input', {
-          type: 'text',
-          value: editingValue.value,
-          class: 'w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500',
-          onInput: (e) => { editingValue.value = e.target.value },
-          onBlur: () => saveEdit(book.id, 'author'),
-          onKeydown: (e) => {
-            if (e.key === 'Enter') {
-              saveEdit(book.id, 'author')
-            } else if (e.key === 'Escape') {
-              cancelEdit()
-            }
-          },
-          onClick: (e) => e.stopPropagation()
-        })
-      }
-
-      return h('div', {
-        class: 'text-gray-600 max-w-xs truncate cursor-pointer hover:text-blue-600 group flex items-center gap-2',
-        onClick: () => startEdit(book.id, 'author', book.author)
-      }, [
-        h('span', {}, book.author || '-'),
-        h(PencilIcon, {
-          class: 'w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity'
-        })
-      ])
-    },
-    size: 200
-  },
-  {
-    accessorKey: 'year',
-    header: 'Date',
-    cell: ({ row }) => {
-      const book = row.original
-
-      // In Progress (no year/month set)
-      if (book.year === null && book.month === null) {
-        return h('div', {
-          class: 'text-gray-500 italic cursor-pointer hover:text-blue-600',
-          onClick: () => openDateModal(book)
-        }, 'In Progress')
-      }
-
-      // Handle sentinel years (2100 = To Read, 1910 = Read Lately, 1900 = Long Time Ago)
-      let dateStr
-      if (book.year === 2100) {
-        dateStr = 'To Read'
-      } else if (book.year === 1910) {
-        dateStr = 'Read Lately'
-      } else if (book.year <= 1900) {
-        dateStr = 'Long Time Ago'
-      } else {
-        const monthName = book.month ? new Date(2000, book.month - 1, 1).toLocaleString('default', { month: 'short' }) : ''
-        dateStr = `${monthName} ${book.year}`
-      }
-
-      return h('div', {
-        class: 'text-gray-700 cursor-pointer hover:text-blue-600 flex items-center gap-2 group',
-        onClick: () => openDateModal(book)
-      }, [
-        h('span', {}, dateStr),
-        h(PencilIcon, {
-          class: 'w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity'
-        })
-      ])
-    },
-    size: 150
-  },
-  {
-    accessorKey: 'attributes.score',
-    header: 'Score',
-    cell: ({ getValue, row }) => {
-      const score = getValue()
-      const book = row.original
-
-      if (book.year === null && book.month === null) {
-        return h('div', { class: 'text-gray-400' }, '-')
-      }
-
-      if (!score || score === null || score === 0) {
-        return h('div', { class: 'text-gray-400' }, '')
-      }
-
-      // Thumb down (-1)
-      if (score === -1) {
-        return h('div', {
-          class: 'w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-md',
-          title: 'Dislike'
-        }, [
-          h('span', { class: 'text-white text-sm' }, '👎')
-        ])
-      }
-
-      // Thumb up (+1)
-      if (score === 1) {
-        return h('div', {
-          class: 'w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-md',
-          title: 'Like'
-        }, [
-          h('span', { class: 'text-white text-sm' }, '👍')
-        ])
-      }
-
-      return h('div', { class: 'text-gray-400' }, 'Not rated')
-    },
-    size: 150
-  },
-  {
-    accessorKey: 'attributes.isUnfinished',
-    header: 'Status',
-    cell: ({ getValue }) => {
-      const isUnfinished = getValue()
-      if (isUnfinished) {
-        return h('span', {
-          class: 'px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-full'
-        }, 'Unfinished')
-      }
-      return h('span', {
-        class: 'px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full'
-      }, 'Complete')
-    },
-    size: 120
-  },
-  {
-    id: 'actions',
-    header: 'Actions',
-    cell: ({ row }) => {
-      const book = row.original
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h('button', {
-          class: 'p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors',
-          title: 'Delete book',
-          onClick: (e) => {
-            e.stopPropagation()
-            if (confirm(`Delete "${book.name}"?`)) {
-              emit('delete', book.id)
-            }
-          }
-        }, [
-          h(TrashIcon, { class: 'w-4 h-4' })
-        ])
-      ])
-    },
-    enableSorting: false,
-    size: 100
-  }
-]
+const columns = useBooksTableColumns({ emit, openCoverModal, openDateModal })
 
 // Create table instance
 const table = useVueTable({
@@ -436,38 +181,16 @@ const table = useVueTable({
       const a = rowA.original
       const b = rowB.original
 
-      // Primary sort: Always maintain To Read → In Progress → Completed order
-      const aToRead = BOOK_STATUS.isToRead(a.year)
-      const bToRead = BOOK_STATUS.isToRead(b.year)
-
-      // To Read books come first
-      if (aToRead && !bToRead) return -1
-      if (!aToRead && bToRead) return 1
-
-      const aInProgress = a.year === null || a.month === null
-      const bInProgress = b.year === null || b.month === null
-
-      // In-progress books come after To Read but before completed
-      if (aInProgress && !bInProgress) return -1
-      if (!aInProgress && bInProgress) return 1
-
-      // Secondary sort: Within same status group, sort by the column
+      // The 'year' column uses the app-wide default ordering directly.
       if (columnId === 'year') {
-        // For year column: sort by createdAt for To Read/In Progress, year/month for completed
-        if (aToRead && bToRead) {
-          return new Date(b.createdAt) - new Date(a.createdAt)
-        }
-        if (aInProgress && bInProgress) {
-          return new Date(b.createdAt) - new Date(a.createdAt)
-        }
-        // Both completed - sort by year and month (newest first)
-        if (a.year !== b.year) {
-          return b.year - a.year
-        }
-        return b.month - a.month
+        return compareBooksByStatusAndDate(a, b)
       }
 
-      // For other columns: standard comparison
+      // Other columns: still respect the To Read → In Progress → Completed
+      // grouping, but break ties within a group by the column's own value.
+      const priorityDiff = bookPriority(a) - bookPriority(b)
+      if (priorityDiff !== 0) return priorityDiff
+
       const aValue = rowA.getValue(columnId)
       const bValue = rowB.getValue(columnId)
       return aValue > bValue ? 1 : aValue < bValue ? -1 : 0

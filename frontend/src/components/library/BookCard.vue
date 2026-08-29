@@ -143,7 +143,7 @@
 
 <script setup>
 // 1. Imports
-import { ref, computed, inject } from 'vue'
+import { ref, computed } from 'vue'
 import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import IconButton from '@/components/library/IconButton.vue'
 import EditableText from '@/components/library/EditableText.vue'
@@ -152,6 +152,8 @@ import BookCover from '@/components/library/BookCover.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
 import { useClickOutside, useEscapeKey } from '@/composables/useClickOutside'
 import { useTemporaryScoreEdit } from '@/composables/useTemporaryScoreEdit'
+import { useBooksStore } from '@/stores/books'
+import { useSettingsStore } from '@/stores/settings'
 import { BOOK_STATUS, DATE_PICKER } from '@/constants'
 
 // 2. Props & Emits
@@ -163,9 +165,9 @@ const props = defineProps({
   }
 })
 
-// 3. Composables & Injections
-const booksStore = inject('booksStore')
-const settingsStore = inject('settingsStore')
+// 3. Stores & Composables
+const booksStore = useBooksStore()
+const settingsStore = useSettingsStore()
 const temporaryScoreEdit = useTemporaryScoreEdit(5000)
 
 // 4. Local State

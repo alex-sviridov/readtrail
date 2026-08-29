@@ -3,8 +3,6 @@ import { isGuestMode } from '@/services/guestMode'
 import { logger } from '@/utils/logger'
 import { serializeBookForApi } from '@/utils/bookSerialization'
 
-const MIGRATION_FLAG_KEY = 'readtrail-needs-migration'
-
 /**
  * Check if two books match (same name, author, and date)
  */
@@ -41,7 +39,6 @@ export async function migrateLocalDataToBackend(books, isOnline, onMigrationComp
 
     if (books.length === 0) {
       logger.info('No books to migrate')
-      localStorage.removeItem(MIGRATION_FLAG_KEY)
       return { success: true, migratedCount: 0 }
     }
 
@@ -79,7 +76,6 @@ export async function migrateLocalDataToBackend(books, isOnline, onMigrationComp
 
       if (booksToMigrate.length === 0) {
         logger.info('All books already exist in backend, no migration needed')
-        localStorage.removeItem(MIGRATION_FLAG_KEY)
         return { success: true, migratedCount: 0, skippedCount: books.length }
       }
 
@@ -112,7 +108,6 @@ export async function migrateLocalDataToBackend(books, isOnline, onMigrationComp
       onMigrationComplete(idMapping)
     }
 
-    localStorage.removeItem(MIGRATION_FLAG_KEY)
     logger.info(`Migration completed successfully - ${createdBooks.length} books migrated`)
 
     return {
@@ -128,25 +123,4 @@ export async function migrateLocalDataToBackend(books, isOnline, onMigrationComp
       error: error.message
     }
   }
-}
-
-/**
- * Check if migration is needed
- */
-export function needsMigration() {
-  return localStorage.getItem(MIGRATION_FLAG_KEY) === 'true'
-}
-
-/**
- * Mark data for migration
- */
-export function markForMigration() {
-  localStorage.setItem(MIGRATION_FLAG_KEY, 'true')
-}
-
-/**
- * Clear migration flag
- */
-export function clearMigrationFlag() {
-  localStorage.removeItem(MIGRATION_FLAG_KEY)
 }

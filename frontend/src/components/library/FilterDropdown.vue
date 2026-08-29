@@ -1,8 +1,8 @@
 <template>
-  <div class="relative" ref="dropdownRef">
+  <div class="relative">
     <!-- Filter Button -->
     <button
-      @click="toggleDropdown"
+      :popovertarget="menuId"
       :class="[
         'flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm border-none cursor-pointer',
         hasActiveFilters
@@ -31,112 +31,106 @@
     </button>
 
     <!-- Dropdown Menu -->
-    <Transition
-      enter-active-class="transition ease-out duration-100"
-      enter-from-class="transform opacity-0 scale-95"
-      enter-to-class="transform opacity-100 scale-100"
-      leave-active-class="transition ease-in duration-75"
-      leave-from-class="transform opacity-100 scale-100"
-      leave-to-class="transform opacity-0 scale-95"
+    <div
+      :id="menuId"
+      ref="menuRef"
+      popover
+      class="dropdown-popover absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200"
+      :class="{ hidden: !isOpen }"
+      role="menu"
+      aria-orientation="vertical"
+      @toggle="handleToggle"
     >
-      <div
-        v-if="isOpen"
-        class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
-        role="menu"
-        aria-orientation="vertical"
-      >
-        <div class="py-2">
-          <!-- Header -->
-          <div class="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-            <span class="text-sm font-semibold text-gray-900">Filters</span>
-            <button
-              v-if="hasActiveFilters"
-              @click="clearAllFilters"
-              class="text-xs text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Clear all
-            </button>
-          </div>
+      <div class="py-2">
+        <!-- Header -->
+        <div class="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+          <span class="text-sm font-semibold text-gray-900">Filters</span>
+          <button
+            v-if="hasActiveFilters"
+            @click="clearAllFilters"
+            class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Clear all
+          </button>
+        </div>
 
-          <!-- Filter Options -->
-          <div class="py-1">
-            <button
-              v-if="allowUnfinishedReading"
-              @click="toggleHideUnfinished"
-              class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              role="menuitem"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  :class="[
-                    'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
-                    hideUnfinished
-                      ? 'bg-blue-600 border-blue-600'
-                      : 'border-gray-300'
-                  ]"
+        <!-- Filter Options -->
+        <div class="py-1">
+          <button
+            v-if="allowUnfinishedReading"
+            @click="toggleHideUnfinished"
+            class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            role="menuitem"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                :class="[
+                  'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                  hideUnfinished
+                    ? 'bg-blue-600 border-blue-600'
+                    : 'border-gray-300'
+                ]"
+              >
+                <svg
+                  v-if="hideUnfinished"
+                  class="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    v-if="hideUnfinished"
-                    class="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="3"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <span class="text-sm text-gray-900">Hide Unfinished</span>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="3"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
               </div>
-            </button>
+              <span class="text-sm text-gray-900">Hide Unfinished</span>
+            </div>
+          </button>
 
-            <button
-              @click="toggleHideToRead"
-              class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              role="menuitem"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  :class="[
-                    'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
-                    hideToRead
-                      ? 'bg-blue-600 border-blue-600'
-                      : 'border-gray-300'
-                  ]"
+          <button
+            @click="toggleHideToRead"
+            class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            role="menuitem"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                :class="[
+                  'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                  hideToRead
+                    ? 'bg-blue-600 border-blue-600'
+                    : 'border-gray-300'
+                ]"
+              >
+                <svg
+                  v-if="hideToRead"
+                  class="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    v-if="hideToRead"
-                    class="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="3"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <span class="text-sm text-gray-900">Hide Unread</span>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="3"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
               </div>
-            </button>
-          </div>
+              <span class="text-sm text-gray-900">Hide Unread</span>
+            </div>
+          </button>
         </div>
       </div>
-    </Transition>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, useId } from 'vue'
 import { FunnelIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { useClickOutside, useEscapeKey } from '@/composables/useClickOutside'
 
 const props = defineProps({
   hideUnfinished: {
@@ -160,7 +154,8 @@ const emit = defineEmits(['toggle-hide-unfinished', 'toggle-hide-to-read', 'clea
 
 // State
 const isOpen = ref(false)
-const dropdownRef = ref(null)
+const menuRef = ref(null)
+const menuId = useId()
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -176,12 +171,8 @@ const activeFilterCount = computed(() => {
 })
 
 // Methods
-function toggleDropdown() {
-  isOpen.value = !isOpen.value
-}
-
-function closeDropdown() {
-  isOpen.value = false
+function handleToggle(event) {
+  isOpen.value = event.newState === 'open'
 }
 
 function toggleHideUnfinished() {
@@ -194,12 +185,30 @@ function toggleHideToRead() {
 
 function clearAllFilters() {
   emit('clear-all')
-  closeDropdown()
+  menuRef.value?.hidePopover()
+}
+</script>
+
+<style scoped>
+[popover] {
+  position: absolute;
 }
 
-// Close dropdown on click outside
-useClickOutside(dropdownRef, closeDropdown)
+.dropdown-popover {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.1s ease, transform 0.1s ease, overlay 0.1s allow-discrete, display 0.1s allow-discrete;
+}
 
-// Close dropdown on escape key
-useEscapeKey(closeDropdown)
-</script>
+.dropdown-popover:not(.hidden) {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@starting-style {
+  .dropdown-popover:not(.hidden) {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+</style>

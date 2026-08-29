@@ -248,6 +248,36 @@ describe('useClickOutside', () => {
 
       wrapper.unmount()
     })
+
+    it('registers exactly one document click listener no matter how many components use useClickOutside', async () => {
+      const addSpy = vi.spyOn(document, 'addEventListener')
+
+      const CardComponent = defineComponent({
+        setup() {
+          const elementRef = ref(null)
+          useClickOutside(elementRef, vi.fn())
+          return { elementRef }
+        },
+        template: '<div ref="elementRef">Card</div>'
+      })
+
+      const ManyCards = defineComponent({
+        components: { CardComponent },
+        template: `
+          <div>
+            <CardComponent v-for="i in 5" :key="i" />
+          </div>
+        `
+      })
+
+      wrapper = mount(ManyCards)
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      const clickListenerCalls = addSpy.mock.calls.filter(([type]) => type === 'click')
+      expect(clickListenerCalls.length).toBe(1)
+
+      addSpy.mockRestore()
+    })
   })
 })
 
@@ -395,6 +425,34 @@ describe('useEscapeKey', () => {
       // Both callbacks should be called
       expect(callback1).toHaveBeenCalledTimes(1)
       expect(callback2).toHaveBeenCalledTimes(1)
+    })
+
+    it('registers exactly one document keydown listener no matter how many components use useEscapeKey', () => {
+      const addSpy = vi.spyOn(document, 'addEventListener')
+
+      const CardComponent = defineComponent({
+        setup() {
+          useEscapeKey(vi.fn())
+          return {}
+        },
+        template: '<div>Card</div>'
+      })
+
+      const ManyCards = defineComponent({
+        components: { CardComponent },
+        template: `
+          <div>
+            <CardComponent v-for="i in 5" :key="i" />
+          </div>
+        `
+      })
+
+      wrapper = mount(ManyCards)
+
+      const keydownListenerCalls = addSpy.mock.calls.filter(([type]) => type === 'keydown')
+      expect(keydownListenerCalls.length).toBe(1)
+
+      addSpy.mockRestore()
     })
   })
 })

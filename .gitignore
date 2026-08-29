@@ -28,3 +28,5 @@ dist-ssr
 # SSL certificates (keep README only)
 webproxy/ssl/*
 !webproxy/ssl/README.md
+# Superpowers subagent-driven-development scratch workspace
+.superpowers/

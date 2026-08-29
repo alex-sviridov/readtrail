@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BooksApi } from '../booksApi'
 import pb from '../pocketbase'
+import { getGuestBooks, createGuestBook } from '../guestStore'
+import { isGuestMode } from '../guestMode'
 
 // Mock the pocketbase module
 vi.mock('../pocketbase', () => ({
@@ -745,5 +747,48 @@ describe('booksApi transformations', () => {
       expect(retrieved.month).toBe(originalBook.month)
       expect(retrieved.attributes).toEqual(originalBook.attributes)
     })
+  })
+})
+
+describe('BooksApi guest mode', () => {
+  let booksApi
+
+  beforeEach(() => {
+    booksApi = new BooksApi()
+    vi.mocked(isGuestMode).mockReturnValue(true)
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('getBooks reads from the guest store', async () => {
+    createGuestBook({ name: 'Guest Book' })
+
+    const books = await booksApi.getBooks()
+
+    expect(books).toHaveLength(1)
+    expect(books[0].name).toBe('Guest Book')
+  })
+
+  it('createBook writes to the guest store', async () => {
+    const created = await booksApi.createBook({ name: 'New Guest Book', year: 2024, month: 1 })
+
+    expect(created.name).toBe('New Guest Book')
+    expect(getGuestBooks()).toHaveLength(1)
+  })
+
+  it('updateBook writes to the guest store', async () => {
+    const book = createGuestBook({ name: 'Original' })
+
+    const updated = await booksApi.updateBook(book.id, { name: 'Renamed' })
+
+    expect(updated.name).toBe('Renamed')
+  })
+
+  it('deleteBook removes from the guest store', async () => {
+    const book = createGuestBook({ name: 'To delete' })
+
+    await booksApi.deleteBook(book.id)
+
+    expect(getGuestBooks()).toHaveLength(0)
   })
 })

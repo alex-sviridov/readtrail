@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isRemoteUserModeActive } from '@/services/remoteUserMode'
 import Library from '@/views/Library.vue'
 import LibraryTable from '@/views/LibraryTable.vue'
 import Statistics from '@/views/Statistics.vue'
@@ -97,6 +98,14 @@ const router = createRouter({
       component: Privacy
     }
   ],
+})
+
+// Password login/registration are unreachable when the backend has
+// resolved our identity from a trusted proxy header (see remoteUserMode.js).
+router.beforeEach((to) => {
+  if (isRemoteUserModeActive() && (to.name === 'login' || to.name === 'register')) {
+    return '/library'
+  }
 })
 
 export default router

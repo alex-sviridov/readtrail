@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import FilterDropdown from '../FilterDropdown.vue'
 import { nextTick } from 'vue'
@@ -6,6 +6,7 @@ import { nextTick } from 'vue'
 describe('FilterDropdown', () => {
   const createWrapper = (props = {}) => {
     return mount(FilterDropdown, {
+      attachTo: document.body,
       props: {
         hideUnfinished: false,
         hideToRead: false,
@@ -15,43 +16,49 @@ describe('FilterDropdown', () => {
     })
   }
 
+  let wrapper
+
+  afterEach(() => {
+    wrapper?.unmount()
+  })
+
   beforeEach(() => {
     // Reset any state if needed
   })
 
   describe('Component Rendering', () => {
     it('renders the filter button', () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       expect(button.exists()).toBe(true)
       expect(button.text()).toContain('Filter')
     })
 
     it('does not show dropdown by default', () => {
-      const wrapper = createWrapper()
-      const dropdown = wrapper.find('[role="menu"]')
+      wrapper = createWrapper()
+      const dropdown = wrapper.get('[role="menu"]')
 
-      expect(dropdown.exists()).toBe(false)
+      expect(dropdown.classes()).toContain('hidden')
     })
 
     it('renders funnel icon', () => {
-      const wrapper = createWrapper()
-      const icon = wrapper.find('svg')
+      wrapper = createWrapper()
+      const icon = wrapper.get('svg')
 
       expect(icon.exists()).toBe(true)
     })
 
     it('renders chevron icon', () => {
-      const wrapper = createWrapper()
+      wrapper = createWrapper()
       const chevrons = wrapper.findAll('svg')
 
       expect(chevrons.length).toBeGreaterThan(1)
     })
 
     it('hides "Filter" text on small screens', () => {
-      const wrapper = createWrapper()
-      const span = wrapper.find('span.hidden.sm\\:inline')
+      wrapper = createWrapper()
+      const span = wrapper.get('span.hidden.sm\\:inline')
 
       expect(span.exists()).toBe(true)
       expect(span.text()).toBe('Filter')
@@ -62,11 +69,11 @@ describe('FilterDropdown', () => {
 
   describe('Button Styling', () => {
     it('applies inactive styling when no filters are active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('bg-gray-200')
       expect(button.classes()).toContain('text-gray-700')
@@ -74,11 +81,11 @@ describe('FilterDropdown', () => {
     })
 
     it('applies active styling when hideUnfinished is true', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('bg-blue-600')
       expect(button.classes()).toContain('text-white')
@@ -86,11 +93,11 @@ describe('FilterDropdown', () => {
     })
 
     it('applies active styling when hideToRead is true', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: true
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('bg-blue-600')
       expect(button.classes()).toContain('text-white')
@@ -98,11 +105,11 @@ describe('FilterDropdown', () => {
     })
 
     it('applies active styling when both filters are active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: true
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('bg-blue-600')
       expect(button.classes()).toContain('text-white')
@@ -112,7 +119,7 @@ describe('FilterDropdown', () => {
 
   describe('Active Filter Count Badge', () => {
     it('does not show badge when no filters are active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
@@ -122,7 +129,7 @@ describe('FilterDropdown', () => {
     })
 
     it('shows badge with count 1 when one filter is active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false
       })
@@ -133,7 +140,7 @@ describe('FilterDropdown', () => {
     })
 
     it('shows badge with count 2 when both filters are active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: true
       })
@@ -144,7 +151,7 @@ describe('FilterDropdown', () => {
     })
 
     it('applies correct badge styling when button is active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false
       })
@@ -155,7 +162,7 @@ describe('FilterDropdown', () => {
     })
 
     it('applies correct badge styling when button is active (hideToRead=true)', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: true
       })
@@ -169,50 +176,42 @@ describe('FilterDropdown', () => {
 
   describe('Dropdown Toggle', () => {
     it('opens dropdown when button is clicked', async () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
-      await button.trigger('click')
-      await nextTick()
-
-      const dropdown = wrapper.find('[role="menu"]')
-      expect(dropdown.exists()).toBe(true)
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
     })
 
     it('closes dropdown when button is clicked again', async () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       await button.trigger('click')
-      await nextTick()
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
 
       await button.trigger('click')
-      await nextTick()
-      expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+      expect(wrapper.get('[role="menu"]').classes()).toContain('hidden')
     })
 
     it('updates aria-expanded attribute when dropdown is opened', async () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       expect(button.attributes('aria-expanded')).toBe('false')
 
       await button.trigger('click')
-      await nextTick()
 
       expect(button.attributes('aria-expanded')).toBe('true')
     })
 
     it('rotates chevron icon when dropdown is open', async () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
+      const chevron = wrapper.get('.transition-transform')
 
-      const chevron = wrapper.find('.transition-transform')
       expect(chevron.classes()).not.toContain('rotate-180')
 
       await button.trigger('click')
-      await nextTick()
 
       expect(chevron.classes()).toContain('rotate-180')
     })
@@ -220,49 +219,44 @@ describe('FilterDropdown', () => {
 
   describe('Dropdown Content', () => {
     it('displays "Filters" header', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
-      const header = wrapper.find('.text-sm.font-semibold')
+      const header = wrapper.get('.text-sm.font-semibold')
       expect(header.text()).toBe('Filters')
     })
 
     it('displays "Hide Unfinished" option', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       expect(wrapper.text()).toContain('Hide Unfinished')
     })
 
     it('displays "Hide Unread" option', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       expect(wrapper.text()).toContain('Hide Unread')
     })
 
     it('does not show "Clear all" button when no filters are active', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const clearButton = wrapper.find('.text-blue-600')
       expect(clearButton.exists()).toBe(false)
     })
 
     it('shows "Clear all" button when filters are active', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const buttons = wrapper.findAll('button')
       const clearButton = buttons.find(btn => btn.text().includes('Clear all'))
@@ -273,12 +267,11 @@ describe('FilterDropdown', () => {
 
   describe('Filter Option Checkboxes', () => {
     it('shows unchecked checkbox for Hide Unfinished when inactive', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       const hideUnfinishedCheckbox = menuItems[0].find('.w-5.h-5.rounded')
@@ -289,12 +282,11 @@ describe('FilterDropdown', () => {
     })
 
     it('shows checked checkbox for Hide Unfinished when active', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       const hideUnfinishedCheckbox = menuItems[0].find('.w-5.h-5.rounded')
@@ -305,12 +297,11 @@ describe('FilterDropdown', () => {
     })
 
     it('shows unchecked checkbox for Hide Unread when inactive', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       const hideToReadCheckbox = menuItems[1].find('.w-5.h-5.rounded')
@@ -321,12 +312,11 @@ describe('FilterDropdown', () => {
     })
 
     it('shows checked checkbox for Hide Unread when active', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: true
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       const hideToReadCheckbox = menuItems[1].find('.w-5.h-5.rounded')
@@ -339,9 +329,8 @@ describe('FilterDropdown', () => {
 
   describe('Event Emissions', () => {
     it('emits toggle-hide-unfinished when Hide Unfinished is clicked', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       await menuItems[0].trigger('click')
@@ -351,9 +340,8 @@ describe('FilterDropdown', () => {
     })
 
     it('emits toggle-hide-to-read when Hide Unread is clicked', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       await menuItems[1].trigger('click')
@@ -363,12 +351,11 @@ describe('FilterDropdown', () => {
     })
 
     it('emits clear-all when Clear all button is clicked', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: true
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const buttons = wrapper.findAll('button')
       const clearButton = buttons.find(btn => btn.text().includes('Clear all'))
@@ -379,142 +366,111 @@ describe('FilterDropdown', () => {
     })
 
     it('closes dropdown after Clear all is clicked', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: true
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
 
       const buttons = wrapper.findAll('button')
       const clearButton = buttons.find(btn => btn.text().includes('Clear all'))
       await clearButton.trigger('click')
-      await nextTick()
 
-      expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+      expect(wrapper.get('[role="menu"]').classes()).toContain('hidden')
     })
 
     it('keeps dropdown open when filter option is clicked', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       await menuItems[0].trigger('click')
-      await nextTick()
 
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
     })
   })
 
   describe('Click Outside Behavior', () => {
     it('closes dropdown when clicking outside', async () => {
-      const wrapper = createWrapper({
-        attachTo: document.body
-      })
+      wrapper = createWrapper()
 
-      const button = wrapper.find('button')
-      await button.trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
 
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
-
-      // Simulate click outside - need to wait for event listener to be added
-      await new Promise(resolve => setTimeout(resolve, 10))
       document.body.click()
       await nextTick()
 
-      expect(wrapper.find('[role="menu"]').exists()).toBe(false)
-
-      wrapper.unmount()
+      expect(wrapper.get('[role="menu"]').classes()).toContain('hidden')
     })
 
     it('does not close dropdown when clicking inside dropdown', async () => {
-      const wrapper = createWrapper({
-        attachTo: document.body
-      })
+      wrapper = createWrapper()
 
-      const button = wrapper.find('button')
-      await button.trigger('click')
+      await wrapper.get('button').trigger('click')
+
+      wrapper.get('[role="menu"]').element.click()
       await nextTick()
 
-      const dropdown = wrapper.find('[role="menu"]')
-      dropdown.element.click()
-      await nextTick()
-
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
-
-      wrapper.unmount()
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
     })
   })
 
   describe('Escape Key Behavior', () => {
     it('closes dropdown when Escape key is pressed', async () => {
-      const wrapper = createWrapper({
-        attachTo: document.body
-      })
+      wrapper = createWrapper()
 
-      const button = wrapper.find('button')
-      await button.trigger('click')
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
       await nextTick()
 
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
-
-      // Simulate Escape key press
-      const event = new KeyboardEvent('keydown', { key: 'Escape' })
-      document.dispatchEvent(event)
-      await nextTick()
-
-      expect(wrapper.find('[role="menu"]').exists()).toBe(false)
-
-      wrapper.unmount()
+      expect(wrapper.get('[role="menu"]').classes()).toContain('hidden')
     })
   })
 
   describe('Accessibility', () => {
     it('has aria-haspopup attribute on button', () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       expect(button.attributes('aria-haspopup')).toBe('true')
     })
 
     it('has role="menu" on dropdown', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
-      const dropdown = wrapper.find('[role="menu"]')
+      const dropdown = wrapper.get('[role="menu"]')
       expect(dropdown.exists()).toBe(true)
     })
 
     it('has role="menuitem" on each filter option', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       expect(menuItems.length).toBe(2)
     })
 
     it('has correct title when no filters are active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.attributes('title')).toBe('No filters')
     })
 
     it('has correct title when filters are active', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.attributes('title')).toBe('Filters active')
     })
@@ -522,45 +478,34 @@ describe('FilterDropdown', () => {
 
   describe('Dropdown Positioning', () => {
     it('positions dropdown on the right side', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
-      const dropdown = wrapper.find('[role="menu"]')
+      const dropdown = wrapper.get('[role="menu"]')
       expect(dropdown.classes()).toContain('right-0')
     })
 
-    it('has proper z-index for dropdown', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
-
-      const dropdown = wrapper.find('[role="menu"]')
-      expect(dropdown.classes()).toContain('z-50')
-    })
-
     it('positions dropdown absolutely', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
-      const dropdown = wrapper.find('[role="menu"]')
+      const dropdown = wrapper.get('[role="menu"]')
       expect(dropdown.classes()).toContain('absolute')
     })
   })
 
   describe('Responsive Behavior', () => {
     it('has responsive padding on button', () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('px-3')
       expect(button.classes()).toContain('md:px-4')
     })
 
     it('hides "Filter" text on mobile and shows on larger screens', () => {
-      const wrapper = createWrapper()
-      const filterText = wrapper.find('span.hidden.sm\\:inline')
+      wrapper = createWrapper()
+      const filterText = wrapper.get('span.hidden.sm\\:inline')
 
       expect(filterText.exists()).toBe(true)
       expect(filterText.text()).toBe('Filter')
@@ -569,22 +514,20 @@ describe('FilterDropdown', () => {
 
   describe('Edge Cases', () => {
     it('handles rapid toggle clicks', async () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       await button.trigger('click')
       await button.trigger('click')
       await button.trigger('click')
-      await nextTick()
 
       // Should end up closed (3 clicks = open, close, open -> actually ends open)
-      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+      expect(wrapper.get('[role="menu"]').classes()).not.toContain('hidden')
     })
 
     it('handles multiple filter option clicks', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       await menuItems[0].trigger('click')
@@ -596,7 +539,7 @@ describe('FilterDropdown', () => {
     })
 
     it('maintains correct count badge through prop updates', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: false
       })
@@ -619,15 +562,15 @@ describe('FilterDropdown', () => {
 
   describe('Component Structure', () => {
     it('has relative positioning on container', () => {
-      const wrapper = createWrapper()
+      wrapper = createWrapper()
       const container = wrapper.find('.relative')
 
       expect(container.exists()).toBe(true)
     })
 
     it('has proper button styling classes', () => {
-      const wrapper = createWrapper()
-      const button = wrapper.find('button')
+      wrapper = createWrapper()
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('flex')
       expect(button.classes()).toContain('items-center')
@@ -639,11 +582,10 @@ describe('FilterDropdown', () => {
     })
 
     it('has proper dropdown styling', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      wrapper = createWrapper()
+      await wrapper.get('button').trigger('click')
 
-      const dropdown = wrapper.find('[role="menu"]')
+      const dropdown = wrapper.get('[role="menu"]')
       expect(dropdown.classes()).toContain('bg-white')
       expect(dropdown.classes()).toContain('rounded-lg')
       expect(dropdown.classes()).toContain('shadow-lg')
@@ -654,28 +596,26 @@ describe('FilterDropdown', () => {
 
   describe('Allow Unfinished Reading Setting', () => {
     it('shows Hide Unfinished option when allowUnfinishedReading is true', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         allowUnfinishedReading: true
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       expect(wrapper.text()).toContain('Hide Unfinished')
     })
 
     it('hides Hide Unfinished option when allowUnfinishedReading is false', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         allowUnfinishedReading: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       expect(wrapper.text()).not.toContain('Hide Unfinished')
       expect(wrapper.text()).toContain('Hide Unread')
     })
 
     it('does not count hideUnfinished in active filters when allowUnfinishedReading is false', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false,
         allowUnfinishedReading: false
@@ -686,30 +626,30 @@ describe('FilterDropdown', () => {
     })
 
     it('does not show active styling when only hideUnfinished is true and allowUnfinishedReading is false', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: false,
         allowUnfinishedReading: false
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('bg-gray-200')
       expect(button.classes()).not.toContain('bg-blue-600')
     })
 
     it('shows active styling when hideToRead is true even if allowUnfinishedReading is false', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: false,
         hideToRead: true,
         allowUnfinishedReading: false
       })
-      const button = wrapper.find('button')
+      const button = wrapper.get('button')
 
       expect(button.classes()).toContain('bg-blue-600')
     })
 
     it('counts both filters when both are active and allowUnfinishedReading is true', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: true,
         allowUnfinishedReading: true
@@ -720,7 +660,7 @@ describe('FilterDropdown', () => {
     })
 
     it('counts only hideToRead when both are active but allowUnfinishedReading is false', () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         hideUnfinished: true,
         hideToRead: true,
         allowUnfinishedReading: false
@@ -731,22 +671,20 @@ describe('FilterDropdown', () => {
     })
 
     it('has only one menu item when allowUnfinishedReading is false', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         allowUnfinishedReading: false
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       expect(menuItems.length).toBe(1)
     })
 
     it('has two menu items when allowUnfinishedReading is true', async () => {
-      const wrapper = createWrapper({
+      wrapper = createWrapper({
         allowUnfinishedReading: true
       })
-      await wrapper.find('button').trigger('click')
-      await nextTick()
+      await wrapper.get('button').trigger('click')
 
       const menuItems = wrapper.findAll('[role="menuitem"]')
       expect(menuItems.length).toBe(2)

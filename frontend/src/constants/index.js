@@ -91,3 +91,13 @@ export const Z_INDEX = {
   PICKER_CARD: 30,
   MODAL: 50
 }
+
+// Default application settings (used for guests and as a merge base for backend settings)
+export const DEFAULT_SETTINGS = {
+  showBookInfo: true,
+  allowUnfinishedReading: true,
+  allowScoring: true,
+  lastLibraryView: 'timeline',
+  hideUnfinished: true,
+  hideToRead: true
+}

@@ -7,6 +7,7 @@ import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
 import { isGuestMode, requireAuth } from './guestMode'
 import { logger } from '@/utils/logger'
+import { getGuestBooks, createGuestBook, updateGuestBook, deleteGuestBook } from './guestStore'
 
 /**
  * Transform book from PocketBase format to store format
@@ -127,9 +128,8 @@ class BooksApi {
    * @returns {Promise<Array>} Array of book objects
    */
   async getBooks() {
-    // If guest mode, return empty array (no backend sync)
     if (isGuestMode()) {
-      return []
+      return getGuestBooks()
     }
 
     try {
@@ -171,7 +171,9 @@ class BooksApi {
    * @returns {Promise<Object>} Created book object with ID
    */
   async createBook(book) {
-    requireAuth('create books')
+    if (isGuestMode()) {
+      return createGuestBook(book)
+    }
 
     try {
       const pbData = transformBookToPocketBase(book)
@@ -189,7 +191,11 @@ class BooksApi {
    * @returns {Promise<Object>} Updated book object
    */
   async updateBook(id, book) {
-    requireAuth('update books')
+    if (isGuestMode()) {
+      const updated = updateGuestBook(id, book)
+      if (!updated) throw new Error(`Guest book not found: ${id}`)
+      return updated
+    }
 
     try {
       const pbData = transformBookToPocketBase(book)
@@ -206,7 +212,10 @@ class BooksApi {
    * @returns {Promise<void>}
    */
   async deleteBook(id) {
-    requireAuth('delete books')
+    if (isGuestMode()) {
+      deleteGuestBook(id)
+      return
+    }
 
     try {
       await pb.collection('books').delete(id)
@@ -237,33 +246,6 @@ class BooksApi {
       return results
     } catch (error) {
       throw adaptPocketBaseError(error)
-    }
-  }
-
-  /**
-   * Get sync handlers for the sync queue
-   * Provides API operation handlers for different operation types
-   * @param {Function} replaceTempId - Callback to replace temp IDs with backend IDs
-   * @returns {Object} Handler functions keyed by 'resource_OPERATION' pattern
-   */
-  getSyncHandlers(replaceTempId) {
-    return {
-      'books_CREATE': async (operation) => {
-        const createdBook = await this.createBook(operation.data)
-        if (replaceTempId && operation.tempId) {
-          replaceTempId(operation.tempId, createdBook.id)
-        }
-        return createdBook
-      },
-      'books_UPDATE': async (operation) => {
-        return await this.updateBook(operation.data.id, operation.data)
-      },
-      'books_DELETE': async (operation) => {
-        return await this.deleteBook(operation.data.id)
-      },
-      'books_BATCH_CREATE': async (operation) => {
-        return await this.batchCreateBooks(operation.data.books)
-      }
     }
   }
 }
