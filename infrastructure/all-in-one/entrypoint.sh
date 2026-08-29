@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-# Ensure pb_data directory has correct permissions
-chmod 777 /pb/pb_data
-
 /pb/pocketbase serve --http=127.0.0.1:8090 &
 PB_PID=$!
 

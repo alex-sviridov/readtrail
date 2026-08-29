@@ -36,7 +36,9 @@ COPY backend/pb_hooks /pb/pb_hooks
 
 COPY infrastructure/all-in-one/nginx.conf /etc/nginx/nginx.conf
 COPY infrastructure/all-in-one/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh /pb/pocketbase && chown -R nginx:nginx /pb
+RUN mkdir -p /pb/pb_data && chmod +x /entrypoint.sh /pb/pocketbase && chown -R nginx:nginx /pb
+
+USER nginx
 
 COPY --chown=nginx:nginx --from=builder /app/dist /usr/share/nginx/html
 
