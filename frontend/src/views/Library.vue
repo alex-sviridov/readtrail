@@ -47,7 +47,7 @@
     </div>
 
     <!-- Grid View -->
-    <div v-if="viewMode === 'grid' && filteredBooks.length > 0" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+    <div v-if="viewMode === 'grid' && filteredBooks.length > 0" class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
       <BookCard
         v-for="book in filteredBooks"
         :key="book.id"
@@ -64,7 +64,7 @@
             {{ BOOK_STATUS.getTimelineLabel(group.year) }}
           </h2>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-8">
+        <div class="grid gap-6 mb-8 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
           <BookCard
             v-for="book in group.books"
             :key="book.id"
