@@ -1,19 +1,19 @@
 <template>
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
-    <!-- Header with Add Book Button -->
-    <LibraryHeader
-      :view-mode="viewMode"
-      :hide-unfinished="hideUnfinished"
-      :hide-to-read="hideToRead"
-      :search-query="searchQuery"
-      @update:search-query="searchQuery = $event"
-      @set-view-mode="setViewMode"
-      @toggle-filter="toggleFilter"
-      @toggle-to-read-filter="toggleToReadFilter"
-      @clear-all-filters="clearAllFilters"
-      @add-book="openSearchModal"
-    />
-
+  <LibraryPageLayout
+    :view-mode="viewMode"
+    :hide-unfinished="hideUnfinished"
+    :hide-to-read="hideToRead"
+    :search-query="searchQuery"
+    :is-search-modal-open="isSearchModalOpen"
+    @update:search-query="searchQuery = $event"
+    @set-view-mode="setViewMode"
+    @toggle-filter="toggleFilter"
+    @toggle-to-read-filter="toggleToReadFilter"
+    @clear-all-filters="clearAllFilters"
+    @add-book="openSearchModal"
+    @close-search-modal="closeSearchModal"
+    @select-book="handleBookSelect"
+  >
     <!-- Empty State -->
     <div v-if="filteredBooks.length === 0" class="flex flex-col items-center justify-center py-16 px-4">
       <div class="text-center max-w-md">
@@ -73,14 +73,7 @@
         </div>
       </div>
     </div>
-
-    <!-- Book Search Modal -->
-    <BookSearch
-      :is-open="isSearchModalOpen"
-      @close="closeSearchModal"
-      @select="handleBookSelect"
-    />
-  </div>
+  </LibraryPageLayout>
 </template>
 
 <script setup>
@@ -93,8 +86,7 @@ import { useBookSearch } from '@/composables/useBookSearch'
 import { useAddBookFlow } from '@/composables/useAddBookFlow'
 import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
-import BookSearch from '@/components/library/BookSearch.vue'
-import LibraryHeader from '@/components/library/LibraryHeader.vue'
+import LibraryPageLayout from '@/components/library/LibraryPageLayout.vue'
 
 defineOptions({
   name: 'LibraryPage'
