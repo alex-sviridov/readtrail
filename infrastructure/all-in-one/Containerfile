@@ -1,0 +1,45 @@
+ARG NODE_VERSION=23.11.0-alpine
+ARG NGINX_VERSION=alpine3.22
+ARG PB_VERSION=0.35.0
+
+# =========================================
+# Stage 1: Build the Vue.js Application
+# =========================================
+FROM node:${NODE_VERSION} AS builder
+
+WORKDIR /app
+
+COPY frontend/package.json frontend/package-lock.json ./
+
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+COPY frontend/ .
+
+RUN npm run build
+
+# =========================================
+# Stage 2: Bundle PocketBase + built frontend behind nginx
+# =========================================
+FROM nginxinc/nginx-unprivileged:${NGINX_VERSION} AS runner
+
+ARG PB_VERSION
+
+USER root
+
+RUN apk add --no-cache unzip ca-certificates
+
+ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pb.zip
+RUN unzip /tmp/pb.zip -d /pb/ && rm /tmp/pb.zip
+
+COPY backend/pb_migrations /pb/pb_migrations
+COPY backend/pb_hooks /pb/pb_hooks
+
+COPY infrastructure/all-in-one/nginx.conf /etc/nginx/nginx.conf
+COPY infrastructure/all-in-one/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /pb/pocketbase && chown -R nginx:nginx /pb
+
+COPY --chown=nginx:nginx --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 8080 8443
+
+ENTRYPOINT ["/entrypoint.sh"]
