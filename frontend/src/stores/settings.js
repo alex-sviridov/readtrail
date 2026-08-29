@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { useToast } from 'vue-toastification'
 import { useSettingsQuery, useUpdateSetting } from '@/composables/useSettingsQuery'
 import { DEFAULT_SETTINGS } from '@/services/settingsApi'
+import { logger } from '@/utils/logger'
 
 export const useSettingsStore = defineStore('settings', () => {
+  const toast = useToast()
   const settingsQuery = useSettingsQuery()
   const updateSettingMutation = useUpdateSetting()
 
@@ -21,9 +24,24 @@ export const useSettingsStore = defineStore('settings', () => {
       return
     }
 
+    // The mutation sends the WHOLE settings object, so firing it before the
+    // query has resolved would send defaults and wipe the account's real
+    // settings. Drop the change instead — the user can toggle again once
+    // the page has loaded (well under a second).
+    if (settingsQuery.data.value === undefined) {
+      logger.warn('[SettingsStore] Ignoring updateSetting before settings finished loading:', key)
+      return
+    }
+
     updateSettingMutation.mutate(
       { key, value },
-      { onError: () => { lastError.value = 'Failed to update settings' } }
+      {
+        onSuccess: () => { lastError.value = null },
+        onError: () => {
+          lastError.value = 'Failed to update settings'
+          toast.error('Failed to update settings. Please try again.')
+        }
+      }
     )
   }
 

@@ -2,11 +2,14 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useOnline } from '@vueuse/core'
+import { useToast } from 'vue-toastification'
+import { useQueryClient } from '@tanstack/vue-query'
 import {
   useBooksQuery,
   useCreateBook,
   useUpdateBook,
-  useDeleteBook
+  useDeleteBook,
+  BOOKS_QUERY_KEY
 } from '@/composables/useBooksQuery'
 import { getGuestBooks, clearGuestData } from '@/services/guestStore'
 import { migrateLocalDataToBackend } from '@/services/migration'
@@ -15,7 +18,18 @@ import { sortBooks } from '@/utils/bookSorting'
 
 let idCounter = 0
 
+/**
+ * A `temp-` id is a client-side placeholder for a book whose create
+ * mutation hasn't resolved yet — the backend knows nothing about it.
+ * (Guest-mode ids start with `guest-` and ARE real, permanent ids.)
+ */
+function isTempId(id) {
+  return typeof id === 'string' && id.startsWith('temp-')
+}
+
 export const useBooksStore = defineStore('books', () => {
+  const toast = useToast()
+  const queryClient = useQueryClient()
   const booksQuery = useBooksQuery()
   const createBookMutation = useCreateBook()
   const updateBookMutation = useUpdateBook()
@@ -49,13 +63,19 @@ export const useBooksStore = defineStore('books', () => {
       coverDisplayLink: coverLink,
       year,
       month,
-      attributes: { isUnfinished, score: score ?? null },
+      attributes: { isUnfinished, score: score ?? null, customCover: false },
       createdAt: new Date()
     }
 
     createBookMutation.mutate(
       { tempId, book: { ...book, coverFile } },
-      { onError: () => { lastError.value = 'Failed to save book' } }
+      {
+        onSuccess: () => { lastError.value = null },
+        onError: () => {
+          lastError.value = 'Failed to save book'
+          toast.error('Failed to save book. Please try again.')
+        }
+      }
     )
 
     return book
@@ -64,12 +84,50 @@ export const useBooksStore = defineStore('books', () => {
   function updateBookFields(id, updates) {
     if (!books.value.some((book) => book.id === id)) return false
 
+    if (isTempId(id)) {
+      // The book's create mutation hasn't resolved, so the backend has no
+      // record to update — calling it would 404 and roll the edit back.
+      // Apply the change to the optimistic cache entry only.
+      applyLocalUpdate(id, updates)
+      logger.debug(
+        '[BooksStore] Edited a book whose create is still pending; the change is local only and will not persist if the create resolves first:',
+        id
+      )
+      return true
+    }
+
     updateBookMutation.mutate(
       { id, updates },
-      { onError: () => { lastError.value = 'Failed to update book' } }
+      {
+        onSuccess: () => { lastError.value = null },
+        onError: () => {
+          lastError.value = 'Failed to update book'
+          toast.error('Failed to save book. Please try again.')
+        }
+      }
     )
 
     return true
+  }
+
+  /** Merge `updates` into the cached book, mirroring the mutation's optimistic merge. */
+  function applyLocalUpdate(id, updates) {
+    const current = queryClient.getQueryData(BOOKS_QUERY_KEY) ?? []
+    const { attributes, coverFile, ...rest } = updates
+    void coverFile
+
+    if (rest.coverLink !== undefined && !rest.coverDisplayLink) {
+      rest.coverDisplayLink = rest.coverLink
+    }
+
+    queryClient.setQueryData(
+      BOOKS_QUERY_KEY,
+      current.map((book) =>
+        book.id === id
+          ? { ...book, ...rest, ...(attributes ? { attributes: { ...book.attributes, ...attributes } } : {}) }
+          : book
+      )
+    )
   }
 
   function updateBook(id, name, year = null, month = null, author = null, coverLink = null) {
@@ -89,9 +147,26 @@ export const useBooksStore = defineStore('books', () => {
   function deleteBook(id) {
     if (!books.value.some((book) => book.id === id)) return false
 
+    if (isTempId(id)) {
+      // Never created on the backend yet — just drop the optimistic entry.
+      const current = queryClient.getQueryData(BOOKS_QUERY_KEY) ?? []
+      queryClient.setQueryData(BOOKS_QUERY_KEY, current.filter((book) => book.id !== id))
+      logger.debug(
+        '[BooksStore] Deleted a book whose create is still pending; if the create resolves it will reappear:',
+        id
+      )
+      return true
+    }
+
     deleteBookMutation.mutate(
       { id },
-      { onError: () => { lastError.value = 'Failed to delete book' } }
+      {
+        onSuccess: () => { lastError.value = null },
+        onError: () => {
+          lastError.value = 'Failed to delete book'
+          toast.error('Failed to delete book. Please try again.')
+        }
+      }
     )
 
     return true

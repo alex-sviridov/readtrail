@@ -46,7 +46,8 @@ export function useCreateBook() {
         BOOKS_QUERY_KEY,
         current.map((book) => (book.id === context.tempId ? createdBook : book))
       )
-    }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
   })
 }
 
@@ -59,6 +60,12 @@ export function useUpdateBook() {
       const previousBooks = queryClient.getQueryData(BOOKS_QUERY_KEY) ?? []
       const { attributes, coverFile, ...rest } = updates
       void coverFile
+
+      // Keep the displayed cover in step with a changed cover URL so the new
+      // cover shows immediately instead of only after the server responds.
+      if (rest.coverLink !== undefined && !rest.coverDisplayLink) {
+        rest.coverDisplayLink = rest.coverLink
+      }
 
       queryClient.setQueryData(
         BOOKS_QUERY_KEY,
@@ -85,7 +92,8 @@ export function useUpdateBook() {
         BOOKS_QUERY_KEY,
         current.map((book) => (book.id === updatedBook.id ? updatedBook : book))
       )
-    }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
   })
 }
 
@@ -111,6 +119,7 @@ export function useDeleteBook() {
       if (context?.previousBooks) {
         queryClient.setQueryData(BOOKS_QUERY_KEY, context.previousBooks)
       }
-    }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
   })
 }

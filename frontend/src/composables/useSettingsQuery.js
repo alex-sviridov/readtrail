@@ -11,7 +11,13 @@ const LEGACY_SETTINGS_KEY = 'readtrail-settings'
 export function useSettingsQuery() {
   return useQuery({
     queryKey: SETTINGS_QUERY_KEY,
-    queryFn: async () => (await settingsApi.getSettings()) ?? { ...DEFAULT_SETTINGS }
+    queryFn: async () => {
+      const settings = (await settingsApi.getSettings()) ?? { ...DEFAULT_SETTINGS }
+      // Mirror on read too, so a fresh device / post-logout state gets the
+      // legacy key populated without waiting for the first mutation.
+      mirrorToLegacyKey(settings)
+      return settings
+    }
   })
 }
 
@@ -32,6 +38,10 @@ export function useUpdateSetting() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    // Each mutation sends the FULL settings object, so concurrent updates
+    // would race and the last response would clobber the other's change.
+    // A shared scope makes TanStack Query run them one at a time.
+    scope: { id: 'settings-update' },
     mutationFn: ({ key, value }) => {
       const current = queryClient.getQueryData(SETTINGS_QUERY_KEY) ?? { ...DEFAULT_SETTINGS }
       return settingsApi.updateSettings({ ...current, [key]: value })

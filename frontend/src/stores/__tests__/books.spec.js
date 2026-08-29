@@ -76,6 +76,33 @@ describe('useBooksStore', () => {
     expect(store.books).toHaveLength(0)
   })
 
+  it('does not hit the backend when editing or deleting a book that still has a temp id', () => {
+    booksApi.getBooks.mockResolvedValue([])
+    booksApi.createBook.mockReturnValue(new Promise(() => {})) // never resolves
+    const store = mountStore()
+    const book = store.addBook('Pending')
+
+    store.updateBookFields(book.id, { name: 'Pending (edited)' })
+    expect(booksApi.updateBook).not.toHaveBeenCalled()
+    expect(store.findBookById(book.id).name).toBe('Pending (edited)')
+
+    store.deleteBook(book.id)
+    expect(booksApi.deleteBook).not.toHaveBeenCalled()
+    expect(store.books).toHaveLength(0)
+  })
+
+  it('hits the backend for books with real ids', async () => {
+    booksApi.getBooks.mockResolvedValue([{ id: 'real-1', name: 'Dune', attributes: {} }])
+    booksApi.updateBook.mockResolvedValue({ id: 'real-1', name: 'Dune Messiah', attributes: {} })
+    const store = mountStore()
+    await vi.waitUntil(() => store.books.length === 1)
+
+    store.updateBookFields('real-1', { name: 'Dune Messiah' })
+    await vi.waitUntil(() => booksApi.updateBook.mock.calls.length > 0)
+
+    expect(booksApi.updateBook).toHaveBeenCalledWith('real-1', { name: 'Dune Messiah' })
+  })
+
   it('sortedBooks/inProgressBooks/completedBooks derive from books', () => {
     booksApi.getBooks.mockResolvedValue([])
     const store = mountStore()

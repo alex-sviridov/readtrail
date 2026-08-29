@@ -50,9 +50,19 @@ describe('useSettingsStore', () => {
     settingsApi.updateSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, hideUnfinished: false })
 
     const store = mountStore()
+    await vi.waitUntil(() => !store.settingsLoading)
     store.updateSetting('hideUnfinished', false)
 
     expect(store.settings.hideUnfinished).toBe(false)
+  })
+
+  it('ignores updateSetting before the settings query has resolved', () => {
+    settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+
+    const store = mountStore()
+    store.updateSetting('hideUnfinished', false)
+
+    expect(settingsApi.updateSettings).not.toHaveBeenCalled()
   })
 
   it('$reset clears local error state', () => {
