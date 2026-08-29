@@ -143,36 +143,25 @@ const filteredBooks = computed(() => {
   return result
 })
 
-// Group books by year for timeline view
+// Group books by year for timeline view. Relies on filteredBooks already
+// being sorted so same-year books are adjacent (a run-length grouping,
+// not a general groupBy).
 const booksGroupedByYear = computed(() => {
-  const groups = []
-  let currentYear = undefined
-  let currentGroup = null
   const nowYear = new Date().getFullYear()
 
-  filteredBooks.value.forEach(book => {
+  return filteredBooks.value.reduce((groups, book) => {
     // In-progress books (year: null) are assigned to current year
     const bookYear = book.year === null ? nowYear : book.year
+    const lastGroup = groups[groups.length - 1]
 
-    if (bookYear !== currentYear) {
-      if (currentGroup) {
-        groups.push(currentGroup)
-      }
-      currentYear = bookYear
-      currentGroup = {
-        year: bookYear,
-        books: [book]
-      }
+    if (lastGroup?.year === bookYear) {
+      lastGroup.books.push(book)
     } else {
-      currentGroup.books.push(book)
+      groups.push({ year: bookYear, books: [book] })
     }
-  })
 
-  if (currentGroup) {
-    groups.push(currentGroup)
-  }
-
-  return groups
+    return groups
+  }, [])
 })
 
 // Set view mode and navigate to appropriate route
