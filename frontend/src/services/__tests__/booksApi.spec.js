@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BooksApi } from '../booksApi'
 import pb from '../pocketbase'
-import { getGuestBooks, createGuestBook, updateGuestBook, deleteGuestBook } from '../guestStore'
+import { getGuestBooks, createGuestBook } from '../guestStore'
 import { isGuestMode } from '../guestMode'
 
 // Mock the pocketbase module
