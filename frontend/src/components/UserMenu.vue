@@ -56,6 +56,7 @@
         </RouterLink>
 
         <button
+          v-if="canLogout"
           @click="handleLogout"
           class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
         >
@@ -71,9 +72,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { authManager } from '@/services/auth'
+import { isRemoteUserModeActive } from '@/services/remoteUserMode'
 import pb from '@/services/pocketbase'
 
 const isOpen = ref(false)
+const canLogout = !isRemoteUserModeActive()
 const authState = ref(pb.authStore.isValid)
 
 const isAuthenticated = computed(() => authState.value)
