@@ -6,6 +6,7 @@
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
 import { logger } from '@/utils/logger'
+import { queryClient } from './queryClient'
 
 // Auth configuration from environment variables
 const GUEST_USER_ENABLED = import.meta.env.VITE_GUEST_USER_ENABLED === 'true'
@@ -85,6 +86,10 @@ class AuthManager {
     Object.keys(localStorage)
       .filter(key => key.startsWith('readtrail-'))
       .forEach(key => localStorage.removeItem(key))
+
+    // Clear the in-memory query cache — localStorage is already wiped above,
+    // but TanStack Query keeps its own in-memory copy that must be dropped too.
+    queryClient.clear()
 
     // Reset Pinia stores to clear in-memory state
     const { useBooksStore } = await import('@/stores/books')
