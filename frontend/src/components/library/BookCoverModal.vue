@@ -2,9 +2,8 @@
   <BaseModal
     :is-open="isOpen"
     title="Edit Cover"
-    content-class="w-full max-w-md"
+    content-class="w-full max-w-md m-3 sm:m-4"
     max-height-class="max-h-[95vh] sm:max-h-[90vh]"
-    overlay-class="p-3 sm:p-4"
     header-class="p-4"
     title-class="text-lg"
     body-class="p-4 space-y-2"
