@@ -2,7 +2,7 @@ name: Frontend CI/CD
 
 on:
   pull_request:
-    branches: [ stage ]
+    branches: [ main ]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-stage-pull.yml'

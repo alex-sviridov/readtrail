@@ -21,7 +21,10 @@ docker run -d --name readtrail \
   ghcr.io/alex-sviridov/readtrail/all-in-one:latest
 ```
 
-- `/path/to/your/ssl` must contain `cert.pem` and `key.pem`.
+- `/path/to/your/ssl` must contain `cert.pem` and `key.pem`. This mount
+  is mandatory — nginx requires a valid certificate and key at startup,
+  so the container will fail to start (with no HTTP fallback) if they
+  aren't present.
 - `readtrail-data` persists the PocketBase SQLite database at
   `/pb/pb_data` — back this volume up like any database.
 - If PocketBase crashes inside the container, `/api/` starts failing
