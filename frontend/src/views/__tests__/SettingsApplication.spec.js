@@ -1,17 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import SettingsApplication from '../SettingsApplication.vue'
 import { useSettingsStore } from '@/stores/settings'
+import { settingsApi, DEFAULT_SETTINGS } from '@/services/settingsApi'
+
+vi.mock('@/services/settingsApi', async () => {
+  const actual = await vi.importActual('@/services/settingsApi')
+  return { ...actual, settingsApi: { getSettings: vi.fn(), updateSettings: vi.fn() } }
+})
 
 describe('SettingsApplication', () => {
   let wrapper
   let router
+  let queryClient
 
   beforeEach(async () => {
+    vi.clearAllMocks()
     setActivePinia(createPinia())
-    useSettingsStore()
+    settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+    settingsApi.updateSettings.mockImplementation(async (settings) => settings)
+
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+    })
 
     router = createRouter({
       history: createMemoryHistory(),
@@ -31,23 +45,23 @@ describe('SettingsApplication', () => {
     localStorage.clear()
   })
 
+  function mountView() {
+    return mount(SettingsApplication, {
+      global: {
+        plugins: [router, [VueQueryPlugin, { queryClient }]]
+      }
+    })
+  }
+
   describe('rendering', () => {
     it('should render display settings section', () => {
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, createPinia()]
-        }
-      })
+      wrapper = mountView()
 
       expect(wrapper.text()).toContain('Display Settings')
     })
 
     it('should render all settings items', () => {
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, createPinia()]
-        }
-      })
+      wrapper = mountView()
 
       expect(wrapper.text()).toContain('Show Book Information')
       expect(wrapper.text()).toContain('Display book title and author on book cards in the library')
@@ -60,11 +74,7 @@ describe('SettingsApplication', () => {
     })
 
     it('should render toggle switches for each setting', () => {
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, createPinia()]
-        }
-      })
+      wrapper = mountView()
 
       const toggleButtons = wrapper.findAll('button[role="switch"]')
       expect(toggleButtons.length).toBe(3)
@@ -73,16 +83,10 @@ describe('SettingsApplication', () => {
 
   describe('toggle switches', () => {
     it('should display toggle switch in correct state based on store value', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.showBookInfo = true
+      settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, showBookInfo: true })
 
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
+      wrapper = mountView()
+      await flushPromises()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       const showBookInfoToggle = toggles[0]
@@ -92,76 +96,58 @@ describe('SettingsApplication', () => {
     })
 
     it('should toggle showBookInfo when clicked', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.showBookInfo = true
+      settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, showBookInfo: true })
 
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
+      wrapper = mountView()
+      await flushPromises()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       const showBookInfoToggle = toggles[0]
 
       await showBookInfoToggle.trigger('click')
+      await flushPromises()
 
+      const settingsStore = useSettingsStore()
       expect(settingsStore.settings.showBookInfo).toBe(false)
     })
 
     it('should toggle allowUnfinishedReading when clicked', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.allowUnfinishedReading = true
+      settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, allowUnfinishedReading: true })
 
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
+      wrapper = mountView()
+      await flushPromises()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       const allowUnfinishedToggle = toggles[1]
 
       await allowUnfinishedToggle.trigger('click')
+      await flushPromises()
 
+      const settingsStore = useSettingsStore()
       expect(settingsStore.settings.allowUnfinishedReading).toBe(false)
     })
 
     it('should toggle allowScoring when clicked', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.allowScoring = true
+      settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, allowScoring: true })
 
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
+      wrapper = mountView()
+      await flushPromises()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       const allowScoringToggle = toggles[2]
 
       await allowScoringToggle.trigger('click')
+      await flushPromises()
 
+      const settingsStore = useSettingsStore()
       expect(settingsStore.settings.allowScoring).toBe(false)
     })
 
     it('should update toggle visual state when value changes', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const settingsStore = useSettingsStore()
-      settingsStore.settings.showBookInfo = false
+      settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, showBookInfo: false })
 
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
+      wrapper = mountView()
+      await flushPromises()
 
       const toggles = wrapper.findAll('button[role="switch"]')
       const showBookInfoToggle = toggles[0]
@@ -169,6 +155,7 @@ describe('SettingsApplication', () => {
       expect(showBookInfoToggle.classes()).toContain('bg-gray-300')
 
       await showBookInfoToggle.trigger('click')
+      await flushPromises()
       await wrapper.vm.$nextTick()
 
       expect(showBookInfoToggle.classes()).toContain('bg-blue-600')
@@ -177,39 +164,35 @@ describe('SettingsApplication', () => {
 
   describe('store integration', () => {
     it('should reflect store changes in the UI', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
+      settingsApi.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, showBookInfo: false })
+
+      wrapper = mountView()
+      await flushPromises()
+
       const settingsStore = useSettingsStore()
 
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
+      const toggles = wrapper.findAll('button[role="switch"]')
+      expect(toggles[0].attributes('aria-checked')).toBe('false')
 
-      settingsStore.settings.showBookInfo = true
+      settingsStore.updateSetting('showBookInfo', true)
+      await flushPromises()
       await wrapper.vm.$nextTick()
 
-      const toggles = wrapper.findAll('button[role="switch"]')
       expect(toggles[0].attributes('aria-checked')).toBe('true')
 
-      settingsStore.settings.showBookInfo = false
+      settingsStore.updateSetting('showBookInfo', false)
+      await flushPromises()
       await wrapper.vm.$nextTick()
 
       expect(toggles[0].attributes('aria-checked')).toBe('false')
     })
 
     it('should call updateSetting on toggle', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
+      wrapper = mountView()
+      await flushPromises()
+
       const settingsStore = useSettingsStore()
       const updateSettingSpy = vi.spyOn(settingsStore, 'updateSetting')
-
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, pinia]
-        }
-      })
 
       const toggles = wrapper.findAll('button[role="switch"]')
       await toggles[0].trigger('click')
@@ -220,11 +203,7 @@ describe('SettingsApplication', () => {
 
   describe('accessibility', () => {
     it('should have proper ARIA attributes on toggle switches', () => {
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, createPinia()]
-        }
-      })
+      wrapper = mountView()
 
       const toggles = wrapper.findAll('button[role="switch"]')
 
@@ -235,11 +214,7 @@ describe('SettingsApplication', () => {
     })
 
     it('should have focus ring styles on toggle switches', () => {
-      wrapper = mount(SettingsApplication, {
-        global: {
-          plugins: [router, createPinia()]
-        }
-      })
+      wrapper = mountView()
 
       const toggles = wrapper.findAll('button[role="switch"]')
 

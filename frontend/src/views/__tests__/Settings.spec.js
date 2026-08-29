@@ -6,7 +6,6 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import Settings from '../Settings.vue'
 import SettingsAccount from '../SettingsAccount.vue'
 import SettingsApplication from '../SettingsApplication.vue'
-import { useSettingsStore } from '@/stores/settings'
 
 // Mock authManager
 vi.mock('@/services/auth', () => ({
@@ -37,7 +36,6 @@ describe('Settings View', () => {
   beforeEach(async () => {
     // Create fresh pinia instance
     setActivePinia(createPinia())
-    useSettingsStore()
 
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
