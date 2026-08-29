@@ -5,19 +5,11 @@
 
 import pb from './pocketbase'
 import { adaptPocketBaseError } from '@/utils/errors'
-import { isGuestMode, requireAuth } from './guestMode'
+import { isGuestMode } from './guestMode'
+import { getGuestSettings, updateGuestSettings } from './guestStore'
+import { DEFAULT_SETTINGS } from '@/constants'
 
-/**
- * Default settings structure
- */
-export const DEFAULT_SETTINGS = {
-  showBookInfo: true,
-  allowUnfinishedReading: true,
-  allowScoring: true,
-  lastLibraryView: 'timeline',
-  hideUnfinished: true,
-  hideToRead: true
-}
+export { DEFAULT_SETTINGS }
 
 /**
  * Transform settings from PocketBase user record
@@ -44,12 +36,11 @@ function transformSettingsFromPocketBase(user) {
 class SettingsApi {
   /**
    * Fetch settings for the current user
-   * @returns {Promise<Object|null>} Settings object, or null if guest mode
+   * @returns {Promise<Object|null>} Settings object; null only on backend errors (404/403/network)
    */
   async getSettings() {
-    // If guest mode, return null (will use localStorage)
     if (isGuestMode()) {
-      return null
+      return getGuestSettings()
     }
 
     try {
@@ -61,7 +52,6 @@ class SettingsApi {
       const user = await pb.collection('users').getOne(userId)
       return transformSettingsFromPocketBase(user)
     } catch (error) {
-      // If 404 or no auth, return null to fall back to localStorage
       if (error.status === 404 || error.status === 403 || error.status === 0) {
         return null
       }
@@ -75,7 +65,9 @@ class SettingsApi {
    * @returns {Promise<Object>} Updated settings object
    */
   async updateSettings(settings) {
-    requireAuth('update settings')
+    if (isGuestMode()) {
+      return updateGuestSettings(settings)
+    }
 
     try {
       const userId = pb.authStore.record?.id
@@ -83,27 +75,10 @@ class SettingsApi {
         throw new Error('No authenticated user')
       }
 
-      // Update user record with new settings
-      const user = await pb.collection('users').update(userId, {
-        settings
-      })
-
+      const user = await pb.collection('users').update(userId, { settings })
       return transformSettingsFromPocketBase(user)
     } catch (error) {
       throw adaptPocketBaseError(error)
-    }
-  }
-
-  /**
-   * Get sync handlers for the sync queue
-   * Provides API operation handlers for different operation types
-   * @returns {Object} Handler functions keyed by 'resource_OPERATION' pattern
-   */
-  getSyncHandlers() {
-    return {
-      'settings_UPDATE': async (operation) => {
-        return await this.updateSettings(operation.data)
-      }
     }
   }
 }

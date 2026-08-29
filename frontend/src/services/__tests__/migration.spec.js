@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  migrateLocalDataToBackend,
-  needsMigration,
-  markForMigration,
-  clearMigrationFlag
-} from '../migration'
+import { migrateLocalDataToBackend } from '../migration'
 import { booksApi } from '../booksApi'
 import { isGuestMode } from '../guestMode'
 
@@ -19,37 +14,6 @@ describe('migration', () => {
 
   afterEach(() => {
     localStorage.clear()
-  })
-
-  describe('needsMigration', () => {
-    it('should return true when migration flag is set', () => {
-      localStorage.setItem('readtrail-needs-migration', 'true')
-      expect(needsMigration()).toBe(true)
-    })
-
-    it('should return false when migration flag is not set', () => {
-      expect(needsMigration()).toBe(false)
-    })
-
-    it('should return false when migration flag has wrong value', () => {
-      localStorage.setItem('readtrail-needs-migration', 'false')
-      expect(needsMigration()).toBe(false)
-    })
-  })
-
-  describe('markForMigration', () => {
-    it('should set migration flag in localStorage', () => {
-      markForMigration()
-      expect(localStorage.getItem('readtrail-needs-migration')).toBe('true')
-    })
-  })
-
-  describe('clearMigrationFlag', () => {
-    it('should remove migration flag from localStorage', () => {
-      localStorage.setItem('readtrail-needs-migration', 'true')
-      clearMigrationFlag()
-      expect(localStorage.getItem('readtrail-needs-migration')).toBeNull()
-    })
   })
 
   describe('migrateLocalDataToBackend', () => {
@@ -110,19 +74,16 @@ describe('migration', () => {
         updatedAt: '2024-01-01'
       })
       expect(mockCallback).toHaveBeenCalledWith(result.idMapping)
-      expect(localStorage.getItem('readtrail-needs-migration')).toBeNull()
     })
 
     it('should skip migration when no books to migrate', async () => {
       isGuestMode.mockReturnValue(false)
-      localStorage.setItem('readtrail-needs-migration', 'true')
 
       const result = await migrateLocalDataToBackend([], true, null)
 
       expect(result.success).toBe(true)
       expect(result.migratedCount).toBe(0)
       expect(booksApi.getBooks).not.toHaveBeenCalled()
-      expect(localStorage.getItem('readtrail-needs-migration')).toBeNull()
     })
 
     it('should detect duplicate books and only migrate new ones', async () => {
@@ -221,7 +182,6 @@ describe('migration', () => {
         }
       ])
       expect(booksApi.batchCreateBooks).not.toHaveBeenCalled()
-      expect(localStorage.getItem('readtrail-needs-migration')).toBeNull()
     })
 
     it('should match books case-insensitively', async () => {
@@ -411,31 +371,6 @@ describe('migration', () => {
       expect(result.migratedCount).toBe(2)
       expect(result.idMapping).toHaveLength(1) // Only one ID mapping
       expect(result.idMapping[0].oldId).toBe('temp-1')
-    })
-
-    it('should clear migration flag on successful migration', async () => {
-      isGuestMode.mockReturnValue(false)
-      localStorage.setItem('readtrail-needs-migration', 'true')
-
-      booksApi.getBooks.mockResolvedValue([])
-      booksApi.batchCreateBooks.mockResolvedValue([
-        { id: 'backend-1', createdAt: '2024-01-01', updatedAt: '2024-01-01' }
-      ])
-
-      await migrateLocalDataToBackend([mockBook1], true, null)
-
-      expect(localStorage.getItem('readtrail-needs-migration')).toBeNull()
-    })
-
-    it('should not clear migration flag on error', async () => {
-      isGuestMode.mockReturnValue(false)
-      localStorage.setItem('readtrail-needs-migration', 'true')
-
-      booksApi.getBooks.mockRejectedValue(new Error('Network error'))
-
-      await migrateLocalDataToBackend([mockBook1], true, null)
-
-      expect(localStorage.getItem('readtrail-needs-migration')).toBe('true')
     })
   })
 })

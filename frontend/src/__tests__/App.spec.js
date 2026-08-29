@@ -2,14 +2,19 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import App from '../App.vue'
 
 describe('App', () => {
   let pinia
   let router
+  let queryClient
 
   beforeEach(() => {
     pinia = createPinia()
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+    })
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -25,7 +30,7 @@ describe('App', () => {
   it('renders the app structure with header and main', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 
@@ -36,7 +41,7 @@ describe('App', () => {
   it('displays the readtrail title in header', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 
@@ -47,7 +52,7 @@ describe('App', () => {
   it('renders RouterView component', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 
@@ -57,7 +62,7 @@ describe('App', () => {
   it('applies correct CSS classes for layout', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 
@@ -69,7 +74,7 @@ describe('App', () => {
   it('header has proper styling classes', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 
@@ -81,7 +86,7 @@ describe('App', () => {
   it('main content has proper container classes', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 
@@ -93,7 +98,7 @@ describe('App', () => {
   it('title has correct styling', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, router]
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]]
       }
     })
 

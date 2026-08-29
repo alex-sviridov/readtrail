@@ -39,6 +39,31 @@ For user services:
 systemctl --user start readtrail-nginx.service
 ```
 
+## Proxy-based authentication
+
+The backend can trust a username header set by this nginx proxy instead of
+password login (see `backend/pb_hooks/remoteUserAuth.pb.js`). Enable it via
+env vars on the backend container:
+
+```
+REMOTE_USER_ENABLED=true
+REMOTE_USER_HEADER=X-Remote-User
+REMOTE_USER_SECRET_HEADER=X-Remote-User-Secret
+REMOTE_USER_SECRET=<a-random-shared-secret>
+```
+
+In `nginx.conf`, set both headers on the backend `location` block (and make
+sure nothing upstream of nginx can set them, e.g. strip them from incoming
+requests first):
+
+```nginx
+proxy_set_header X-Remote-User       $remote_user_from_your_sso;
+proxy_set_header X-Remote-User-Secret <a-random-shared-secret>;
+```
+
+`REMOTE_USER_SECRET` is optional but recommended — without it, anyone who can
+reach the backend port directly (bypassing nginx) can impersonate any user.
+
 ## Auto-update
 
 The frontend and backend containers have `AutoUpdate=registry` enabled. To update to the latest images:

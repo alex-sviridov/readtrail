@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AuthManager, authManager } from '../auth'
 import pb from '../pocketbase'
+import { queryClient } from '@/services/queryClient'
 
 // Mock PocketBase
 vi.mock('../pocketbase', () => ({
@@ -30,6 +31,9 @@ vi.mock('@/utils/logger', () => ({
 vi.mock('@/utils/errors', () => ({
   adaptPocketBaseError: (error) => error
 }))
+
+// Mock queryClient
+vi.mock('@/services/queryClient', () => ({ queryClient: { clear: vi.fn() } }))
 
 describe('AuthManager', () => {
   let mockCollection
@@ -181,6 +185,11 @@ describe('AuthManager', () => {
       expect(localStorage.getItem('readtrail-key1')).toBeNull()
       expect(localStorage.getItem('readtrail-key2')).toBeNull()
       expect(localStorage.getItem('unrelated-key')).toBe('value3')
+    })
+
+    it('clears the query cache', () => {
+      authManagerInstance.logout()
+      expect(queryClient.clear).toHaveBeenCalled()
     })
   })
 

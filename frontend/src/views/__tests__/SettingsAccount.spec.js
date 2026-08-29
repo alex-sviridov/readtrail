@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SettingsAccount from '../SettingsAccount.vue'
+import ChangePasswordModal from '@/components/settings/ChangePasswordModal.vue'
 import { authManager } from '@/services/auth'
 
 // Mock vue-toastification
@@ -31,7 +32,8 @@ vi.mock('@/services/auth', () => ({
 // Mock Heroicons
 vi.mock('@heroicons/vue/24/outline', () => ({
   ArrowDownTrayIcon: { name: 'ArrowDownTrayIcon', template: '<div />' },
-  ExclamationTriangleIcon: { name: 'ExclamationTriangleIcon', template: '<div />' }
+  ExclamationTriangleIcon: { name: 'ExclamationTriangleIcon', template: '<div />' },
+  XMarkIcon: { name: 'XMarkIcon', template: '<div />' }
 }))
 
 // Mock data export service
@@ -118,8 +120,17 @@ describe('SettingsAccount', () => {
         }
       })
 
-      expect(wrapper.text()).not.toContain('Change Password')
-      expect(wrapper.find('form').exists()).toBe(false)
+      // The change-password affordance lives in a native <dialog>-based modal that
+      // is always present in the DOM but stays closed/inert until opened, so we
+      // assert on the trigger button and the dialog's open state rather than
+      // absence from the DOM.
+      const buttonsOutsideDialogs = wrapper
+        .findAll('button')
+        .filter((btn) => !btn.element.closest('dialog'))
+      expect(buttonsOutsideDialogs.some((btn) => btn.text().includes('Change Password'))).toBe(
+        false
+      )
+      expect(wrapper.getComponent(ChangePasswordModal).get('dialog').element.open).toBe(false)
     })
 
     it('should not display sign out button in guest mode', () => {
@@ -183,9 +194,15 @@ describe('SettingsAccount', () => {
         }
       })
 
-      // The component uses a modal, so password inputs are not visible by default
-      const inputs = wrapper.findAll('input[type="password"]')
-      expect(inputs.length).toBe(0)
+      // The password inputs live inside ChangePasswordModal's native <dialog>,
+      // which is always present in the DOM but closed/inert by default -- they
+      // are not "inline" fields on the page itself.
+      const passwordModal = wrapper.getComponent(ChangePasswordModal)
+      expect(passwordModal.get('dialog').element.open).toBe(false)
+      const inputsOutsideDialogs = wrapper
+        .findAll('input[type="password"]')
+        .filter((input) => !input.element.closest('dialog'))
+      expect(inputsOutsideDialogs.length).toBe(0)
     })
 
     it('should display sign out button', () => {

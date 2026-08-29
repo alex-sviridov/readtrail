@@ -124,52 +124,19 @@ export default {
         </div>
 
         <!-- Error Message -->
-        <div
-          v-if="errorMessage"
-          class="rounded-md bg-red-50 p-4"
-        >
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">
-                {{ errorMessage }}
-              </h3>
-            </div>
-          </div>
-        </div>
+        <AuthErrorBanner :message="errorMessage" />
 
         <!-- Submit Button -->
         <div>
-          <button
-            type="submit"
-            :disabled="isLoading || !isFormValid"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span v-if="!isLoading">Create Account</span>
-            <span v-else class="flex items-center">
-              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Creating account...
-            </span>
-          </button>
+          <AuthSubmitButton :is-loading="isLoading" :disabled="!isFormValid">
+            Create Account
+            <template #loading>Creating account...</template>
+          </AuthSubmitButton>
         </div>
 
         <!-- Continue as Guest Button -->
         <div>
-          <component
-            :is="isLoading ? 'button' : 'router-link'"
-            :to="isLoading ? undefined : '/library'"
-            :disabled="isLoading"
-            class="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Continue as Guest
-          </component>
+          <ContinueAsGuestLink :disabled="isLoading" />
         </div>
       </form>
 
@@ -187,8 +154,12 @@ export default {
 import { ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import { authManager } from '@/services/auth'
+import { completeAuthAndRedirect } from '@/services/postAuth'
 import { useBooksStore } from '@/stores/books'
 import { logger } from '@/utils/logger'
+import AuthErrorBanner from '@/components/auth/AuthErrorBanner.vue'
+import AuthSubmitButton from '@/components/auth/AuthSubmitButton.vue'
+import ContinueAsGuestLink from '@/components/auth/ContinueAsGuestLink.vue'
 
 const toast = useToast()
 const booksStore = useBooksStore()
@@ -333,27 +304,14 @@ async function handleRegister() {
       return
     }
 
-    // Check if there's guest data before registration
-    const hasGuestData = booksStore.books.length > 0
-
     // Attempt registration (auto-login happens inside authManager.register)
     await authManager.register(email.value, password.value, passwordConfirm.value)
 
     // Registration and login successful
     toast.success('Account created successfully! Welcome to ReadTrail.', { timeout: 5000 })
 
-    // Migrate guest data if any
-    if (hasGuestData) {
-      logger.info('[Register] Migrating guest data to backend...')
-      await booksStore.performMigration()
-
-      // Clear localStorage after migration
-      localStorage.removeItem('readtrail-books')
-      localStorage.removeItem('readtrail-needs-migration')
-    }
-
-    // Redirect to library with full page reload for clean state
-    window.location.href = '/library'
+    // Migrate guest data (if any) and redirect
+    await completeAuthAndRedirect(booksStore, 'Register')
   } catch (error) {
     logger.error('[Register] Registration failed:', error)
 

@@ -1,7 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { sortBooks } from '../bookSorting'
+import { sortBooks, bookPriority, compareBooksByStatusAndDate } from '../bookSorting'
 
 describe('bookSorting', () => {
+  describe('bookPriority', () => {
+    it('ranks To Read (year 2100) as 0', () => {
+      expect(bookPriority({ year: 2100, month: 1 })).toBe(0)
+    })
+
+    it('ranks in-progress (null year or month) as 1', () => {
+      expect(bookPriority({ year: null, month: null })).toBe(1)
+      expect(bookPriority({ year: 2024, month: null })).toBe(1)
+      expect(bookPriority({ year: null, month: 6 })).toBe(1)
+    })
+
+    it('ranks a completed book as 2', () => {
+      expect(bookPriority({ year: 2024, month: 6 })).toBe(2)
+    })
+  })
+
+  describe('compareBooksByStatusAndDate', () => {
+    it('is the comparator BooksTable\'s default column sort delegates to (shared source of truth)', () => {
+      const toRead = { year: 2100, month: 1, createdAt: new Date('2024-01-01') }
+      const completed = { year: 2020, month: 1, createdAt: new Date('2024-01-01') }
+
+      expect(compareBooksByStatusAndDate(toRead, completed)).toBeLessThan(0)
+      expect(compareBooksByStatusAndDate(completed, toRead)).toBeGreaterThan(0)
+    })
+  })
+
   describe('sortBooks', () => {
     it('should return an empty array for empty input', () => {
       const result = sortBooks([])
