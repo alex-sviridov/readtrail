@@ -54,6 +54,7 @@
 
     <!-- Modal -->
     <BookCoverModal
+      v-if="isModalOpen"
       :is-open="isModalOpen"
       :book="bookData"
       @close="closeModal"

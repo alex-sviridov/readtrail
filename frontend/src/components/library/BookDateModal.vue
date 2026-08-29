@@ -2,7 +2,7 @@
   <BaseModal
     :is-open="isOpen"
     :title="`Edit Date - ${book.name}`"
-    content-class="max-w-md w-full"
+    content-class="max-w-md w-[calc(100%-2rem)]"
     max-height-class="max-h-[90vh]"
     body-class="p-0"
     @close="emit('close')"

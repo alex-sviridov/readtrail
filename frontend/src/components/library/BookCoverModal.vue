@@ -2,7 +2,7 @@
   <BaseModal
     :is-open="isOpen"
     title="Edit Cover"
-    content-class="w-full max-w-md m-3 sm:m-4"
+    content-class="max-w-md w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)]"
     max-height-class="max-h-[95vh] sm:max-h-[90vh]"
     header-class="p-4"
     title-class="text-lg"

@@ -215,26 +215,27 @@ describe('BookCover', () => {
 
     it('opens modal when cover is clicked in edit mode', async () => {
       const wrapper = createWrapper({ editable: true })
-      const modal = wrapper.findComponent(BookCoverModal)
 
-      expect(modal.props('isOpen')).toBe(false)
+      // BookCoverModal is now v-if-gated, so it isn't mounted at all while closed
+      expect(wrapper.findComponent(BookCoverModal).exists()).toBe(false)
 
       const img = wrapper.find('img')
       await img.trigger('click')
       await nextTick()
 
+      const modal = wrapper.findComponent(BookCoverModal)
+      expect(modal.exists()).toBe(true)
       expect(modal.props('isOpen')).toBe(true)
     })
 
     it('does not open modal when cover is clicked in non-edit mode', async () => {
       const wrapper = createWrapper({ editable: false })
-      const modal = wrapper.findComponent(BookCoverModal)
 
       const img = wrapper.find('img')
       await img.trigger('click')
       await nextTick()
 
-      expect(modal.props('isOpen')).toBe(false)
+      expect(wrapper.findComponent(BookCoverModal).exists()).toBe(false)
     })
 
     it('opens modal when custom cover is clicked in edit mode', async () => {
@@ -242,12 +243,13 @@ describe('BookCover', () => {
         editable: true,
         useCustomCover: true
       })
-      const modal = wrapper.findComponent(BookCoverModal)
 
       const customCover = wrapper.findComponent(CustomBookCover)
       await customCover.trigger('click')
       await nextTick()
 
+      const modal = wrapper.findComponent(BookCoverModal)
+      expect(modal.exists()).toBe(true)
       expect(modal.props('isOpen')).toBe(true)
     })
 
@@ -257,38 +259,45 @@ describe('BookCover', () => {
         coverLink: '',
         coverUrl: null
       })
-      const modal = wrapper.findComponent(BookCoverModal)
 
       const svg = wrapper.find('svg')
       await svg.trigger('click')
       await nextTick()
 
+      const modal = wrapper.findComponent(BookCoverModal)
+      expect(modal.exists()).toBe(true)
       expect(modal.props('isOpen')).toBe(true)
     })
 
     it('opens modal when edit overlay is clicked', async () => {
       const wrapper = createWrapper({ editable: true })
-      const modal = wrapper.findComponent(BookCoverModal)
 
       const overlay = wrapper.find('.absolute.inset-0.bg-black')
       await overlay.trigger('click')
       await nextTick()
 
+      const modal = wrapper.findComponent(BookCoverModal)
+      expect(modal.exists()).toBe(true)
       expect(modal.props('isOpen')).toBe(true)
     })
   })
 
   describe('Modal Integration', () => {
-    it('passes correct book data to modal', () => {
+    it('passes correct book data to modal', async () => {
       const wrapper = createWrapper({
+        editable: true,
         bookName: 'Great Book',
         bookAuthor: 'Famous Author',
         coverLink: 'https://example.com/cover.jpg',
         coverUrl: 'https://example.com/cached.jpg',
         useCustomCover: false
       })
-      const modal = wrapper.findComponent(BookCoverModal)
 
+      // BookCoverModal is v-if-gated, so open it first to mount it
+      await wrapper.find('img').trigger('click')
+      await nextTick()
+
+      const modal = wrapper.findComponent(BookCoverModal)
       expect(modal.props('book')).toEqual({
         name: 'Great Book',
         author: 'Famous Author',
@@ -297,13 +306,17 @@ describe('BookCover', () => {
       })
     })
 
-    it('uses coverLink when coverUrl is null', () => {
+    it('uses coverLink when coverUrl is null', async () => {
       const wrapper = createWrapper({
+        editable: true,
         coverLink: 'https://example.com/cover.jpg',
         coverUrl: null
       })
-      const modal = wrapper.findComponent(BookCoverModal)
 
+      await wrapper.find('img').trigger('click')
+      await nextTick()
+
+      const modal = wrapper.findComponent(BookCoverModal)
       expect(modal.props('book').coverLink).toBe('https://example.com/cover.jpg')
     })
 
@@ -322,7 +335,8 @@ describe('BookCover', () => {
       await modal.vm.$emit('close')
       await nextTick()
 
-      expect(modal.props('isOpen')).toBe(false)
+      // BookCoverModal is v-if-gated, so once closed it unmounts entirely
+      expect(wrapper.findComponent(BookCoverModal).exists()).toBe(false)
     })
 
     it('emits update event with cover data when modal saves', async () => {
@@ -413,8 +427,8 @@ describe('BookCover', () => {
       modal.vm.$emit('close')
       await nextTick()
 
-      // Modal should now be closed
-      expect(modal.props('isOpen')).toBe(false)
+      // Modal should now be closed, and unmounted entirely (v-if-gated)
+      expect(wrapper.findComponent(BookCoverModal).exists()).toBe(false)
     })
 
     it('resets image error state when saving cover', async () => {

@@ -2,7 +2,7 @@
   <BaseModal
     :is-open="isOpen"
     title="Delete Account"
-    content-class="max-w-md w-full"
+    content-class="max-w-md w-[calc(100%-2rem)]"
     :close-on-overlay-click="!isDeleting"
     :show-close-button="!isDeleting"
     @close="handleCancel"
