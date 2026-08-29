@@ -47,7 +47,7 @@ describe('useBooksStore', () => {
     booksApi.createBook.mockResolvedValue({ id: 'real-1', name: 'The Great Gatsby' })
 
     const store = mountStore()
-    const book = store.addBook('The Great Gatsby')
+    const book = store.addBook({ name: 'The Great Gatsby' })
 
     expect(book.name).toBe('The Great Gatsby')
     expect(book.id).toBeDefined()
@@ -57,7 +57,7 @@ describe('useBooksStore', () => {
   it('updateBookFields updates the matching book', () => {
     booksApi.getBooks.mockResolvedValue([])
     const store = mountStore()
-    const book = store.addBook('1984', 2024, 3)
+    const book = store.addBook({ name: '1984', year: 2024, month: 3 })
 
     const result = store.updateBookFields(book.id, { name: '1984 (revised)' })
 
@@ -68,7 +68,7 @@ describe('useBooksStore', () => {
   it('deleteBook removes the matching book', () => {
     booksApi.getBooks.mockResolvedValue([])
     const store = mountStore()
-    const book = store.addBook('1984')
+    const book = store.addBook({ name: '1984' })
 
     const result = store.deleteBook(book.id)
 
@@ -80,7 +80,7 @@ describe('useBooksStore', () => {
     booksApi.getBooks.mockResolvedValue([])
     booksApi.createBook.mockReturnValue(new Promise(() => {})) // never resolves
     const store = mountStore()
-    const book = store.addBook('Pending')
+    const book = store.addBook({ name: 'Pending' })
 
     store.updateBookFields(book.id, { name: 'Pending (edited)' })
     expect(booksApi.updateBook).not.toHaveBeenCalled()
@@ -106,8 +106,8 @@ describe('useBooksStore', () => {
   it('sortedBooks/inProgressBooks/completedBooks derive from books', () => {
     booksApi.getBooks.mockResolvedValue([])
     const store = mountStore()
-    store.addBook('In progress')
-    store.addBook('Done', 2024, 1)
+    store.addBook({ name: 'In progress' })
+    store.addBook({ name: 'Done', year: 2024, month: 1 })
 
     expect(store.inProgressBooks).toHaveLength(1)
     expect(store.completedBooks).toHaveLength(1)
@@ -136,7 +136,7 @@ describe('useBooksStore', () => {
   it('$reset clears local state', () => {
     booksApi.getBooks.mockResolvedValue([])
     const store = mountStore()
-    store.addBook('1984')
+    store.addBook({ name: '1984' })
 
     store.$reset()
 

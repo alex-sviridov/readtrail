@@ -84,12 +84,13 @@
 </template>
 
 <script setup>
-import { ref, computed, provide } from 'vue'
+import { computed, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
 import { useBookSearch } from '@/composables/useBookSearch'
+import { useAddBookFlow } from '@/composables/useAddBookFlow'
 import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
 import BookSearch from '@/components/library/BookSearch.vue'
@@ -194,32 +195,7 @@ const clearAllFilters = () => {
   settingsStore.updateSetting('hideToRead', true)
 }
 
-// Search modal state
-const isSearchModalOpen = ref(false)
-
-// Open search modal
-const openSearchModal = () => {
-  isSearchModalOpen.value = true
-}
-
-// Close search modal
-const closeSearchModal = () => {
-  isSearchModalOpen.value = false
-}
-
-// Handle book selection from search
-const handleBookSelect = (bookData) => {
-  // Add the book to the store with selected date/status
-  booksStore.addBook(
-    bookData.title,
-    bookData.year,
-    bookData.month,
-    bookData.author,
-    bookData.coverLink,
-    null,
-    bookData.isUnfinished || false,
-    bookData.score || null
-  )
-}
+// Search modal / add-book flow
+const { isSearchModalOpen, openSearchModal, closeSearchModal, handleBookSelect } = useAddBookFlow(booksStore)
 
 </script>

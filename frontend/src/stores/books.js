@@ -53,7 +53,7 @@ export const useBooksStore = defineStore('books', () => {
     return booksQuery.refetch()
   }
 
-  function addBook(name, year = null, month = null, author = null, coverLink = null, coverFile = null, isUnfinished = false, score = null) {
+  function addBook({ name, year = null, month = null, author = null, coverLink = null, coverFile = null, isUnfinished = false, score = null }) {
     const tempId = generateTempId()
     const book = {
       id: tempId,

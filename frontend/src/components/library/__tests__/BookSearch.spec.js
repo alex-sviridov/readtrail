@@ -453,7 +453,13 @@ describe('BookSearch Component', () => {
     })
 
     it('should handle timeout error', async () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
+      mockFetch.mockImplementation((url, options) => new Promise((resolve, reject) => {
+        options.signal.addEventListener('abort', () => {
+          const abortError = new Error('The operation was aborted')
+          abortError.name = 'AbortError'
+          reject(abortError)
+        })
+      }))
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
