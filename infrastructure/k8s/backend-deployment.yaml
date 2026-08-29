@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readtrail-backend
+  labels:
+    app: readtrail-backend
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: readtrail-backend
+  template:
+    metadata:
+      labels:
+        app: readtrail-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/alex-sviridov/readtrail/backend:latest
+          ports:
+            - containerPort: 8090
+          env:
+            - name: SUPERUSER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: readtrail-backend-secrets
+                  key: SUPERUSER_EMAIL
+                  optional: true
+            - name: SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: readtrail-backend-secrets
+                  key: SUPERUSER_PASSWORD
+                  optional: true
+            - name: REMOTE_USER_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: readtrail-backend-secrets
+                  key: REMOTE_USER_ENABLED
+                  optional: true
+            - name: REMOTE_USER_HEADER
+              valueFrom:
+                secretKeyRef:
+                  name: readtrail-backend-secrets
+                  key: REMOTE_USER_HEADER
+                  optional: true
+            - name: REMOTE_USER_SECRET_HEADER
+              valueFrom:
+                secretKeyRef:
+                  name: readtrail-backend-secrets
+                  key: REMOTE_USER_SECRET_HEADER
+                  optional: true
+            - name: REMOTE_USER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: readtrail-backend-secrets
+                  key: REMOTE_USER_SECRET
+                  optional: true
+          volumeMounts:
+            - name: pb-data
+              mountPath: /pb/pb_data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8090
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: pb-data
+          persistentVolumeClaim:
+            claimName: readtrail-backend-data
