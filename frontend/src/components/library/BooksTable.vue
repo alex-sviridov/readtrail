@@ -99,7 +99,7 @@ import CustomBookCover from './CustomBookCover.vue'
 import BookStatus from './BookStatus.vue'
 import BookScore from './BookScore.vue'
 import EditableText from './EditableText.vue'
-import { BOOK_STATUS } from '@/constants'
+import { bookPriority, compareBooksByStatusAndDate } from '@/utils/bookSorting'
 
 const props = defineProps({
   books: {
@@ -333,38 +333,16 @@ const table = useVueTable({
       const a = rowA.original
       const b = rowB.original
 
-      // Primary sort: Always maintain To Read → In Progress → Completed order
-      const aToRead = BOOK_STATUS.isToRead(a.year)
-      const bToRead = BOOK_STATUS.isToRead(b.year)
-
-      // To Read books come first
-      if (aToRead && !bToRead) return -1
-      if (!aToRead && bToRead) return 1
-
-      const aInProgress = a.year === null || a.month === null
-      const bInProgress = b.year === null || b.month === null
-
-      // In-progress books come after To Read but before completed
-      if (aInProgress && !bInProgress) return -1
-      if (!aInProgress && bInProgress) return 1
-
-      // Secondary sort: Within same status group, sort by the column
+      // The 'year' column uses the app-wide default ordering directly.
       if (columnId === 'year') {
-        // For year column: sort by createdAt for To Read/In Progress, year/month for completed
-        if (aToRead && bToRead) {
-          return new Date(b.createdAt) - new Date(a.createdAt)
-        }
-        if (aInProgress && bInProgress) {
-          return new Date(b.createdAt) - new Date(a.createdAt)
-        }
-        // Both completed - sort by year and month (newest first)
-        if (a.year !== b.year) {
-          return b.year - a.year
-        }
-        return b.month - a.month
+        return compareBooksByStatusAndDate(a, b)
       }
 
-      // For other columns: standard comparison
+      // Other columns: still respect the To Read → In Progress → Completed
+      // grouping, but break ties within a group by the column's own value.
+      const priorityDiff = bookPriority(a) - bookPriority(b)
+      if (priorityDiff !== 0) return priorityDiff
+
       const aValue = rowA.getValue(columnId)
       const bValue = rowB.getValue(columnId)
       return aValue > bValue ? 1 : aValue < bValue ? -1 : 0
