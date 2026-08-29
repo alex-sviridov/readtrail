@@ -131,6 +131,7 @@ const handleBookSelect = (bookData) => {
     bookData.month,
     bookData.author,
     bookData.coverLink,
+    null,
     bookData.isUnfinished || false,
     bookData.score || null
   )
