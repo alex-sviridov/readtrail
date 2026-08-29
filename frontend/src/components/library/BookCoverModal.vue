@@ -145,7 +145,7 @@ import { useDebounceFn } from '@vueuse/core'
 import BaseModal from '@/components/base/BaseModal.vue'
 import CustomBookCover from '@/components/library/CustomBookCover.vue'
 import { useImageFetch } from '@/composables/useImageFetch'
-import { useOnlineStatus } from '@/composables/useOnlineStatus'
+import { useOnline } from '@vueuse/core'
 
 const props = defineProps({
   isOpen: {
@@ -161,7 +161,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 // Composables
-const { isOnline } = useOnlineStatus()
+const isOnline = useOnline()
 const { isLoading, error, file, warning, fetchImage, reset } = useImageFetch()
 
 // Modal state
