@@ -24,6 +24,20 @@ export const queryClient = new QueryClient({
 })
 
 /**
+ * Drop every cached query and the persisted copy in localStorage.
+ * Used on logout and on successful login/register so the previous
+ * session's (or guest's) data can't be rendered by the next one.
+ */
+export function clearQueryCache() {
+  queryClient.clear()
+  try {
+    localStorage.removeItem(PERSIST_KEY)
+  } catch (error) {
+    logger.warn('[queryClient] Failed to remove persisted cache:', error)
+  }
+}
+
+/**
  * Restore the query cache from localStorage and keep it in sync going
  * forward. Safe to call once at app startup.
  * @param {QueryClient} client

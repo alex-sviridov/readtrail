@@ -187,6 +187,7 @@ export default {
 import { ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import { authManager } from '@/services/auth'
+import { clearQueryCache } from '@/services/queryClient'
 import { useBooksStore } from '@/stores/books'
 import { logger } from '@/utils/logger'
 
@@ -351,6 +352,10 @@ async function handleRegister() {
       localStorage.removeItem('readtrail-books')
       localStorage.removeItem('readtrail-needs-migration')
     }
+
+    // Drop the previous (guest) session's cached queries so the reload
+    // doesn't briefly render them before the backend refetch lands.
+    clearQueryCache()
 
     // Redirect to library with full page reload for clean state
     window.location.href = '/library'
