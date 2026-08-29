@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import Settings from '../Settings.vue'
 import SettingsAccount from '../SettingsAccount.vue'
 import SettingsApplication from '../SettingsApplication.vue'
@@ -31,11 +32,16 @@ vi.mock('vue-toastification', () => ({
 describe('Settings View', () => {
   let wrapper
   let router
+  let queryClient
 
   beforeEach(async () => {
     // Create fresh pinia instance
     setActivePinia(createPinia())
     useSettingsStore()
+
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+    })
 
     // Create router with memory history matching the actual route structure
     router = createRouter({
@@ -71,7 +77,7 @@ describe('Settings View', () => {
     it('should render the settings page with title and description', () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -82,7 +88,7 @@ describe('Settings View', () => {
     it('should render tab navigation', () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -96,7 +102,7 @@ describe('Settings View', () => {
     it('should highlight active tab', async () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -109,7 +115,7 @@ describe('Settings View', () => {
     it('should render child route content', () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -122,7 +128,7 @@ describe('Settings View', () => {
     it('should navigate to application settings tab', async () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -139,7 +145,7 @@ describe('Settings View', () => {
 
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -160,7 +166,7 @@ describe('Settings View', () => {
     it('should have proper navigation labels', () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 
@@ -171,7 +177,7 @@ describe('Settings View', () => {
     it('should have proper tab structure', () => {
       wrapper = mount(Settings, {
         global: {
-          plugins: [router, createPinia()]
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
         }
       })
 

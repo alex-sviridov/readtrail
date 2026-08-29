@@ -108,7 +108,7 @@ export const useBooksStore = defineStore('books', () => {
    */
   async function performMigration() {
     const guestBooks = getGuestBooks()
-    const result = await migrateLocalDataToBackend(guestBooks, isOnline.value, () => {})
+    const result = await migrateLocalDataToBackend(guestBooks, isOnline.value, null)
 
     if (result.success) {
       clearGuestData()
