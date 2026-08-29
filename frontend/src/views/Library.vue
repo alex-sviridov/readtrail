@@ -1,19 +1,19 @@
 <template>
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
-    <!-- Header with Add Book Button -->
-    <LibraryHeader
-      :view-mode="viewMode"
-      :hide-unfinished="hideUnfinished"
-      :hide-to-read="hideToRead"
-      :search-query="searchQuery"
-      @update:search-query="searchQuery = $event"
-      @set-view-mode="setViewMode"
-      @toggle-filter="toggleFilter"
-      @toggle-to-read-filter="toggleToReadFilter"
-      @clear-all-filters="clearAllFilters"
-      @add-book="openSearchModal"
-    />
-
+  <LibraryPageLayout
+    :view-mode="viewMode"
+    :hide-unfinished="hideUnfinished"
+    :hide-to-read="hideToRead"
+    :search-query="searchQuery"
+    :is-search-modal-open="isSearchModalOpen"
+    @update:search-query="searchQuery = $event"
+    @set-view-mode="setViewMode"
+    @toggle-filter="toggleFilter"
+    @toggle-to-read-filter="toggleToReadFilter"
+    @clear-all-filters="clearAllFilters"
+    @add-book="openSearchModal"
+    @close-search-modal="closeSearchModal"
+    @select-book="handleBookSelect"
+  >
     <!-- Empty State -->
     <div v-if="filteredBooks.length === 0" class="flex flex-col items-center justify-center py-16 px-4">
       <div class="text-center max-w-md">
@@ -47,7 +47,7 @@
     </div>
 
     <!-- Grid View -->
-    <div v-if="viewMode === 'grid' && filteredBooks.length > 0" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+    <div v-if="viewMode === 'grid' && filteredBooks.length > 0" class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
       <BookCard
         v-for="book in filteredBooks"
         :key="book.id"
@@ -64,7 +64,7 @@
             {{ BOOK_STATUS.getTimelineLabel(group.year) }}
           </h2>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-8">
+        <div class="grid gap-6 mb-8 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
           <BookCard
             v-for="book in group.books"
             :key="book.id"
@@ -73,27 +73,20 @@
         </div>
       </div>
     </div>
-
-    <!-- Book Search Modal -->
-    <BookSearch
-      :is-open="isSearchModalOpen"
-      @close="closeSearchModal"
-      @select="handleBookSelect"
-    />
-  </div>
+  </LibraryPageLayout>
 </template>
 
 <script setup>
-import { ref, computed, provide } from 'vue'
+import { computed, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
 import { useBookSearch } from '@/composables/useBookSearch'
+import { useAddBookFlow } from '@/composables/useAddBookFlow'
 import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
-import BookSearch from '@/components/library/BookSearch.vue'
-import LibraryHeader from '@/components/library/LibraryHeader.vue'
+import LibraryPageLayout from '@/components/library/LibraryPageLayout.vue'
 
 defineOptions({
   name: 'LibraryPage'
@@ -143,36 +136,25 @@ const filteredBooks = computed(() => {
   return result
 })
 
-// Group books by year for timeline view
+// Group books by year for timeline view. Relies on filteredBooks already
+// being sorted so same-year books are adjacent (a run-length grouping,
+// not a general groupBy).
 const booksGroupedByYear = computed(() => {
-  const groups = []
-  let currentYear = undefined
-  let currentGroup = null
   const nowYear = new Date().getFullYear()
 
-  filteredBooks.value.forEach(book => {
+  return filteredBooks.value.reduce((groups, book) => {
     // In-progress books (year: null) are assigned to current year
     const bookYear = book.year === null ? nowYear : book.year
+    const lastGroup = groups[groups.length - 1]
 
-    if (bookYear !== currentYear) {
-      if (currentGroup) {
-        groups.push(currentGroup)
-      }
-      currentYear = bookYear
-      currentGroup = {
-        year: bookYear,
-        books: [book]
-      }
+    if (lastGroup?.year === bookYear) {
+      lastGroup.books.push(book)
     } else {
-      currentGroup.books.push(book)
+      groups.push({ year: bookYear, books: [book] })
     }
-  })
 
-  if (currentGroup) {
-    groups.push(currentGroup)
-  }
-
-  return groups
+    return groups
+  }, [])
 })
 
 // Set view mode and navigate to appropriate route
@@ -205,31 +187,7 @@ const clearAllFilters = () => {
   settingsStore.updateSetting('hideToRead', true)
 }
 
-// Search modal state
-const isSearchModalOpen = ref(false)
-
-// Open search modal
-const openSearchModal = () => {
-  isSearchModalOpen.value = true
-}
-
-// Close search modal
-const closeSearchModal = () => {
-  isSearchModalOpen.value = false
-}
-
-// Handle book selection from search
-const handleBookSelect = (bookData) => {
-  // Add the book to the store with selected date/status
-  booksStore.addBook(
-    bookData.title,
-    bookData.year,
-    bookData.month,
-    bookData.author,
-    bookData.coverLink,
-    bookData.isUnfinished || false,
-    bookData.score || null
-  )
-}
+// Search modal / add-book flow
+const { isSearchModalOpen, openSearchModal, closeSearchModal, handleBookSelect } = useAddBookFlow(booksStore)
 
 </script>

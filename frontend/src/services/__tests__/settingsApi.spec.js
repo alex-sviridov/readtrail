@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SettingsApi, DEFAULT_SETTINGS } from '../settingsApi'
 import pb from '../pocketbase'
-import { isGuestMode, requireAuth } from '../guestMode'
+import { isGuestMode } from '../guestMode'
 import { adaptPocketBaseError } from '@/utils/errors'
+import { getGuestSettings } from '../guestStore'
 
 // Mock the pocketbase module
 vi.mock('../pocketbase', () => ({
@@ -16,8 +17,7 @@ vi.mock('../pocketbase', () => ({
 
 // Mock guestMode module
 vi.mock('../guestMode', () => ({
-  isGuestMode: vi.fn(() => false),
-  requireAuth: vi.fn()
+  isGuestMode: vi.fn(() => false)
 }))
 
 // Mock errors module
@@ -169,12 +169,12 @@ describe('settingsApi', () => {
   })
 
   describe('getSettings', () => {
-    it('should return null in guest mode', async () => {
+    it('should return guest settings in guest mode', async () => {
       isGuestMode.mockReturnValue(true)
 
       const result = await settingsApi.getSettings()
 
-      expect(result).toBeNull()
+      expect(result).toEqual(DEFAULT_SETTINGS)
       expect(pb.collection).not.toHaveBeenCalled()
     })
 
@@ -257,26 +257,6 @@ describe('settingsApi', () => {
   })
 
   describe('updateSettings', () => {
-    it('should call requireAuth before updating', async () => {
-      const newSettings = {
-        showBookInfo: false,
-        allowUnfinishedReading: false,
-        allowScoring: true
-      }
-
-      const mockCollection = {
-        update: vi.fn().mockResolvedValue({
-          id: 'test-user-id',
-          settings: newSettings
-        })
-      }
-      pb.collection.mockReturnValue(mockCollection)
-
-      await settingsApi.updateSettings(newSettings)
-
-      expect(requireAuth).toHaveBeenCalledWith('update settings')
-    })
-
     it('should update settings for authenticated user', async () => {
       const newSettings = {
         showBookInfo: false,
@@ -375,45 +355,24 @@ describe('settingsApi', () => {
     })
   })
 
-  describe('getSyncHandlers', () => {
-    it('should return handlers object with settings_UPDATE', () => {
-      const handlers = settingsApi.getSyncHandlers()
-
-      expect(handlers).toHaveProperty('settings_UPDATE')
-      expect(typeof handlers['settings_UPDATE']).toBe('function')
+  describe('guest mode', () => {
+    beforeEach(() => {
+      isGuestMode.mockReturnValue(true)
+      localStorage.clear()
     })
 
-    it('should call updateSettings from sync handler', async () => {
-      const newSettings = {
-        showBookInfo: false,
-        allowUnfinishedReading: true,
-        allowScoring: false
-      }
+    it('getSettings returns guest settings instead of null', async () => {
+      const settings = await settingsApi.getSettings()
 
-      const mockCollection = {
-        update: vi.fn().mockResolvedValue({
-          id: 'test-user-id',
-          settings: newSettings
-        })
-      }
-      pb.collection.mockReturnValue(mockCollection)
+      expect(settings.showBookInfo).toBe(true)
+      expect(settings.lastLibraryView).toBe('timeline')
+    })
 
-      const handlers = settingsApi.getSyncHandlers()
-      const operation = {
-        data: newSettings
-      }
+    it('updateSettings persists to the guest store', async () => {
+      const updated = await settingsApi.updateSettings({ hideUnfinished: false })
 
-      const result = await handlers['settings_UPDATE'](operation)
-
-      expect(mockCollection.update).toHaveBeenCalledWith('test-user-id', {
-        settings: newSettings
-      })
-      expect(result).toEqual({
-        ...newSettings,
-        lastLibraryView: 'timeline',
-        hideUnfinished: true,
-        hideToRead: true
-      })
+      expect(updated.hideUnfinished).toBe(false)
+      expect(getGuestSettings().hideUnfinished).toBe(false)
     })
   })
 

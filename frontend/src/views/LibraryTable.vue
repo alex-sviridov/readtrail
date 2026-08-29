@@ -1,18 +1,17 @@
 <template>
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
-    <!-- Header with Add Book Button -->
-    <LibraryHeader
-      view-mode="table"
-      :hide-unfinished="hideUnfinished"
-      :hide-to-read="hideToRead"
-      @set-view-mode="setViewMode"
-      @toggle-filter="toggleFilter"
-      @toggle-to-read-filter="toggleToReadFilter"
-      @clear-all-filters="clearAllFilters"
-      @add-book="openSearchModal"
-    />
-
-    <!-- Table View -->
+  <LibraryPageLayout
+    view-mode="table"
+    :hide-unfinished="hideUnfinished"
+    :hide-to-read="hideToRead"
+    :is-search-modal-open="isSearchModalOpen"
+    @set-view-mode="setViewMode"
+    @toggle-filter="toggleFilter"
+    @toggle-to-read-filter="toggleToReadFilter"
+    @clear-all-filters="clearAllFilters"
+    @add-book="openSearchModal"
+    @close-search-modal="closeSearchModal"
+    @select-book="handleBookSelect"
+  >
     <BooksTable
       :books="filteredBooks"
       :settings="settingsStore"
@@ -22,26 +21,19 @@
       @update-author="handleUpdateAuthor"
       @update-status="handleUpdateStatus"
     />
-
-    <!-- Book Search Modal -->
-    <BookSearch
-      :is-open="isSearchModalOpen"
-      @close="closeSearchModal"
-      @select="handleBookSelect"
-    />
-  </div>
+  </LibraryPageLayout>
 </template>
 
 <script setup>
-import { ref, computed, provide } from 'vue'
+import { computed, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
+import { useAddBookFlow } from '@/composables/useAddBookFlow'
 import { BOOK_STATUS } from '@/constants'
-import BookSearch from '@/components/library/BookSearch.vue'
-import LibraryHeader from '@/components/library/LibraryHeader.vue'
 import BooksTable from '@/components/library/BooksTable.vue'
+import LibraryPageLayout from '@/components/library/LibraryPageLayout.vue'
 import { logger } from '@/utils/logger'
 
 defineOptions({
@@ -109,32 +101,8 @@ const clearAllFilters = () => {
   settingsStore.updateSetting('hideToRead', true)
 }
 
-// Search modal state
-const isSearchModalOpen = ref(false)
-
-// Open search modal
-const openSearchModal = () => {
-  isSearchModalOpen.value = true
-}
-
-// Close search modal
-const closeSearchModal = () => {
-  isSearchModalOpen.value = false
-}
-
-// Handle book selection from search
-const handleBookSelect = (bookData) => {
-  // Add the book to the store with selected date/status
-  booksStore.addBook(
-    bookData.title,
-    bookData.year,
-    bookData.month,
-    bookData.author,
-    bookData.coverLink,
-    bookData.isUnfinished || false,
-    bookData.score || null
-  )
-}
+// Search modal / add-book flow
+const { isSearchModalOpen, openSearchModal, closeSearchModal, handleBookSelect } = useAddBookFlow(booksStore)
 
 // Handle deleting a book
 const handleDeleteBook = (id) => {

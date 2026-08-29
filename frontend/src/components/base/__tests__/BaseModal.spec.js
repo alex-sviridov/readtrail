@@ -7,8 +7,7 @@ describe('BaseModal Component', () => {
   let wrapper
 
   beforeEach(() => {
-    // Create a container div for teleport target
-    document.body.innerHTML = '<div id="app"></div>'
+    document.body.innerHTML = ''
   })
 
   afterEach(() => {
@@ -17,514 +16,237 @@ describe('BaseModal Component', () => {
     vi.restoreAllMocks()
   })
 
+  function mountModal(props = {}) {
+    return mount(BaseModal, {
+      attachTo: document.body,
+      props: { isOpen: true, title: 'Test Modal', ...props }
+    })
+  }
+
   describe('conditional rendering', () => {
-    it('should not render when isOpen is false', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: false,
-          title: 'Test Modal'
-        }
-      })
-
-      expect(document.querySelector('.fixed.inset-0')).toBeNull()
+    it('is not open when isOpen is false', () => {
+      wrapper = mountModal({ isOpen: false })
+      expect(wrapper.get('dialog').element.open).toBe(false)
     })
 
-    it('should render when isOpen is true', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test Modal'
-        }
-      })
-
-      expect(document.querySelector('.fixed.inset-0')).toBeTruthy()
+    it('is open when isOpen is true', () => {
+      wrapper = mountModal({ isOpen: true })
+      expect(wrapper.get('dialog').element.open).toBe(true)
     })
 
-    it('should toggle visibility when isOpen prop changes', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: false,
-          title: 'Test Modal'
-        }
-      })
-
-      expect(document.querySelector('.fixed.inset-0')).toBeNull()
+    it('toggles open state when isOpen prop changes', async () => {
+      wrapper = mountModal({ isOpen: false })
+      expect(wrapper.get('dialog').element.open).toBe(false)
 
       await wrapper.setProps({ isOpen: true })
-      await nextTick()
-
-      expect(document.querySelector('.fixed.inset-0')).toBeTruthy()
+      expect(wrapper.get('dialog').element.open).toBe(true)
 
       await wrapper.setProps({ isOpen: false })
-      await nextTick()
-
-      // Modal should be removed after transition
-      expect(document.querySelector('.fixed.inset-0')).toBeNull()
-    })
-  })
-
-  describe('teleport functionality', () => {
-    it('should teleport modal content to document.body', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test Modal'
-        },
-        attachTo: document.body
-      })
-
-      // Check that the modal element is rendered in the document body
-      const modalElement = document.querySelector('.fixed.inset-0')
-      expect(modalElement).toBeTruthy()
-      expect(document.body.contains(modalElement)).toBe(true)
+      expect(wrapper.get('dialog').element.open).toBe(false)
     })
   })
 
   describe('title rendering', () => {
     it('should display title from prop', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'My Custom Title'
-        }
-      })
-
-      expect(document.body.textContent).toContain('My Custom Title')
+      wrapper = mountModal({ title: 'My Custom Title' })
+      expect(wrapper.text()).toContain('My Custom Title')
     })
 
     it('should display title from slot when provided', () => {
       wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Prop Title'
-        },
-        slots: {
-          title: 'Slot Title'
-        }
+        attachTo: document.body,
+        props: { isOpen: true, title: 'Prop Title' },
+        slots: { title: 'Slot Title' }
       })
-
-      expect(document.body.textContent).toContain('Slot Title')
-      expect(document.body.textContent).not.toContain('Prop Title')
+      expect(wrapper.text()).toContain('Slot Title')
+      expect(wrapper.text()).not.toContain('Prop Title')
     })
 
     it('should apply titleClass to title element', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          titleClass: 'custom-title-class'
-        }
-      })
-
-      const titleElement = document.querySelector('h2')
-      expect(titleElement?.classList.contains('custom-title-class')).toBe(true)
+      wrapper = mountModal({ titleClass: 'custom-title-class' })
+      expect(wrapper.get('h2').classes()).toContain('custom-title-class')
     })
   })
 
   describe('slots', () => {
     it('should render default slot content', () => {
       wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        },
-        slots: {
-          default: '<p>This is modal content</p>'
-        }
+        attachTo: document.body,
+        props: { isOpen: true, title: 'Test' },
+        slots: { default: '<p>This is modal content</p>' }
       })
-
-      expect(document.body.textContent).toContain('This is modal content')
+      expect(wrapper.text()).toContain('This is modal content')
     })
 
     it('should render footer slot when provided', () => {
       wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        },
-        slots: {
-          default: '<p>Content</p>',
-          footer: '<div>Footer Content</div>'
-        }
+        attachTo: document.body,
+        props: { isOpen: true, title: 'Test' },
+        slots: { default: '<p>Content</p>', footer: '<div>Footer Content</div>' }
       })
-
-      expect(document.body.textContent).toContain('Footer Content')
+      expect(wrapper.text()).toContain('Footer Content')
     })
 
     it('should not render footer border when footer slot is not provided', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        },
-        slots: {
-          default: '<p>Content</p>'
-        }
-      })
-
-      // Footer div should not exist
-      const footerBorder = Array.from(document.querySelectorAll('div')).find(
-        div => div.classList.contains('border-t')
-      )
+      wrapper = mountModal()
+      const footerBorder = wrapper.findAll('div').find(div => div.classes().includes('border-t'))
       expect(footerBorder).toBeFalsy()
     })
   })
 
   describe('close button', () => {
     it('should render close button by default', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const closeButton = document.querySelector('button[aria-label="Close"]')
-      expect(closeButton).toBeTruthy()
+      wrapper = mountModal()
+      expect(wrapper.find('button[aria-label="Close"]').exists()).toBe(true)
     })
 
     it('should not render close button when showCloseButton is false', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          showCloseButton: false
-        }
-      })
-
-      const closeButton = document.querySelector('button[aria-label="Close"]')
-      expect(closeButton).toBeNull()
+      wrapper = mountModal({ showCloseButton: false })
+      expect(wrapper.find('button[aria-label="Close"]').exists()).toBe(false)
     })
 
-    it('should emit close event when close button is clicked', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const closeButton = document.querySelector('button[aria-label="Close"]')
-      await closeButton?.click()
-      await nextTick()
+    it('should emit close and update:isOpen when close button is clicked', async () => {
+      wrapper = mountModal()
+      await wrapper.get('button[aria-label="Close"]').trigger('click')
 
       expect(wrapper.emitted('close')).toBeTruthy()
-    })
-
-    it('should emit update:isOpen event when close button is clicked', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const closeButton = document.querySelector('button[aria-label="Close"]')
-      await closeButton?.click()
-      await nextTick()
-
       expect(wrapper.emitted('update:isOpen')).toBeTruthy()
       expect(wrapper.emitted('update:isOpen')[0][0]).toBe(false)
+    })
+
+    it('does not close the dialog on its own when the close button is clicked -- only the parent updating isOpen does', async () => {
+      wrapper = mountModal()
+      await wrapper.get('button[aria-label="Close"]').trigger('click')
+      expect(wrapper.get('dialog').element.open).toBe(true)
+
+      await wrapper.setProps({ isOpen: false })
+      expect(wrapper.get('dialog').element.open).toBe(false)
     })
   })
 
   describe('overlay click behavior', () => {
-    it('should close modal when overlay is clicked by default', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        },
-        slots: {
-          default: '<p>Content</p>'
-        }
-      })
-
-      const overlay = document.querySelector('.fixed.inset-0')
-      await overlay?.click()
-      await nextTick()
-
+    it('should close modal when the dialog backdrop is clicked by default', async () => {
+      wrapper = mountModal()
+      await wrapper.get('dialog').trigger('click')
       expect(wrapper.emitted('close')).toBeTruthy()
     })
 
     it('should not close modal when modal content is clicked', async () => {
       wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        },
-        slots: {
-          default: '<p>Content</p>'
-        }
+        attachTo: document.body,
+        props: { isOpen: true, title: 'Test' },
+        slots: { default: '<p>Content</p>' }
       })
-
-      const modalContent = document.querySelector('.bg-white.rounded-lg')
-      await modalContent?.click()
-      await nextTick()
-
+      await wrapper.get('p').trigger('click')
       expect(wrapper.emitted('close')).toBeFalsy()
     })
 
     it('should not close modal when overlay is clicked if closeOnOverlayClick is false', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          closeOnOverlayClick: false
-        }
-      })
-
-      const overlay = document.querySelector('.fixed.inset-0')
-      await overlay?.click()
-      await nextTick()
-
+      wrapper = mountModal({ closeOnOverlayClick: false })
+      await wrapper.get('dialog').trigger('click')
       expect(wrapper.emitted('close')).toBeFalsy()
     })
   })
 
-  describe('escape key handling', () => {
-    it('should close modal when Escape key is pressed', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' })
-      document.dispatchEvent(escapeEvent)
+  describe('cancel event handling (native Escape)', () => {
+    it('emits close and update:isOpen when the dialog receives a cancel event, and prevents the native close', async () => {
+      wrapper = mountModal()
+      const cancelEvent = new Event('cancel', { cancelable: true })
+      wrapper.get('dialog').element.dispatchEvent(cancelEvent)
       await nextTick()
 
+      expect(cancelEvent.defaultPrevented).toBe(true)
       expect(wrapper.emitted('close')).toBeTruthy()
+      expect(wrapper.emitted('update:isOpen')).toBeTruthy()
+      expect(wrapper.emitted('update:isOpen')[0][0]).toBe(false)
+      // The dialog does not close itself -- only the parent updating isOpen does
+      expect(wrapper.get('dialog').element.open).toBe(true)
     })
 
-    it('should not close modal when other keys are pressed', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' })
-      document.dispatchEvent(enterEvent)
-      await nextTick()
-
-      expect(wrapper.emitted('close')).toBeFalsy()
+    it('closes once the parent responds by setting isOpen to false', async () => {
+      wrapper = mountModal()
+      wrapper.get('dialog').element.dispatchEvent(new Event('cancel', { cancelable: true }))
+      await wrapper.setProps({ isOpen: false })
+      expect(wrapper.get('dialog').element.open).toBe(false)
     })
 
-    it('should not respond to Escape key when modal is closed', async () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: false,
-          title: 'Test'
-        }
-      })
-
-      const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' })
-      document.dispatchEvent(escapeEvent)
+    it('stays open if the parent declines to update isOpen (a vetoing consumer, e.g. an in-flight operation)', async () => {
+      wrapper = mountModal()
+      wrapper.get('dialog').element.dispatchEvent(new Event('cancel', { cancelable: true }))
       await nextTick()
-
-      expect(wrapper.emitted('close')).toBeFalsy()
+      // Parent chose not to update isOpen -- dialog must remain open
+      expect(wrapper.get('dialog').element.open).toBe(true)
     })
   })
 
   describe('customization props', () => {
-    it('should apply contentClass to modal content', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          contentClass: 'custom-content-class max-w-4xl'
-        }
-      })
-
-      const contentElement = document.querySelector('.bg-white.rounded-lg')
-      expect(contentElement?.classList.contains('custom-content-class')).toBe(true)
-      expect(contentElement?.classList.contains('max-w-4xl')).toBe(true)
+    it('should apply contentClass to the dialog element', () => {
+      wrapper = mountModal({ contentClass: 'custom-content-class max-w-4xl' })
+      const dialog = wrapper.get('dialog')
+      expect(dialog.classes()).toContain('custom-content-class')
+      expect(dialog.classes()).toContain('max-w-4xl')
     })
 
-    it('should apply maxHeightClass to modal content', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          maxHeightClass: 'max-h-[90vh]'
-        }
-      })
-
-      const contentElement = document.querySelector('.bg-white.rounded-lg')
-      expect(contentElement?.classList.contains('max-h-[90vh]')).toBe(true)
-    })
-
-    it('should apply overlayClass to overlay', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          overlayClass: 'custom-overlay'
-        }
-      })
-
-      const overlay = document.querySelector('.fixed.inset-0')
-      expect(overlay?.classList.contains('custom-overlay')).toBe(true)
+    it('should apply maxHeightClass to the dialog element', () => {
+      wrapper = mountModal({ maxHeightClass: 'max-h-[90vh]' })
+      expect(wrapper.get('dialog').classes()).toContain('max-h-[90vh]')
     })
 
     it('should apply headerClass to header', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          headerClass: 'custom-header'
-        }
-      })
-
-      const header = Array.from(document.querySelectorAll('div')).find(
-        div => div.classList.contains('custom-header')
-      )
+      wrapper = mountModal({ headerClass: 'custom-header' })
+      const header = wrapper.findAll('div').find(div => div.classes().includes('custom-header'))
       expect(header).toBeTruthy()
     })
 
     it('should apply bodyClass to body', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          bodyClass: 'custom-body'
-        }
-      })
-
-      const body = Array.from(document.querySelectorAll('div')).find(
-        div => div.classList.contains('custom-body')
-      )
+      wrapper = mountModal({ bodyClass: 'custom-body' })
+      const body = wrapper.findAll('div').find(div => div.classes().includes('custom-body'))
       expect(body).toBeTruthy()
     })
 
     it('should apply footerClass to footer when footer slot is provided', () => {
       wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test',
-          footerClass: 'custom-footer'
-        },
-        slots: {
-          footer: '<div>Footer</div>'
-        }
+        attachTo: document.body,
+        props: { isOpen: true, title: 'Test', footerClass: 'custom-footer' },
+        slots: { footer: '<div>Footer</div>' }
       })
-
-      const footer = Array.from(document.querySelectorAll('div')).find(
-        div => div.classList.contains('custom-footer')
-      )
+      const footer = wrapper.findAll('div').find(div => div.classes().includes('custom-footer'))
       expect(footer).toBeTruthy()
     })
   })
 
   describe('accessibility', () => {
     it('should have aria-label on close button', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const closeButton = document.querySelector('button[aria-label="Close"]')
-      expect(closeButton?.getAttribute('aria-label')).toBe('Close')
+      wrapper = mountModal()
+      expect(wrapper.get('button[aria-label="Close"]').attributes('aria-label')).toBe('Close')
     })
 
-    it('should have semantic HTML structure', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test Modal'
-        }
-      })
-
-      // Check for h2 title
-      const title = document.querySelector('h2')
-      expect(title).toBeTruthy()
-      expect(title?.textContent).toContain('Test Modal')
-    })
-  })
-
-  describe('transitions', () => {
-    it('should apply transition classes', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      // The Transition component should be present
-      const overlay = document.querySelector('.fixed.inset-0')
-      expect(overlay).toBeTruthy()
+    it('should have a heading with the title', () => {
+      wrapper = mountModal({ title: 'Test Modal' })
+      const title = wrapper.get('h2')
+      expect(title.text()).toContain('Test Modal')
     })
   })
 
   describe('layout and styling', () => {
-    it('should have correct z-index for modal overlay', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const overlay = document.querySelector('.fixed.inset-0')
-      expect(overlay?.classList.contains('z-50')).toBe(true)
+    it('should apply default max-width to the dialog', () => {
+      wrapper = mountModal()
+      expect(wrapper.get('dialog').classes()).toContain('max-w-2xl')
     })
 
-    it('should apply default max-width to content', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const content = document.querySelector('.bg-white.rounded-lg')
-      expect(content?.classList.contains('max-w-2xl')).toBe(true)
-    })
-
-    it('should apply default max-height to content', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const content = document.querySelector('.bg-white.rounded-lg')
-      expect(content?.classList.contains('max-h-[80vh]')).toBe(true)
-    })
-
-    it('should have semi-transparent black overlay background', () => {
-      wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        }
-      })
-
-      const overlay = document.querySelector('.fixed.inset-0')
-      expect(overlay?.classList.contains('bg-black')).toBe(true)
-      expect(overlay?.classList.contains('bg-opacity-50')).toBe(true)
+    it('should apply default max-height to the dialog', () => {
+      wrapper = mountModal()
+      expect(wrapper.get('dialog').classes()).toContain('max-h-[80vh]')
     })
 
     it('should have scrollable body area', () => {
       wrapper = mount(BaseModal, {
-        props: {
-          isOpen: true,
-          title: 'Test'
-        },
-        slots: {
-          default: '<p>Content</p>'
-        }
+        attachTo: document.body,
+        props: { isOpen: true, title: 'Test' },
+        slots: { default: '<p>Content</p>' }
       })
-
-      const bodyElement = Array.from(document.querySelectorAll('div')).find(
-        div => div.classList.contains('flex-1') && div.classList.contains('overflow-y-auto')
+      const bodyElement = wrapper.findAll('div').find(
+        div => div.classes().includes('flex-1') && div.classes().includes('overflow-y-auto')
       )
       expect(bodyElement).toBeTruthy()
     })

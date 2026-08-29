@@ -2,9 +2,8 @@
   <BaseModal
     :is-open="isOpen"
     title="Edit Cover"
-    content-class="w-full max-w-md"
+    content-class="max-w-md w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)]"
     max-height-class="max-h-[95vh] sm:max-h-[90vh]"
-    overlay-class="p-3 sm:p-4"
     header-class="p-4"
     title-class="text-lg"
     body-class="p-4 space-y-2"
@@ -145,7 +144,7 @@ import { useDebounceFn } from '@vueuse/core'
 import BaseModal from '@/components/base/BaseModal.vue'
 import CustomBookCover from '@/components/library/CustomBookCover.vue'
 import { useImageFetch } from '@/composables/useImageFetch'
-import { useOnlineStatus } from '@/composables/useOnlineStatus'
+import { useOnline } from '@vueuse/core'
 
 const props = defineProps({
   isOpen: {
@@ -161,7 +160,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 // Composables
-const { isOnline } = useOnlineStatus()
+const isOnline = useOnline()
 const { isLoading, error, file, warning, fetchImage, reset } = useImageFetch()
 
 // Modal state

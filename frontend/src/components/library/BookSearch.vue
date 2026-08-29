@@ -192,12 +192,8 @@ import { MagnifyingGlassIcon, BookOpenIcon, ArrowLeftIcon } from '@heroicons/vue
 import BaseModal from '@/components/base/BaseModal.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
 import BookScore from '@/components/library/BookScore.vue'
-import { TIMINGS, DATE_PICKER } from '@/constants'
-import { logger } from '@/utils/logger'
-
-// 2. Constants
-const API_BASE_URL = import.meta.env.VITE_OPEN_LIBRARY_API_URL || 'https://openlibrary.org'
-const SEARCH_LIMIT = 20
+import { DATE_PICKER } from '@/constants'
+import { useOpenLibrarySearch } from '@/composables/useOpenLibrarySearch'
 
 // 3. Props & Emits
 const props = defineProps({
@@ -214,24 +210,25 @@ const emit = defineEmits(['close', 'select'])
 const settingsStore = inject('settingsStore', { settings: { allowScoring: false } })
 
 // 4. Local State
-const titleQuery = ref('')
-const authorQuery = ref('')
-const searchResults = ref([])
-const isLoading = ref(false)
-const error = ref(null)
+const {
+  titleQuery,
+  authorQuery,
+  searchResults,
+  isLoading,
+  error,
+  hasSearchQuery,
+  handleSearchInput,
+  reset: resetSearch,
+  cleanup: cleanupSearch
+} = useOpenLibrarySearch()
+
 const searchInputRef = ref(null)
 const currentStep = ref('search') // 'search' or 'datePicker'
 const pendingBookData = ref(null)
 const selectedDate = ref(null)
 const selectedScore = ref(0)
-let debounceTimeout = null
-let abortController = null
 
 // 5. Computed Properties
-const hasSearchQuery = computed(() => {
-  return titleQuery.value.trim() || authorQuery.value.trim()
-})
-
 const isDatePickerStep = computed(() => currentStep.value === 'datePicker')
 
 const yearRange = computed(() => {
@@ -242,128 +239,6 @@ const yearRange = computed(() => {
 const modalTitle = computed(() => {
   return isDatePickerStep.value ? 'When did you read it?' : 'Add Book'
 })
-
-// 6. Utility Methods
-/**
- * Creates a fetch request with timeout support
- * @param {string} url - The URL to fetch
- * @param {object} options - Fetch options
- * @param {number} timeout - Timeout in milliseconds
- * @returns {Promise} Fetch promise with timeout
- */
-function fetchWithTimeout(url, options = {}, timeout = TIMINGS.API_TIMEOUT) {
-  return Promise.race([
-    fetch(url, options),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeout)
-    )
-  ])
-}
-
-/**
- * Cancels any in-flight request
- */
-function cancelPendingRequest() {
-  if (abortController) {
-    abortController.abort()
-    abortController = null
-  }
-}
-
-// 7. Search Methods
-function handleSearchInput() {
-  // Clear existing timeout
-  clearTimeout(debounceTimeout)
-
-  // Cancel any pending request
-  cancelPendingRequest()
-
-  if (!hasSearchQuery.value) {
-    searchResults.value = []
-    error.value = null
-    return
-  }
-
-  debounceTimeout = setTimeout(() => {
-    performSearch()
-  }, TIMINGS.SEARCH_DEBOUNCE)
-}
-
-async function performSearch() {
-  // Build query parameters
-  const queryParams = []
-  const title = titleQuery.value.trim()
-  const author = authorQuery.value.trim()
-
-  if (title) {
-    queryParams.push(`title=${encodeURIComponent(title)}`)
-  }
-  if (author) {
-    queryParams.push(`author=${encodeURIComponent(author)}`)
-  }
-
-  if (queryParams.length === 0) return
-
-  // Cancel any existing request
-  cancelPendingRequest()
-
-  // Create new abort controller for this request
-  abortController = new AbortController()
-
-  isLoading.value = true
-  error.value = null
-
-  try {
-    const url = `${API_BASE_URL}/search.json?${queryParams.join('&')}&limit=${SEARCH_LIMIT}`
-
-    const response = await fetchWithTimeout(
-      url,
-      { signal: abortController.signal },
-      TIMINGS.API_TIMEOUT
-    )
-
-    if (!response.ok) {
-      const statusMessages = {
-        400: 'Invalid search query. Please check your input.',
-        404: 'Search service not found. Please try again later.',
-        429: 'Too many requests. Please wait a moment and try again.',
-        500: 'Search service is experiencing issues. Please try again later.',
-        503: 'Search service is temporarily unavailable. Please try again later.'
-      }
-
-      const message = statusMessages[response.status] ||
-        `Search failed with status ${response.status}. Please try again.`
-
-      throw new Error(message)
-    }
-
-    const data = await response.json()
-
-    // Only update results if this request wasn't cancelled
-    if (abortController) {
-      searchResults.value = data.docs || []
-    }
-  } catch (err) {
-    // Ignore aborted requests
-    if (err.name === 'AbortError') {
-      return
-    }
-
-    // Handle different error types
-    if (err.message === 'Request timeout') {
-      error.value = 'Search request timed out. Please check your connection and try again.'
-    } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-      error.value = 'Network error. Please check your internet connection.'
-    } else {
-      error.value = err.message || 'Failed to search for books. Please try again.'
-    }
-
-    logger.error('Search error:', err)
-  } finally {
-    isLoading.value = false
-    abortController = null
-  }
-}
 
 // 8. Selection Methods
 function selectBook(book) {
@@ -432,18 +307,13 @@ function goBackToSearch() {
 
 // 10. Modal Management
 function closeModal() {
-  // Cancel any pending requests on close
-  cancelPendingRequest()
-  clearTimeout(debounceTimeout)
-
+  cleanupSearch()
   emit('close')
 }
 
 // 9. Lifecycle
 onUnmounted(() => {
-  // Clean up on component unmount
-  cancelPendingRequest()
-  clearTimeout(debounceTimeout)
+  cleanupSearch()
 })
 
 // 11. Watchers
@@ -457,15 +327,7 @@ watch(() => props.isOpen, async (isOpen) => {
     pendingBookData.value = null
     selectedDate.value = null
     selectedScore.value = 0
-    titleQuery.value = ''
-    authorQuery.value = ''
-    searchResults.value = []
-    error.value = null
-    isLoading.value = false
-
-    // Clean up pending operations
-    cancelPendingRequest()
-    clearTimeout(debounceTimeout)
+    resetSearch()
   }
 })
 </script>

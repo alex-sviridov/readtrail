@@ -2,7 +2,7 @@
   <BaseModal
     :is-open="props.isOpen"
     title="Change Password"
-    content-class="max-w-md w-full"
+    content-class="max-w-md w-[calc(100%-2rem)]"
     :close-on-overlay-click="!isChangingPassword"
     :show-close-button="!isChangingPassword"
     @close="handleCancel"
