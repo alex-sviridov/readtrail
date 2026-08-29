@@ -92,10 +92,13 @@ import {
   getFilteredRowModel,
   FlexRender
 } from '@tanstack/vue-table'
-import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon } from '@heroicons/vue/24/outline'
 import BookCoverModal from './BookCoverModal.vue'
 import BookDateModal from './BookDateModal.vue'
 import CustomBookCover from './CustomBookCover.vue'
+import BookStatus from './BookStatus.vue'
+import BookScore from './BookScore.vue'
+import EditableText from './EditableText.vue'
 import { BOOK_STATUS } from '@/constants'
 
 const props = defineProps({
@@ -118,36 +121,6 @@ const globalFilter = ref('')
 const coverModalOpen = ref(false)
 const dateModalOpen = ref(false)
 const selectedBook = ref(null)
-
-// Editing state
-const editingCell = ref(null)
-const editingValue = ref('')
-
-// Start inline editing
-const startEdit = (bookId, field, currentValue) => {
-  editingCell.value = `${bookId}-${field}`
-  editingValue.value = currentValue || ''
-}
-
-// Save inline edit
-const saveEdit = (bookId, field) => {
-  if (editingValue.value === '') return
-
-  if (field === 'title') {
-    emit('update-title', { id: bookId, title: editingValue.value })
-  } else if (field === 'author') {
-    emit('update-author', { id: bookId, author: editingValue.value })
-  }
-
-  editingCell.value = null
-  editingValue.value = ''
-}
-
-// Cancel inline edit
-const cancelEdit = () => {
-  editingCell.value = null
-  editingValue.value = ''
-}
 
 // Open cover modal
 const openCoverModal = (book) => {
@@ -190,14 +163,25 @@ const columns = [
                 author: book.author
               })
             ])
-          : h('img', {
-              src: book.coverLink || 'https://via.placeholder.com/40x60?text=No+Cover',
-              alt: book.name,
-              class: 'w-10 h-14 object-cover rounded shadow-sm hover:shadow-md transition-shadow',
-              onerror: (e) => {
-                e.target.src = 'https://via.placeholder.com/40x60?text=No+Cover'
-              }
-            })
+          : book.coverLink
+            ? h('img', {
+                src: book.coverLink,
+                alt: book.name,
+                class: 'w-10 h-14 object-cover rounded shadow-sm hover:shadow-md transition-shadow'
+              })
+            : h('svg', {
+                class: 'w-10 h-14 text-gray-400',
+                fill: 'none',
+                stroke: 'currentColor',
+                viewBox: '0 0 24 24'
+              }, [
+                h('path', {
+                  'stroke-linecap': 'round',
+                  'stroke-linejoin': 'round',
+                  'stroke-width': '2',
+                  d: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+                })
+              ])
       ])
     },
     enableSorting: false,
@@ -208,34 +192,13 @@ const columns = [
     header: 'Title',
     cell: ({ row }) => {
       const book = row.original
-      const cellId = `${book.id}-title`
-      const isEditing = editingCell.value === cellId
-
-      if (isEditing) {
-        return h('input', {
-          type: 'text',
-          value: editingValue.value,
-          class: 'w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500',
-          onInput: (e) => { editingValue.value = e.target.value },
-          onBlur: () => saveEdit(book.id, 'title'),
-          onKeydown: (e) => {
-            if (e.key === 'Enter') {
-              saveEdit(book.id, 'title')
-            } else if (e.key === 'Escape') {
-              cancelEdit()
-            }
-          },
-          onClick: (e) => e.stopPropagation()
-        })
-      }
-
-      return h('div', {
-        class: 'font-medium text-gray-900 max-w-xs truncate cursor-pointer hover:text-blue-600 group flex items-center gap-2',
-        onClick: () => startEdit(book.id, 'title', book.name)
-      }, [
-        h('span', {}, book.name),
-        h(PencilIcon, {
-          class: 'w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity'
+      return h('div', { class: 'max-w-xs', onClick: (e) => e.stopPropagation() }, [
+        h(EditableText, {
+          value: book.name,
+          as: 'h3',
+          variant: 'title',
+          editable: true,
+          onUpdate: (title) => emit('update-title', { id: book.id, title })
         })
       ])
     },
@@ -246,34 +209,13 @@ const columns = [
     header: 'Author',
     cell: ({ row }) => {
       const book = row.original
-      const cellId = `${book.id}-author`
-      const isEditing = editingCell.value === cellId
-
-      if (isEditing) {
-        return h('input', {
-          type: 'text',
-          value: editingValue.value,
-          class: 'w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500',
-          onInput: (e) => { editingValue.value = e.target.value },
-          onBlur: () => saveEdit(book.id, 'author'),
-          onKeydown: (e) => {
-            if (e.key === 'Enter') {
-              saveEdit(book.id, 'author')
-            } else if (e.key === 'Escape') {
-              cancelEdit()
-            }
-          },
-          onClick: (e) => e.stopPropagation()
-        })
-      }
-
-      return h('div', {
-        class: 'text-gray-600 max-w-xs truncate cursor-pointer hover:text-blue-600 group flex items-center gap-2',
-        onClick: () => startEdit(book.id, 'author', book.author)
-      }, [
-        h('span', {}, book.author || '-'),
-        h(PencilIcon, {
-          class: 'w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity'
+      return h('div', { class: 'max-w-xs', onClick: (e) => e.stopPropagation() }, [
+        h(EditableText, {
+          value: book.author,
+          as: 'p',
+          variant: 'author',
+          editable: true,
+          onUpdate: (author) => emit('update-author', { id: book.id, author })
         })
       ])
     },
@@ -284,37 +226,12 @@ const columns = [
     header: 'Date',
     cell: ({ row }) => {
       const book = row.original
-
-      // In Progress (no year/month set)
-      if (book.year === null && book.month === null) {
-        return h('div', {
-          class: 'text-gray-500 italic cursor-pointer hover:text-blue-600',
-          onClick: () => openDateModal(book)
-        }, 'In Progress')
-      }
-
-      // Handle sentinel years (2100 = To Read, 1910 = Read Lately, 1900 = Long Time Ago)
-      let dateStr
-      if (book.year === 2100) {
-        dateStr = 'To Read'
-      } else if (book.year === 1910) {
-        dateStr = 'Read Lately'
-      } else if (book.year <= 1900) {
-        dateStr = 'Long Time Ago'
-      } else {
-        const monthName = book.month ? new Date(2000, book.month - 1, 1).toLocaleString('default', { month: 'short' }) : ''
-        dateStr = `${monthName} ${book.year}`
-      }
-
-      return h('div', {
-        class: 'text-gray-700 cursor-pointer hover:text-blue-600 flex items-center gap-2 group',
-        onClick: () => openDateModal(book)
-      }, [
-        h('span', {}, dateStr),
-        h(PencilIcon, {
-          class: 'w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity'
-        })
-      ])
+      return h(BookStatus, {
+        year: book.year,
+        month: book.month,
+        isDateEditable: true,
+        onOpenPicker: () => openDateModal(book)
+      })
     },
     size: 150
   },
@@ -329,31 +246,11 @@ const columns = [
         return h('div', { class: 'text-gray-400' }, '-')
       }
 
-      if (!score || score === null || score === 0) {
-        return h('div', { class: 'text-gray-400' }, '')
-      }
-
-      // Thumb down (-1)
-      if (score === -1) {
-        return h('div', {
-          class: 'w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-md',
-          title: 'Dislike'
-        }, [
-          h('span', { class: 'text-white text-sm' }, '👎')
-        ])
-      }
-
-      // Thumb up (+1)
-      if (score === 1) {
-        return h('div', {
-          class: 'w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-md',
-          title: 'Like'
-        }, [
-          h('span', { class: 'text-white text-sm' }, '👍')
-        ])
-      }
-
-      return h('div', { class: 'text-gray-400' }, 'Not rated')
+      return h(BookScore, {
+        score: score || 0,
+        editable: false,
+        allowScoring: true
+      })
     },
     size: 150
   },

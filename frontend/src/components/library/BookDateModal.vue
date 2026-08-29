@@ -24,6 +24,7 @@
 import { computed } from 'vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import DatePicker from '@/components/library/DatePicker.vue'
+import { BOOK_STATUS } from '@/constants'
 
 const props = defineProps({
   isOpen: {
@@ -62,23 +63,9 @@ const yearRange = computed(() => {
   return years
 })
 
-const now = new Date()
-const currentYear = now.getFullYear()
-const currentMonth = now.getMonth()
+const isReadLongAgo = computed(() => BOOK_STATUS.isReadLongAgo(props.book.year))
 
-const isReadLongAgo = computed(() => {
-  if (!props.book.year || !props.book.month) return false
-  const bookYear = props.book.year
-  const bookMonth = props.book.month - 1
-  return bookYear < currentYear || (bookYear === currentYear && bookMonth < currentMonth - 3)
-})
-
-const isReadLately = computed(() => {
-  if (!props.book.year || !props.book.month) return false
-  const bookYear = props.book.year
-  const bookMonth = props.book.month - 1
-  return bookYear === currentYear && bookMonth >= currentMonth - 3 && bookMonth <= currentMonth
-})
+const isReadLately = computed(() => BOOK_STATUS.isReadLately(props.book.year))
 
 const isInProgress = computed(() => {
   return props.book.year === null && props.book.month === null
