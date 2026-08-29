@@ -21,7 +21,7 @@ function mountWithQuery(setup) {
   })
 
   const wrapper = mount(TestComponent, {
-    global: { plugins: [[VueQueryPlugin, { queueClient: queryClient, queryClient }]] }
+    global: { plugins: [[VueQueryPlugin, { queryClient }]] }
   })
 
   return { wrapper, queryClient, get result() { return result } }
