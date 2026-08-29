@@ -1,11 +1,13 @@
 <template>
-  <div class="relative" v-click-outside="() => isOpen = false">
+  <div class="relative">
     <!-- User Button (Authenticated) -->
     <button
       v-if="isAuthenticated"
-      @click="isOpen = !isOpen"
+      popovertarget="user-menu"
       class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
       :class="{ 'bg-gray-100': isOpen }"
+      aria-haspopup="true"
+      :aria-expanded="isOpen"
     >
       <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-medium">
         {{ userInitials }}
@@ -27,50 +29,47 @@
     </RouterLink>
 
     <!-- Dropdown Menu -->
-    <Transition
-      enter-active-class="transition ease-out duration-100"
-      enter-from-class="transform opacity-0 scale-95"
-      enter-to-class="transform opacity-100 scale-100"
-      leave-active-class="transition ease-in duration-75"
-      leave-from-class="transform opacity-100 scale-100"
-      leave-to-class="transform opacity-0 scale-95"
+    <div
+      v-if="isAuthenticated"
+      id="user-menu"
+      popover
+      class="user-menu-popover absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1"
+      :class="{ hidden: !isOpen }"
+      @toggle="handleToggle"
     >
-      <div
-        v-if="isOpen"
-        class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-50"
-      >
-        <!-- User Info Section -->
-        <div class="px-4 py-3 border-b border-gray-100">
-          <p class="text-sm font-medium text-gray-900">{{ userName }}</p>
-          <p class="text-xs text-gray-500 truncate">{{ userEmail }}</p>
-        </div>
-
-        <!-- Menu Items -->
-        <RouterLink
-          to="/settings"
-          @click="isOpen = false"
-          class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-        >
-          <Cog6ToothIcon class="w-5 h-5" />
-          Settings
-        </RouterLink>
-
-        <button
-          v-if="canLogout"
-          @click="handleLogout"
-          class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <ArrowRightOnRectangleIcon class="w-5 h-5" />
-          Logout
-        </button>
+      <!-- User Info Section -->
+      <div class="px-4 py-3 border-b border-gray-100">
+        <p class="text-sm font-medium text-gray-900">{{ userName }}</p>
+        <p class="text-xs text-gray-500 truncate">{{ userEmail }}</p>
       </div>
-    </Transition>
+
+      <!-- Menu Items -->
+      <RouterLink
+        to="/settings"
+        popovertarget="user-menu"
+        popovertargetaction="hide"
+        class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+      >
+        <Cog6ToothIcon class="w-5 h-5" />
+        Settings
+      </RouterLink>
+
+      <button
+        v-if="canLogout"
+        @click="handleLogout"
+        class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+      >
+        <ArrowRightOnRectangleIcon class="w-5 h-5" />
+        Logout
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { ChevronDownIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { authManager } from '@/services/auth'
 import { isRemoteUserModeActive } from '@/services/remoteUserMode'
 import pb from '@/services/pocketbase'
@@ -91,6 +90,10 @@ const userInitials = computed(() => {
     : name.substring(0, 2).toUpperCase()
 })
 
+function handleToggle(event) {
+  isOpen.value = event.newState === 'open'
+}
+
 async function handleLogout() {
   isOpen.value = false
   await authManager.logout()
@@ -109,19 +112,28 @@ onMounted(() => {
 onUnmounted(() => {
   unsubscribe?.()
 })
+</script>
 
-// Click outside directive
-const vClickOutside = {
-  mounted(el, binding) {
-    el._clickOutside = (event) => {
-      if (!el.contains(event.target)) {
-        binding.value()
-      }
-    }
-    document.addEventListener('click', el._clickOutside)
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el._clickOutside)
+<style scoped>
+[popover] {
+  position: absolute;
+}
+
+.user-menu-popover {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.1s ease, transform 0.1s ease, overlay 0.1s allow-discrete, display 0.1s allow-discrete;
+}
+
+.user-menu-popover:not(.hidden) {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@starting-style {
+  .user-menu-popover:not(.hidden) {
+    opacity: 0;
+    transform: scale(0.95);
   }
 }
-</script>
+</style>
