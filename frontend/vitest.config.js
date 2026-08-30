@@ -1,9 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { mergeConfig, defineConfig, configDefaults } from 'vitest/config'
-import viteConfigCallback from './vite.config'
-
-// Invoke the vite config callback to get the actual config object
-const viteConfig = viteConfigCallback({ mode: 'test', command: 'serve' })
+import viteConfig from './vite.config'
 
 export default mergeConfig(
   viteConfig,

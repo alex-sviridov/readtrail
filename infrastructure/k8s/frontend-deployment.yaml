@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readtrail-frontend
+  labels:
+    app: readtrail-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: readtrail-frontend
+  template:
+    metadata:
+      labels:
+        app: readtrail-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/alex-sviridov/readtrail/frontend:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20

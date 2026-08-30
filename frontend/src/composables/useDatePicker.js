@@ -34,7 +34,7 @@ export function useDatePicker(props, emit) {
   })
 
   const buttonBaseClasses = computed(() =>
-    'flex-1 rounded-lg font-semibold min-h-[32px] transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+    'flex-1 rounded-lg font-semibold text-xs whitespace-nowrap px-0.5 min-h-[32px] transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
   )
 
   // 6. State Check Functions

@@ -1,78 +1,90 @@
-# Podman Quadlet Configuration
+# Deploying ReadTrail
 
-This directory contains Podman Quadlet files and static files necessary for running ReadTrail as systemd services.
+Two supported ways to run ReadTrail in production: a single self-contained
+container, or Kubernetes.
 
-## Files
+## Option 1: Self-hosting with the all-in-one image
 
-- `podman/readtrail-frontend.container` - Frontend service (nginx serving Vue.js app)
-- `podman/readtrail-backend.container` - Backend service (PocketBase)
-- `podman/readtrail-nginx.container` - Reverse proxy (nginx)
-- `podman/readtrail.network` - Shared network for all services
+The `all-in-one` image (`ghcr.io/alex-sviridov/readtrail/all-in-one`) bundles
+the built frontend and PocketBase behind one nginx, in a single container.
+It runs as a non-root user and listens on unprivileged ports `8080` (HTTP,
+redirects to HTTPS) and `8443` (HTTPS) — map these to your host's standard
+ports with normal Docker port publishing.
 
-## Installation
-
-### 1. Copy Quadlet files to systemd directory
-
-For user services (rootless):
 ```bash
-mkdir -p ~/.config/containers/systemd
-cp podman/* ~/.config/containers/systemd/
+docker run -d --name readtrail \
+  -p 80:8080 -p 443:8443 \
+  -v readtrail-data:/pb/pb_data \
+  -v /path/to/your/ssl:/etc/nginx/ssl:ro \
+  -e SUPERUSER_EMAIL=admin@example.com \
+  -e SUPERUSER_PASSWORD=change-me \
+  ghcr.io/alex-sviridov/readtrail/all-in-one:latest
 ```
 
-Copy static files:
+- `/path/to/your/ssl` must contain `cert.pem` and `key.pem`. This mount
+  is mandatory — nginx requires a valid certificate and key at startup,
+  so the container will fail to start (with no HTTP fallback) if they
+  aren't present.
+- `readtrail-data` persists the PocketBase SQLite database at
+  `/pb/pb_data` — back this volume up like any database.
+- If PocketBase crashes inside the container, `/api/` starts failing
+  until the container is restarted; there's no separate process
+  supervisor watching it. Restart the container (`docker restart
+  readtrail`) if this happens.
+
+### Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SUPERUSER_EMAIL` | — | PocketBase admin account email |
+| `SUPERUSER_PASSWORD` | — | PocketBase admin account password |
+| `REMOTE_USER_ENABLED` | `false` | Enable trusted-header auth (see below) |
+| `REMOTE_USER_HEADER` | `X-Remote-User` | Header carrying the authenticated username |
+| `REMOTE_USER_SECRET_HEADER` | `X-Remote-User-Secret` | Header carrying the shared secret |
+| `REMOTE_USER_SECRET` | — | Shared secret; without it, anyone who reaches PocketBase directly can impersonate any user |
+
+## Option 2: Hosting on Kubernetes
+
+Manifests live in `infrastructure/k8s/` and deploy the `frontend` and
+`backend` images as separate Deployments, fronted by one Ingress.
+
+1. Create the backend secret (all keys optional except what you need):
+
 ```bash
-mkdir -p ~/.config/containers/static/readtrail
-cp -R ssl ~/.config/containers/static/readtrail/ssl/
-cp nginx.conf ~/.config/containers/static/readtrail/nginx.conf
+kubectl create secret generic readtrail-backend-secrets \
+  --from-literal=SUPERUSER_EMAIL=admin@example.com \
+  --from-literal=SUPERUSER_PASSWORD=change-me
 ```
 
-### 2. Reload systemd
+2. Create (or already have) a TLS secret named `readtrail-tls` for the
+   Ingress — either provide your own cert, or set up
+   [cert-manager](https://cert-manager.io/) and uncomment the
+   `cert-manager.io/cluster-issuer` annotation in `ingress.yaml`.
 
-For user services:
+3. Edit `infrastructure/k8s/ingress.yaml` to replace
+   `readtrail.example.com` with your actual hostname.
+
+4. Apply the manifests:
+
 ```bash
-systemctl --user daemon-reload
-
-### 4. Start services
-
-For user services:
-```bash
-systemctl --user start readtrail-nginx.service
+kubectl apply -f infrastructure/k8s/
 ```
+
+This assumes an `nginx` IngressClass is available in your cluster
+(`ingressClassName: nginx` in `ingress.yaml`) — adjust if your cluster
+uses a different ingress controller.
+
+The backend Deployment runs a single replica (`strategy: Recreate`) —
+PocketBase's SQLite database can't be shared across pods.
 
 ## Proxy-based authentication
 
-The backend can trust a username header set by this nginx proxy instead of
-password login (see `backend/pb_hooks/remoteUserAuth.pb.js`). Enable it via
-env vars on the backend container:
-
-```
-REMOTE_USER_ENABLED=true
-REMOTE_USER_HEADER=X-Remote-User
-REMOTE_USER_SECRET_HEADER=X-Remote-User-Secret
-REMOTE_USER_SECRET=<a-random-shared-secret>
-```
-
-In `nginx.conf`, set both headers on the backend `location` block (and make
-sure nothing upstream of nginx can set them, e.g. strip them from incoming
-requests first):
-
-```nginx
-proxy_set_header X-Remote-User       $remote_user_from_your_sso;
-proxy_set_header X-Remote-User-Secret <a-random-shared-secret>;
-```
-
-`REMOTE_USER_SECRET` is optional but recommended — without it, anyone who can
-reach the backend port directly (bypassing nginx) can impersonate any user.
-
-## Auto-update
-
-The frontend and backend containers have `AutoUpdate=registry` enabled. To update to the latest images:
-
-```bash
-podman auto-update
-systemctl --user restart readtrail-frontend.service
-systemctl --user restart readtrail-backend.service
-systemctl --user restart readtrail-nginx.service
-```
-
-Or set up a systemd timer for automatic updates.
+The backend can trust a username header set by your reverse
+proxy/ingress instead of password login (see
+`backend/pb_hooks/remoteUserAuth.pb.js`). Enable it via
+`REMOTE_USER_ENABLED=true` and the related env vars above. Only enable
+this if PocketBase is reachable exclusively through a proxy that sets
+(and strips any client-supplied) these headers — for the k8s option,
+set them in an Ingress annotation or a proxy in front of it; for the
+all-in-one image, PocketBase is already only reachable through the
+bundled nginx.

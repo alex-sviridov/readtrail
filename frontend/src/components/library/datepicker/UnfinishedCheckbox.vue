@@ -1,10 +1,10 @@
 <template>
-  <label class="select-none  flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+  <label class="select-none flex items-center gap-1 cursor-pointer text-xs whitespace-nowrap text-gray-700">
     <input
       type="checkbox"
       :checked="modelValue"
       @change="$emit('update:modelValue', $event.target.checked)"
-      class="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+      class="w-3.5 h-3.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
     />
     <span>Unfinished</span>
   </label>

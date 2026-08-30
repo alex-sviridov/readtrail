@@ -1,19 +1,21 @@
-name: Backend CI/CD
+name: All-in-one Deploy
 
 on:
-  pull_request:
+  push:
     branches: [ main ]
     paths:
+      - 'frontend/**'
       - 'backend/**'
-      - '.github/workflows/backend.yml'
+      - 'infrastructure/all-in-one/**'
+      - '.github/workflows/all-in-one-deploy.yml'
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/backend
+  IMAGE_NAME: ${{ github.repository }}/all-in-one
 
 jobs:
   build-and-push:
-    name: Build and Push Docker Image
+    name: Build and Push Latest
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,14 +41,14 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=pr
+            type=raw,value=latest
             type=sha
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: .
+          file: ./infrastructure/all-in-one/Containerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
