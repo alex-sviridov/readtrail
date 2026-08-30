@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { TIMINGS } from '@/constants'
 import { logger } from '@/utils/logger'
 
-const API_BASE_URL = import.meta.env.VITE_OPEN_LIBRARY_API_URL || 'https://openlibrary.org'
+const API_BASE_URL = 'https://openlibrary.org'
 const SEARCH_LIMIT = 20
 
 const STATUS_MESSAGES = {

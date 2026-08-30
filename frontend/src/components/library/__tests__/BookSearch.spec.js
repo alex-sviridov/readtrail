@@ -4,6 +4,10 @@ import { nextTick } from 'vue'
 import BookSearch from '../BookSearch.vue'
 import { TIMINGS } from '@/constants'
 
+vi.mock('@/stores/settings', () => ({
+  useSettingsStore: () => ({ settings: { allowScoring: true } })
+}))
+
 describe('BookSearch Component', () => {
   let wrapper
   let mockFetch
@@ -28,12 +32,7 @@ describe('BookSearch Component', () => {
     it('should render modal with search inputs when open', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
       await nextTick()
 
@@ -44,12 +43,7 @@ describe('BookSearch Component', () => {
     it('should display empty state when no search query', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
       await nextTick()
 
@@ -59,12 +53,7 @@ describe('BookSearch Component', () => {
     it('should have correct modal title for search step', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
       await nextTick()
 
@@ -76,12 +65,7 @@ describe('BookSearch Component', () => {
     it('should update titleQuery when typing in title input', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
       await nextTick()
 
@@ -96,12 +80,7 @@ describe('BookSearch Component', () => {
     it('should update authorQuery when typing in author input', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
       await nextTick()
 
@@ -116,12 +95,7 @@ describe('BookSearch Component', () => {
     it('should focus title input when modal opens', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: false },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       await wrapper.setProps({ isOpen: true })
@@ -141,12 +115,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -174,12 +143,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -211,12 +175,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -239,12 +198,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const authorInput = document.querySelector('input[placeholder="Enter author name..."]')
@@ -267,12 +221,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -294,12 +243,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -321,12 +265,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -348,12 +287,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -376,12 +310,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -404,12 +333,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -432,12 +356,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -463,12 +382,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -491,12 +405,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -531,12 +440,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -570,12 +474,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -605,12 +504,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -633,12 +527,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -661,12 +550,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -697,12 +581,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -728,12 +607,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -760,12 +634,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -802,12 +671,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -843,12 +707,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -880,12 +739,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -919,12 +773,7 @@ describe('BookSearch Component', () => {
 
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -953,12 +802,7 @@ describe('BookSearch Component', () => {
     it('should reset state when modal closes', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       const titleInput = document.querySelector('input[placeholder="Enter book title..."]')
@@ -976,12 +820,7 @@ describe('BookSearch Component', () => {
     it('should emit close event when modal is closed', async () => {
       wrapper = mount(BookSearch, {
         props: { isOpen: true },
-        attachTo: document.body,
-        global: {
-          provide: {
-            settingsStore: { settings: { allowScoring: true } }
-          }
-        }
+        attachTo: document.body
       })
 
       // Find and click the close button (X icon)

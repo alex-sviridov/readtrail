@@ -96,6 +96,35 @@ vi.mock('@/constants', () => ({
   }
 }))
 
+const defaultSettings = {
+  showBookInfo: true,
+  allowUnfinishedReading: false,
+  allowScoring: false
+}
+
+const { mockBooksStore, mockSettingsStore } = vi.hoisted(() => ({
+  mockBooksStore: {
+    updateBookStatus: vi.fn(),
+    updateBookFields: vi.fn(),
+    deleteBook: vi.fn()
+  },
+  mockSettingsStore: {
+    settings: {
+      showBookInfo: true,
+      allowUnfinishedReading: false,
+      allowScoring: false
+    }
+  }
+}))
+
+vi.mock('@/stores/books', () => ({
+  useBooksStore: () => mockBooksStore
+}))
+
+vi.mock('@/stores/settings', () => ({
+  useSettingsStore: () => mockSettingsStore
+}))
+
 describe('BookCard', () => {
   const inProgressBook = {
     id: '1',
@@ -121,33 +150,13 @@ describe('BookCard', () => {
     coverLink: null
   }
 
-  const mockBooksStore = {
-    updateBookStatus: vi.fn(),
-    updateBookFields: vi.fn(),
-    deleteBook: vi.fn()
-  }
-
-  const mockSettingsStore = {
-    settings: {
-      showBookInfo: true,
-      allowUnfinishedReading: false,
-      allowScoring: false
-    }
-  }
-
   const createWrapper = (book, settingsOverride = {}) => {
-    const settingsStore = {
-      settings: { ...mockSettingsStore.settings, ...settingsOverride }
-    }
+    mockSettingsStore.settings = { ...defaultSettings, ...settingsOverride }
 
     return mount(BookCard, {
       props: { book },
       global: {
-        stubs: { Teleport: true },
-        provide: {
-          booksStore: mockBooksStore,
-          settingsStore
-        }
+        stubs: { Teleport: true }
       }
     })
   }

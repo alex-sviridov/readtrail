@@ -77,13 +77,14 @@
 </template>
 
 <script setup>
-import { computed, provide } from 'vue'
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
 import { useBookSearch } from '@/composables/useBookSearch'
 import { useAddBookFlow } from '@/composables/useAddBookFlow'
+import { useLibraryFilters } from '@/composables/useLibraryFilters'
 import { BOOK_STATUS } from '@/constants'
 import BookCard from '@/components/library/BookCard.vue'
 import LibraryPageLayout from '@/components/library/LibraryPageLayout.vue'
@@ -100,21 +101,21 @@ const route = useRoute()
 const booksStore = useBooksStore()
 const { sortedBooks } = storeToRefs(booksStore)
 
-// Provide booksStore to child components
-provide('booksStore', booksStore)
-
 // Initialize the settings store
 const settingsStore = useSettingsStore()
-
-// Provide settingsStore to child components
-provide('settingsStore', settingsStore)
 
 // Initialize search functionality
 const { searchQuery, searchedBooks } = useBookSearch(sortedBooks)
 
-// Filter toggle state - use settings store (computed for reactivity)
-const hideUnfinished = computed(() => settingsStore.settings.hideUnfinished)
-const hideToRead = computed(() => settingsStore.settings.hideToRead)
+// Filtered books based on search and hideUnfinished/hideToRead toggles
+const {
+  hideUnfinished,
+  hideToRead,
+  filteredBooks,
+  toggleFilter,
+  toggleToReadFilter,
+  clearAllFilters
+} = useLibraryFilters(searchedBooks, settingsStore)
 
 // Get view mode from route path
 const viewMode = computed(() => {
@@ -122,18 +123,6 @@ const viewMode = computed(() => {
   if (route.path === '/library/table') return 'table'
   if (route.path === '/library/grid') return 'grid'
   return 'grid'
-})
-
-// Filtered books based on search and hideUnfinished/hideToRead toggles
-const filteredBooks = computed(() => {
-  let result = searchedBooks.value
-  if (!hideUnfinished.value) {
-    result = result.filter(book => !book.attributes?.isUnfinished)
-  }
-  if (!hideToRead.value) {
-    result = result.filter(book => !BOOK_STATUS.isToRead(book.year))
-  }
-  return result
 })
 
 // Group books by year for timeline view. Relies on filteredBooks already
@@ -169,22 +158,6 @@ const setViewMode = (mode) => {
   } else if (mode === 'table') {
     router.push('/library/table')
   }
-}
-
-// Toggle filter and save to settings
-const toggleFilter = () => {
-  settingsStore.updateSetting('hideUnfinished', !hideUnfinished.value)
-}
-
-// Toggle To Read filter and save to settings
-const toggleToReadFilter = () => {
-  settingsStore.updateSetting('hideToRead', !hideToRead.value)
-}
-
-// Clear all filters
-const clearAllFilters = () => {
-  settingsStore.updateSetting('hideUnfinished', true)
-  settingsStore.updateSetting('hideToRead', true)
 }
 
 // Search modal / add-book flow

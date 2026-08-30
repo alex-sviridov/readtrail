@@ -47,8 +47,9 @@ export function adaptPocketBaseError(error) {
     return error
   }
 
-  // Handle PocketBase ClientResponseError
-  if (error.name === 'ClientResponseError') {
+  // Handle PocketBase ClientResponseError (its `name` includes the status,
+  // e.g. "ClientResponseError 400")
+  if (error.name?.startsWith('ClientResponseError')) {
     const status = error.status || 0
     const message = error.message || `Request failed with status ${status}`
     const data = error.response || error.data || null

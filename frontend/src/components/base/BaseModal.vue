@@ -22,7 +22,7 @@
     </div>
 
     <!-- Modal Body -->
-    <div class="flex-1 overflow-y-auto" :class="bodyClass">
+    <div class="flex-auto overflow-y-auto" :class="bodyClass">
       <slot></slot>
     </div>
 
@@ -135,7 +135,18 @@ watch(() => props.isOpen, (isOpen) => {
 </script>
 
 <style scoped>
+/* Tailwind's `flex` class on the <dialog> element (an author-origin rule)
+   otherwise overrides the browser's built-in `dialog:not([open])` default,
+   which would normally hide a closed dialog regardless of its class list. */
+dialog:not([open]) {
+  display: none;
+}
+
 dialog {
+  /* Tailwind's Preflight reset sets margin: 0 on every element (also
+     author CSS), overriding the browser's default dialog[open] centering
+     (position: fixed; inset: 0; margin: auto). Restore it explicitly. */
+  margin: auto;
   opacity: 0;
   transform: scale(0.95);
   transition: opacity 0.2s ease, transform 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete;

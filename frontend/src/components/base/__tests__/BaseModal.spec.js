@@ -246,7 +246,7 @@ describe('BaseModal Component', () => {
         slots: { default: '<p>Content</p>' }
       })
       const bodyElement = wrapper.findAll('div').find(
-        div => div.classes().includes('flex-1') && div.classes().includes('overflow-y-auto')
+        div => div.classes().includes('flex-auto') && div.classes().includes('overflow-y-auto')
       )
       expect(bodyElement).toBeTruthy()
     })

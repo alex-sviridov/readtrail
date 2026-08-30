@@ -187,13 +187,14 @@
 
 <script setup>
 // 1. Imports
-import { ref, watch, nextTick, computed, onUnmounted, inject } from 'vue'
+import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
 import { MagnifyingGlassIcon, BookOpenIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import BaseModal from '@/components/base/BaseModal.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
 import BookScore from '@/components/library/BookScore.vue'
 import { DATE_PICKER } from '@/constants'
 import { useOpenLibrarySearch } from '@/composables/useOpenLibrarySearch'
+import { useSettingsStore } from '@/stores/settings'
 
 // 3. Props & Emits
 const props = defineProps({
@@ -206,8 +207,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'select'])
 
-// 3. Injections
-const settingsStore = inject('settingsStore', { settings: { allowScoring: false } })
+// 3. Store
+const settingsStore = useSettingsStore()
 
 // 4. Local State
 const {

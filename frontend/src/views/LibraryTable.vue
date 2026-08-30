@@ -25,13 +25,12 @@
 </template>
 
 <script setup>
-import { computed, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
 import { useAddBookFlow } from '@/composables/useAddBookFlow'
-import { BOOK_STATUS } from '@/constants'
+import { useLibraryFilters } from '@/composables/useLibraryFilters'
 import BooksTable from '@/components/library/BooksTable.vue'
 import LibraryPageLayout from '@/components/library/LibraryPageLayout.vue'
 import { logger } from '@/utils/logger'
@@ -47,30 +46,18 @@ const router = useRouter()
 const booksStore = useBooksStore()
 const { sortedBooks } = storeToRefs(booksStore)
 
-// Provide booksStore to child components
-provide('booksStore', booksStore)
-
 // Initialize the settings store
 const settingsStore = useSettingsStore()
 
-// Provide settingsStore to child components
-provide('settingsStore', settingsStore)
-
-// Filter toggle state - use settings store (computed for reactivity)
-const hideUnfinished = computed(() => settingsStore.settings.hideUnfinished)
-const hideToRead = computed(() => settingsStore.settings.hideToRead)
-
 // Filtered books based on hideUnfinished and hideToRead toggles
-const filteredBooks = computed(() => {
-  let result = sortedBooks.value
-  if (!hideUnfinished.value) {
-    result = result.filter(book => !book.attributes?.isUnfinished)
-  }
-  if (!hideToRead.value) {
-    result = result.filter(book => !BOOK_STATUS.isToRead(book.year))
-  }
-  return result
-})
+const {
+  hideUnfinished,
+  hideToRead,
+  filteredBooks,
+  toggleFilter,
+  toggleToReadFilter,
+  clearAllFilters
+} = useLibraryFilters(sortedBooks, settingsStore)
 
 // Set view mode and navigate to appropriate route
 const setViewMode = (mode) => {
@@ -83,22 +70,6 @@ const setViewMode = (mode) => {
     router.push('/library/timeline')
   }
   // Already on table view, no need to navigate
-}
-
-// Toggle filter and save to settings
-const toggleFilter = () => {
-  settingsStore.updateSetting('hideUnfinished', !hideUnfinished.value)
-}
-
-// Toggle To Read filter and save to settings
-const toggleToReadFilter = () => {
-  settingsStore.updateSetting('hideToRead', !hideToRead.value)
-}
-
-// Clear all filters
-const clearAllFilters = () => {
-  settingsStore.updateSetting('hideUnfinished', true)
-  settingsStore.updateSetting('hideToRead', true)
 }
 
 // Search modal / add-book flow

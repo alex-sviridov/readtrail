@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: readtrail
+  annotations:
+    # If using cert-manager for automatic TLS certs, uncomment and set your issuer:
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - readtrail.example.com
+      secretName: readtrail-tls
+  rules:
+    - host: readtrail.example.com
+      http:
+        paths:
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: readtrail-backend
+                port:
+                  number: 8090
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: readtrail-frontend
+                port:
+                  number: 8080
