@@ -12,7 +12,7 @@ test('can open add book modal', async ({ page }) => {
   await addButton.click();
 
   // Check modal appears with correct heading
-  const modal = page.locator('div[role="dialog"]'); // or just 'div.modal' depending on your markup
+  const modal = page.getByRole('dialog');
   await expect(modal).toBeVisible();
   await expect(modal.getByRole('heading', { name: 'Add Book' })).toBeVisible();
 });

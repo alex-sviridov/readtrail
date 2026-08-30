@@ -22,7 +22,7 @@
     </div>
 
     <!-- Modal Body -->
-    <div class="flex-1 overflow-y-auto" :class="bodyClass">
+    <div class="flex-auto overflow-y-auto" :class="bodyClass">
       <slot></slot>
     </div>
 
