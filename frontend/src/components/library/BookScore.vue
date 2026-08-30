@@ -53,12 +53,12 @@ function scoreButtonClasses(value) {
   <!-- Display Mode (editable=false) -->
   <div v-if="!editable && allowScoring && score !== 0" class="flex items-center gap-1">
     <!-- Show dislike if score === -1 -->
-    <div v-if="score === -1" class="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-md">
+    <div v-if="score === -1" role="img" aria-label="Disliked" class="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-md">
       <HandThumbDownIcon class="w-4 h-4 text-white" />
     </div>
 
     <!-- Show like if score === 1 -->
-    <div v-if="score === 1" class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-md">
+    <div v-if="score === 1" role="img" aria-label="Liked" class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-md">
       <HandThumbUpIcon class="w-4 h-4 text-white" />
     </div>
   </div>

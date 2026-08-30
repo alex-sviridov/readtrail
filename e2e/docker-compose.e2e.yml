@@ -1,0 +1,31 @@
+services:
+
+  certs:
+    image: alpine:3.22
+    volumes:
+      - ssl-certs:/certs
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache openssl >/dev/null
+        openssl req -x509 -nodes -days 1 -newkey rsa:2048 \
+          -subj "/CN=localhost" \
+          -keyout /certs/key.pem -out /certs/cert.pem
+        chmod 644 /certs/key.pem /certs/cert.pem
+
+  all-in-one:
+    build:
+      context: ..
+      dockerfile: infrastructure/all-in-one/Containerfile
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    ports:
+      - "18080:8080"
+      - "18443:8443"
+    volumes:
+      - ssl-certs:/etc/nginx/ssl:ro
+
+volumes:
+  ssl-certs:

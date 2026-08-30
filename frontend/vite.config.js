@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
@@ -17,9 +17,4 @@ export default defineConfig(({ mode }) => ({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  define: {
-    'import.meta.env.VITE_OPEN_LIBRARY_API_URL': JSON.stringify(
-      (mode === 'production' ? undefined : undefined) || 'https://openlibrary.org'
-    )
-  }
-}))
+})

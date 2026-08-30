@@ -135,6 +135,13 @@ watch(() => props.isOpen, (isOpen) => {
 </script>
 
 <style scoped>
+/* Tailwind's `flex` class on the <dialog> element (an author-origin rule)
+   otherwise overrides the browser's built-in `dialog:not([open])` default,
+   which would normally hide a closed dialog regardless of its class list. */
+dialog:not([open]) {
+  display: none;
+}
+
 dialog {
   opacity: 0;
   transform: scale(0.95);

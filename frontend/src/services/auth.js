@@ -8,16 +8,13 @@ import { adaptPocketBaseError } from '@/utils/errors'
 import { logger } from '@/utils/logger'
 import { queryClient } from './queryClient'
 
-// Auth configuration from environment variables
-const GUEST_USER_ENABLED = import.meta.env.VITE_GUEST_USER_ENABLED === 'true'
-
 /**
  * Authentication manager class
  * Facade over PocketBase authStore for consistent API
  */
 class AuthManager {
   constructor() {
-    this.guestUserEnabled = GUEST_USER_ENABLED
+    this.guestUserEnabled = true
 
     // Set up auth state change listener
     pb.authStore.onChange((token, model) => {

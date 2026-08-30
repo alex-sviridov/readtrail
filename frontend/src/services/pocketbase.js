@@ -1,9 +1,9 @@
 import PocketBase from 'pocketbase'
 
-// Initialize PocketBase client with base URL from environment
-const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/').trim()
-
-const pb = new PocketBase(baseUrl)
+// The API is always reached same-origin (through the bundled nginx in the
+// all-in-one image, or through the shared ingress in k8s), so the SDK's
+// base URL is always the relative root — it appends `api/...` itself.
+const pb = new PocketBase('/')
 
 // Disable auto-cancellation to allow parallel requests
 pb.autoCancellation(false)
