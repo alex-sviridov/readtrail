@@ -1,0 +1,23 @@
+name: K8s Manifests Validate
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/k8s/**'
+      - '.github/workflows/k8s-validate.yml'
+
+jobs:
+  dry-run:
+    name: Dry Run Apply
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create ephemeral kind cluster
+        uses: helm/kind-action@v1
+
+      - name: Validate manifests (dry run against real API schema)
+        run: kubectl apply --dry-run=client -f infrastructure/k8s/

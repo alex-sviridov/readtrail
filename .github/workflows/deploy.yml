@@ -1,4 +1,4 @@
-name: All-in-one Deploy
+name: Deploy
 
 on:
   push:
@@ -7,19 +7,35 @@ on:
       - 'frontend/**'
       - 'backend/**'
       - 'infrastructure/all-in-one/**'
-      - '.github/workflows/all-in-one-deploy.yml'
+      - '.github/workflows/deploy.yml'
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/all-in-one
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
 
 jobs:
   build-and-push:
-    name: Build and Push Latest
+    name: Build and Push
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - image: frontend
+            context: ./frontend
+            file: ./frontend/Dockerfile
+          - image: backend
+            context: ./backend
+            file: ./backend/Dockerfile
+          - image: all-in-one
+            context: .
+            file: ./infrastructure/all-in-one/Containerfile
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/${{ matrix.image }}
 
     steps:
       - name: Checkout code
@@ -47,11 +63,10 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./infrastructure/all-in-one/Containerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
