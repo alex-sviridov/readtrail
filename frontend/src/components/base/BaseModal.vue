@@ -143,6 +143,10 @@ dialog:not([open]) {
 }
 
 dialog {
+  /* Tailwind's Preflight reset sets margin: 0 on every element (also
+     author CSS), overriding the browser's default dialog[open] centering
+     (position: fixed; inset: 0; margin: auto). Restore it explicitly. */
+  margin: auto;
   opacity: 0;
   transform: scale(0.95);
   transition: opacity 0.2s ease, transform 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete;
