@@ -26,6 +26,25 @@ export async function registerUser(page, { email, password }) {
 }
 
 /**
+ * Registers a user directly via PocketBase's REST API (no browser), and
+ * returns an auth token plus user id. Used by tests that need an
+ * authenticated user but don't need the registration UI itself, e.g. when
+ * seeding many records is too slow to drive through the page.
+ */
+export async function registerUserApi(request, { email, password }) {
+  await request.post('/api/collections/users/records', {
+    data: { email, password, passwordConfirm: password },
+  });
+
+  const authResponse = await request.post('/api/collections/users/auth-with-password', {
+    data: { identity: email, password },
+  });
+  const { token, record } = await authResponse.json();
+
+  return { token, userId: record.id };
+}
+
+/**
  * Locates the user menu trigger in the app header (its accessible name is
  * the user's initials + display name, e.g. "E2 e2e-171...").
  */

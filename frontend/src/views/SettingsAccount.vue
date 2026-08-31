@@ -119,6 +119,59 @@
         </div>
       </div>
 
+      <!-- Books Backup Section -->
+      <div class="border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Books Backup</h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Export your books to a file you can re-import later, or into another account
+        </p>
+
+        <div class="space-y-3">
+          <!-- Export Books -->
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h4 class="text-sm font-medium text-gray-800">Export Books</h4>
+              <p class="text-xs text-gray-600 mt-0.5">
+                Download a re-importable snapshot of your books
+              </p>
+            </div>
+            <button
+              @click="handleExportBooks"
+              :disabled="isExportingBooks"
+              class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowDownTrayIcon class="w-4 h-4" />
+              Export Books
+            </button>
+          </div>
+
+          <!-- Import Books -->
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h4 class="text-sm font-medium text-gray-800">Import Books</h4>
+              <p class="text-xs text-gray-600 mt-0.5">
+                Import books from a previously exported file. Existing books are skipped, not duplicated.
+              </p>
+            </div>
+            <button
+              @click="triggerImportFilePicker"
+              :disabled="isImportingBooks"
+              class="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowUpTrayIcon class="w-4 h-4" />
+              Import Books
+            </button>
+            <input
+              ref="importFileInputRef"
+              type="file"
+              accept="application/json"
+              class="hidden"
+              @change="handleImportFileSelected"
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- Danger Zone Section -->
       <div class="border-t border-gray-200 pt-6">
         <div class="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -173,19 +226,23 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useToast } from 'vue-toastification'
+import { useQueryClient } from '@tanstack/vue-query'
 import { authManager } from '@/services/auth'
+import pb from '@/services/pocketbase'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
-import { exportUserDataAsJSON, exportBooksAsCSV } from '@/services/dataExport'
+import { exportUserDataAsJSON, exportBooksAsCSV, downloadFile } from '@/services/dataExport'
+import { BOOKS_QUERY_KEY } from '@/composables/useBooksQuery'
 import ChangePasswordModal from '@/components/settings/ChangePasswordModal.vue'
 import DeleteAccountModal from '@/components/settings/DeleteAccountModal.vue'
-import { ArrowDownTrayIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
 defineOptions({
   name: 'SettingsAccount'
 })
 
 const toast = useToast()
+const queryClient = useQueryClient()
 
 // Stores
 const booksStore = useBooksStore()
@@ -205,6 +262,11 @@ const isExporting = ref(false)
 // Delete account state
 const showDeleteModal = ref(false)
 const deleteModalRef = ref(null)
+
+// Books backup state
+const isExportingBooks = ref(false)
+const isImportingBooks = ref(false)
+const importFileInputRef = ref(null)
 
 const handlePasswordChange = async (passwordData) => {
   try {
@@ -256,6 +318,67 @@ const handleExportCSV = () => {
     toast.error('Failed to export books. Please try again.')
   } finally {
     isExporting.value = false
+  }
+}
+
+const handleExportBooks = async () => {
+  try {
+    isExportingBooks.value = true
+    const data = await pb.send('/api/books/export', { method: 'GET' })
+
+    const timestamp = new Date().toISOString().split('T')[0]
+    downloadFile(JSON.stringify(data, null, 2), `readtrail-books-backup-${timestamp}.json`, 'application/json')
+    toast.success('Books exported successfully')
+  } catch (error) {
+    console.error('Books export error:', error)
+    toast.error('Failed to export books. Please try again.')
+  } finally {
+    isExportingBooks.value = false
+  }
+}
+
+const triggerImportFilePicker = () => {
+  importFileInputRef.value?.click()
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(file)
+  })
+}
+
+const handleImportFileSelected = async (event) => {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  try {
+    isImportingBooks.value = true
+
+    let payload
+    try {
+      payload = JSON.parse(await readFileAsText(file))
+    } catch {
+      toast.error('That file is not valid JSON.')
+      return
+    }
+
+    const result = await pb.send('/api/books/import', { method: 'POST', body: payload })
+
+    toast.success(`Imported ${result.imported} book(s), skipped ${result.skipped} already in your library`)
+    if (result.errors?.length) {
+      toast.warning(`${result.errors.length} entr${result.errors.length === 1 ? 'y' : 'ies'} could not be imported`)
+    }
+
+    await queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
+  } catch (error) {
+    console.error('Books import error:', error)
+    toast.error('Failed to import books. Please try again.')
+  } finally {
+    isImportingBooks.value = false
   }
 }
 

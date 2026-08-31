@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import SettingsAccount from '../SettingsAccount.vue'
 import ChangePasswordModal from '@/components/settings/ChangePasswordModal.vue'
 import { authManager } from '@/services/auth'
+import pb from '@/services/pocketbase'
+import { downloadFile } from '@/services/dataExport'
 
 // Mock vue-toastification
 const mockToast = {
@@ -32,6 +35,7 @@ vi.mock('@/services/auth', () => ({
 // Mock Heroicons
 vi.mock('@heroicons/vue/24/outline', () => ({
   ArrowDownTrayIcon: { name: 'ArrowDownTrayIcon', template: '<div />' },
+  ArrowUpTrayIcon: { name: 'ArrowUpTrayIcon', template: '<div />' },
   ExclamationTriangleIcon: { name: 'ExclamationTriangleIcon', template: '<div />' },
   XMarkIcon: { name: 'XMarkIcon', template: '<div />' }
 }))
@@ -39,7 +43,15 @@ vi.mock('@heroicons/vue/24/outline', () => ({
 // Mock data export service
 vi.mock('@/services/dataExport', () => ({
   exportUserDataAsJSON: vi.fn(),
-  exportBooksAsCSV: vi.fn()
+  exportBooksAsCSV: vi.fn(),
+  downloadFile: vi.fn()
+}))
+
+// Mock the PocketBase client (used for the custom books export/import routes)
+vi.mock('@/services/pocketbase', () => ({
+  default: {
+    send: vi.fn()
+  }
 }))
 
 // Mock stores
@@ -58,9 +70,21 @@ vi.mock('@/stores/settings', () => ({
 describe('SettingsAccount', () => {
   let wrapper
   let router
+  let queryClient
+
+  const mountSettingsAccount = () =>
+    mount(SettingsAccount, {
+      global: {
+        plugins: [router, [VueQueryPlugin, { queryClient }]]
+      }
+    })
 
   beforeEach(async () => {
     vi.clearAllMocks()
+
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+    })
 
     // Create router with memory history
     router = createRouter({
@@ -86,22 +110,14 @@ describe('SettingsAccount', () => {
     })
 
     it('should display guest mode message', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       expect(wrapper.text()).toContain("You're using guest mode")
       expect(wrapper.text()).toContain('Your data is stored locally on this device only')
     })
 
     it('should show sign in and create account buttons', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       const links = wrapper.findAllComponents({ name: 'RouterLink' })
       expect(links.length).toBeGreaterThanOrEqual(2)
@@ -114,11 +130,7 @@ describe('SettingsAccount', () => {
     })
 
     it('should not display password change form in guest mode', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       // The change-password affordance lives in a native <dialog>-based modal that
       // is always present in the DOM but stays closed/inert until opened, so we
@@ -134,11 +146,7 @@ describe('SettingsAccount', () => {
     })
 
     it('should not display sign out button in guest mode', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       expect(wrapper.text()).not.toContain('Sign Out')
     })
@@ -154,33 +162,21 @@ describe('SettingsAccount', () => {
     })
 
     it('should display user email', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       expect(wrapper.text()).toContain('Email')
       expect(wrapper.text()).toContain('test@example.com')
     })
 
     it('should display account status', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       expect(wrapper.text()).toContain('Account Status')
       expect(wrapper.text()).toContain('Signed in and syncing')
     })
 
     it('should display password change button', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       expect(wrapper.text()).toContain('Change Password')
       const changePasswordButton = wrapper.find('button:contains("Change Password")')
@@ -188,11 +184,7 @@ describe('SettingsAccount', () => {
     })
 
     it('should not have inline password input fields (uses modal instead)', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       // The password inputs live inside ChangePasswordModal's native <dialog>,
       // which is always present in the DOM but closed/inert by default -- they
@@ -206,16 +198,96 @@ describe('SettingsAccount', () => {
     })
 
     it('should display sign out button', () => {
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       const buttons = wrapper.findAll('button')
       const signOutButton = buttons.find(btn => btn.text() === 'Sign Out')
       expect(signOutButton).toBeTruthy()
       expect(signOutButton.text()).toBe('Sign Out')
+    })
+  })
+
+  describe('books backup', () => {
+    beforeEach(() => {
+      authManager.isGuestUser.mockReturnValue(false)
+      authManager.getCurrentUser.mockReturnValue({
+        id: 'user123',
+        email: 'test@example.com'
+      })
+    })
+
+    it('exports books via the backend endpoint and downloads the result', async () => {
+      const exportPayload = { version: 1, exportedAt: '2026-01-01T00:00:00.000Z', books: [] }
+      pb.send.mockResolvedValueOnce(exportPayload)
+
+      wrapper = mountSettingsAccount()
+      const exportButton = wrapper.findAll('button').find((btn) => btn.text() === 'Export Books')
+      await exportButton.trigger('click')
+      await flushPromises()
+
+      expect(pb.send).toHaveBeenCalledWith('/api/books/export', { method: 'GET' })
+      expect(downloadFile).toHaveBeenCalledWith(
+        JSON.stringify(exportPayload, null, 2),
+        expect.stringMatching(/^readtrail-books-backup-.*\.json$/),
+        'application/json'
+      )
+      expect(mockToast.success).toHaveBeenCalledWith('Books exported successfully')
+    })
+
+    it('imports a selected file via the backend endpoint and reports the result', async () => {
+      pb.send.mockResolvedValueOnce({ imported: 2, skipped: 1, errors: [] })
+
+      wrapper = mountSettingsAccount()
+      const fileInput = wrapper.find('input[type="file"]')
+      const file = new File(
+        [JSON.stringify({ version: 1, books: [{ name: 'Dune', author: 'Frank Herbert' }] })],
+        'backup.json',
+        { type: 'application/json' }
+      )
+      Object.defineProperty(fileInput.element, 'files', { value: [file] })
+      await fileInput.trigger('change')
+      // FileReader dispatches its 'load' event on its own macrotask in jsdom,
+      // so the read needs an extra flush beyond the one for our own awaits.
+      await flushPromises()
+      await flushPromises()
+
+      expect(pb.send).toHaveBeenCalledWith('/api/books/import', {
+        method: 'POST',
+        body: { version: 1, books: [{ name: 'Dune', author: 'Frank Herbert' }] }
+      })
+      expect(mockToast.success).toHaveBeenCalledWith('Imported 2 book(s), skipped 1 already in your library')
+      expect(mockToast.warning).not.toHaveBeenCalled()
+    })
+
+    it('warns about entries that failed to import', async () => {
+      pb.send.mockResolvedValueOnce({ imported: 1, skipped: 0, errors: [{ index: 1, reason: 'bad' }] })
+
+      wrapper = mountSettingsAccount()
+      const fileInput = wrapper.find('input[type="file"]')
+      const file = new File([JSON.stringify({ books: [] })], 'backup.json', { type: 'application/json' })
+      Object.defineProperty(fileInput.element, 'files', { value: [file] })
+      await fileInput.trigger('change')
+      // FileReader dispatches its 'load' event on its own macrotask in jsdom,
+      // so the read needs an extra flush beyond the one for our own awaits.
+      await flushPromises()
+      await flushPromises()
+
+      expect(mockToast.warning).toHaveBeenCalledWith('1 entry could not be imported')
+    })
+
+    it('rejects a file that is not valid JSON without calling the backend', async () => {
+      wrapper = mountSettingsAccount()
+      const fileInput = wrapper.find('input[type="file"]')
+      const file = new File(['not json'], 'backup.json', { type: 'application/json' })
+      Object.defineProperty(fileInput.element, 'files', { value: [file] })
+      await fileInput.trigger('change')
+      // FileReader dispatches its 'load' event on its own macrotask in jsdom,
+      // so the read needs an extra flush beyond the one for our own awaits.
+      await flushPromises()
+      await flushPromises()
+
+      expect(pb.send).not.toHaveBeenCalled()
+      expect(mockToast.error).toHaveBeenCalledWith('That file is not valid JSON.')
     })
   })
 
@@ -241,11 +313,7 @@ describe('SettingsAccount', () => {
     it('should call logout and redirect on sign out', async () => {
       vi.useFakeTimers()
 
-      wrapper = mount(SettingsAccount, {
-        global: {
-          plugins: [router]
-        }
-      })
+      wrapper = mountSettingsAccount()
 
       const signOutButton = wrapper.findAll('button').find(btn => btn.text() === 'Sign Out')
       await signOutButton.trigger('click')
