@@ -2,6 +2,7 @@
   <div class="relative">
     <!-- Filter Button -->
     <button
+      ref="buttonRef"
       :popovertarget="menuId"
       :class="[
         'flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm border-none cursor-pointer',
@@ -35,10 +36,11 @@
       :id="menuId"
       ref="menuRef"
       popover
-      class="dropdown-popover absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200"
+      class="dropdown-popover w-64 bg-white rounded-lg shadow-lg border border-gray-200"
       :class="{ hidden: !isOpen }"
       role="menu"
       aria-orientation="vertical"
+      @beforetoggle="handleBeforeToggle"
       @toggle="handleToggle"
     >
       <div class="py-2">
@@ -155,7 +157,9 @@ const emit = defineEmits(['toggle-hide-unfinished', 'toggle-hide-to-read', 'clea
 // State
 const isOpen = ref(false)
 const menuRef = ref(null)
+const buttonRef = ref(null)
 const menuId = useId()
+const MENU_WIDTH = 256 // matches w-64
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -171,6 +175,13 @@ const activeFilterCount = computed(() => {
 })
 
 // Methods
+function handleBeforeToggle(event) {
+  if (event.newState !== 'open' || !buttonRef.value || !menuRef.value) return
+  const rect = buttonRef.value.getBoundingClientRect()
+  menuRef.value.style.top = `${rect.bottom + 8}px`
+  menuRef.value.style.left = `${Math.max(8, rect.right - MENU_WIDTH)}px`
+}
+
 function handleToggle(event) {
   isOpen.value = event.newState === 'open'
 }
@@ -191,7 +202,8 @@ function clearAllFilters() {
 
 <style scoped>
 [popover] {
-  position: absolute;
+  position: fixed;
+  margin: 0;
 }
 
 .dropdown-popover {
