@@ -6,7 +6,6 @@ import SettingsAccount from '../SettingsAccount.vue'
 import ChangePasswordModal from '@/components/settings/ChangePasswordModal.vue'
 import { authManager } from '@/services/auth'
 import pb from '@/services/pocketbase'
-import { downloadFile } from '@/services/dataExport'
 
 // Mock vue-toastification
 const mockToast = {
@@ -40,13 +39,6 @@ vi.mock('@heroicons/vue/24/outline', () => ({
   XMarkIcon: { name: 'XMarkIcon', template: '<div />' }
 }))
 
-// Mock data export service
-vi.mock('@/services/dataExport', () => ({
-  exportUserDataAsJSON: vi.fn(),
-  exportBooksAsCSV: vi.fn(),
-  downloadFile: vi.fn()
-}))
-
 // Mock the PocketBase client (used for the custom books export/import routes)
 vi.mock('@/services/pocketbase', () => ({
   default: {
@@ -58,12 +50,6 @@ vi.mock('@/services/pocketbase', () => ({
 vi.mock('@/stores/books', () => ({
   useBooksStore: () => ({
     books: []
-  })
-}))
-
-vi.mock('@/stores/settings', () => ({
-  useSettingsStore: () => ({
-    settings: {}
   })
 }))
 
@@ -208,12 +194,29 @@ describe('SettingsAccount', () => {
   })
 
   describe('books backup', () => {
+    let createdLink
+    const originalCreateElement = document.createElement.bind(document)
+
     beforeEach(() => {
       authManager.isGuestUser.mockReturnValue(false)
       authManager.getCurrentUser.mockReturnValue({
         id: 'user123',
         email: 'test@example.com'
       })
+
+      createdLink = null
+      vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = originalCreateElement(tag)
+        if (tag === 'a') {
+          createdLink = el
+          vi.spyOn(el, 'click').mockImplementation(() => {})
+        }
+        return el
+      })
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
     })
 
     it('exports books via the backend endpoint and downloads the result', async () => {
@@ -226,11 +229,8 @@ describe('SettingsAccount', () => {
       await flushPromises()
 
       expect(pb.send).toHaveBeenCalledWith('/api/books/export', { method: 'GET' })
-      expect(downloadFile).toHaveBeenCalledWith(
-        JSON.stringify(exportPayload, null, 2),
-        expect.stringMatching(/^readtrail-books-backup-.*\.json$/),
-        'application/json'
-      )
+      expect(createdLink.download).toMatch(/^readtrail-books-backup-.*\.json$/)
+      expect(createdLink.click).toHaveBeenCalled()
       expect(mockToast.success).toHaveBeenCalledWith('Books exported successfully')
     })
 

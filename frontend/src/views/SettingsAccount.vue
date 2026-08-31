@@ -39,6 +39,18 @@
             <p class="text-sm text-gray-600 mt-1">Signed in and syncing</p>
           </div>
         </div>
+        <div class="flex items-center justify-between py-3 border-t border-gray-200">
+          <div>
+            <h3 class="text-base font-medium text-gray-800">Privacy Policy</h3>
+            <p class="text-sm text-gray-600 mt-1">Learn how we handle your data</p>
+          </div>
+          <router-link
+            to="/privacy"
+            class="px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors"
+          >
+            View Policy
+          </router-link>
+        </div>
       </div>
 
       <!-- Change Password Section -->
@@ -54,68 +66,6 @@
           >
             Change Password
           </button>
-        </div>
-      </div>
-
-      <!-- Data & Privacy Section -->
-      <div class="border-t border-gray-200 pt-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-2">Data & Privacy</h3>
-        <p class="text-sm text-gray-600 mb-4">
-          Export your data or review our privacy policy
-        </p>
-
-        <div class="space-y-3">
-          <!-- Export JSON -->
-          <div class="flex items-center justify-between py-2">
-            <div>
-              <h4 class="text-sm font-medium text-gray-800">Export All Data (JSON)</h4>
-              <p class="text-xs text-gray-600 mt-0.5">
-                Download complete account data including books and settings
-              </p>
-            </div>
-            <button
-              @click="handleExportJSON"
-              :disabled="isExporting"
-              class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowDownTrayIcon class="w-4 h-4" />
-              Export JSON
-            </button>
-          </div>
-
-          <!-- Export CSV -->
-          <div class="flex items-center justify-between py-2">
-            <div>
-              <h4 class="text-sm font-medium text-gray-800">Export Books (CSV)</h4>
-              <p class="text-xs text-gray-600 mt-0.5">
-                Download books list in spreadsheet format
-              </p>
-            </div>
-            <button
-              @click="handleExportCSV"
-              :disabled="isExporting"
-              class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowDownTrayIcon class="w-4 h-4" />
-              Export CSV
-            </button>
-          </div>
-
-          <!-- Privacy Policy Link -->
-          <div class="flex items-center justify-between py-2">
-            <div>
-              <h4 class="text-sm font-medium text-gray-800">Privacy Policy</h4>
-              <p class="text-xs text-gray-600 mt-0.5">
-                Learn how we handle your data
-              </p>
-            </div>
-            <router-link
-              to="/privacy"
-              class="px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors"
-            >
-              View Policy
-            </router-link>
-          </div>
         </div>
       </div>
 
@@ -230,8 +180,6 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { authManager } from '@/services/auth'
 import pb from '@/services/pocketbase'
 import { useBooksStore } from '@/stores/books'
-import { useSettingsStore } from '@/stores/settings'
-import { exportUserDataAsJSON, exportBooksAsCSV, downloadFile } from '@/services/dataExport'
 import { BOOKS_QUERY_KEY } from '@/composables/useBooksQuery'
 import ChangePasswordModal from '@/components/settings/ChangePasswordModal.vue'
 import DeleteAccountModal from '@/components/settings/DeleteAccountModal.vue'
@@ -246,7 +194,6 @@ const queryClient = useQueryClient()
 
 // Stores
 const booksStore = useBooksStore()
-const settingsStore = useSettingsStore()
 
 // Auth state
 const isGuest = computed(() => authManager.isGuestUser())
@@ -255,9 +202,6 @@ const userEmail = computed(() => authManager.getCurrentUser()?.email || null)
 // Password change state
 const showPasswordModal = ref(false)
 const passwordModalRef = ref(null)
-
-// Data export state
-const isExporting = ref(false)
 
 // Delete account state
 const showDeleteModal = ref(false)
@@ -295,30 +239,22 @@ const handleLogout = async () => {
   }, 500)
 }
 
-const handleExportJSON = () => {
-  try {
-    isExporting.value = true
-    exportUserDataAsJSON(booksStore.books, settingsStore.settings)
-    toast.success('Data exported successfully')
-  } catch (error) {
-    console.error('Export error:', error)
-    toast.error('Failed to export data. Please try again.')
-  } finally {
-    isExporting.value = false
-  }
-}
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
 
-const handleExportCSV = () => {
-  try {
-    isExporting.value = true
-    exportBooksAsCSV(booksStore.books)
-    toast.success('Books exported successfully')
-  } catch (error) {
-    console.error('Export error:', error)
-    toast.error('Failed to export books. Please try again.')
-  } finally {
-    isExporting.value = false
-  }
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.style.display = 'none'
+
+  document.body.appendChild(link)
+  link.click()
+
+  setTimeout(() => {
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, 100)
 }
 
 const handleExportBooks = async () => {
