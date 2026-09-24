@@ -3,6 +3,7 @@
     <!-- User Button (Authenticated) -->
     <button
       v-if="isAuthenticated"
+      ref="buttonRef"
       :popovertarget="menuId"
       class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
       :class="{ 'bg-gray-100': isOpen }"
@@ -32,9 +33,11 @@
     <div
       v-if="isAuthenticated"
       :id="menuId"
+      ref="menuRef"
       popover
-      class="user-menu-popover absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1"
+      class="user-menu-popover w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1"
       :class="{ hidden: !isOpen }"
+      @beforetoggle="handleBeforeToggle"
       @toggle="handleToggle"
     >
       <!-- User Info Section -->
@@ -76,6 +79,9 @@ import pb from '@/services/pocketbase'
 
 const isOpen = ref(false)
 const menuId = useId()
+const buttonRef = ref(null)
+const menuRef = ref(null)
+const MENU_WIDTH = 224 // matches w-56
 const canLogout = !isRemoteUserModeActive()
 const authState = ref(pb.authStore.isValid)
 
@@ -90,6 +96,13 @@ const userInitials = computed(() => {
     ? (words[0][0] + words[1][0]).toUpperCase()
     : name.substring(0, 2).toUpperCase()
 })
+
+function handleBeforeToggle(event) {
+  if (event.newState !== 'open' || !buttonRef.value || !menuRef.value) return
+  const rect = buttonRef.value.getBoundingClientRect()
+  menuRef.value.style.top = `${rect.bottom + 8}px`
+  menuRef.value.style.left = `${Math.max(8, rect.right - MENU_WIDTH)}px`
+}
 
 function handleToggle(event) {
   isOpen.value = event.newState === 'open'
@@ -117,7 +130,8 @@ onUnmounted(() => {
 
 <style scoped>
 [popover] {
-  position: absolute;
+  position: fixed;
+  margin: 0;
 }
 
 .user-menu-popover {

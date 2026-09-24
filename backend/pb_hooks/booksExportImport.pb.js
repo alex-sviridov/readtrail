@@ -64,16 +64,24 @@ routerAdd("POST", "/api/books/import", (e) => {
 
     const author = typeof entry.author === "string" ? entry.author : ""
 
-    try {
-      $app.findFirstRecordByFilter(
-        collection,
-        "owner = {:owner} && name = {:name} && author = {:author}",
-        { owner: e.auth.id, name: entry.name, author }
-      )
+    // Matched in two steps rather than a single "owner = ... && author = ..."
+    // filter: PocketBase's named-parameter binding resolves an empty-string
+    // value to SQL NULL, so "author = {:author}" never matches a record
+    // whose author is genuinely "" (the common case for books added without
+    // one) — it would always report zero candidates and duplicate on
+    // reimport. Filtering by owner+name only and comparing author in JS
+    // sidesteps that.
+    const candidates = $app.findRecordsByFilter(
+      collection,
+      "owner = {:owner} && name = {:name}",
+      "",
+      0,
+      0,
+      { owner: e.auth.id, name: entry.name }
+    )
+    if (candidates.some((r) => (r.get("author") || "") === author)) {
       skipped++
       return
-    } catch {
-      // No existing match for this owner+name+author — create it below.
     }
 
     const record = new Record(collection)

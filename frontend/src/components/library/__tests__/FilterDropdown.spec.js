@@ -477,20 +477,37 @@ describe('FilterDropdown', () => {
   })
 
   describe('Dropdown Positioning', () => {
-    it('positions dropdown on the right side', async () => {
+    it('anchors the dropdown to the trigger button via inline top/left on open', () => {
       wrapper = createWrapper()
-      await wrapper.get('button').trigger('click')
+      const button = wrapper.get('button').element
+      const dropdown = wrapper.get('[role="menu"]').element
 
-      const dropdown = wrapper.get('[role="menu"]')
-      expect(dropdown.classes()).toContain('right-0')
+      button.getBoundingClientRect = () => ({ bottom: 100, right: 300 })
+      dropdown.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'open' }))
+
+      expect(dropdown.style.top).toBe('108px')
+      expect(dropdown.style.left).toBe('44px') // 300 - 256 (w-64)
     })
 
-    it('positions dropdown absolutely', async () => {
+    it('clamps the dropdown away from the left edge of the viewport', () => {
       wrapper = createWrapper()
-      await wrapper.get('button').trigger('click')
+      const button = wrapper.get('button').element
+      const dropdown = wrapper.get('[role="menu"]').element
 
-      const dropdown = wrapper.get('[role="menu"]')
-      expect(dropdown.classes()).toContain('absolute')
+      button.getBoundingClientRect = () => ({ bottom: 50, right: 100 })
+      dropdown.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'open' }))
+
+      expect(dropdown.style.left).toBe('8px')
+    })
+
+    it('does not reposition when the popover is closing', () => {
+      wrapper = createWrapper()
+      const dropdown = wrapper.get('[role="menu"]').element
+
+      dropdown.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'closed' }))
+
+      expect(dropdown.style.top).toBe('')
+      expect(dropdown.style.left).toBe('')
     })
   })
 
