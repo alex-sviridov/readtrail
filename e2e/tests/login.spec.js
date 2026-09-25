@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { generateTestUser, registerUser, expectLoggedIn, userMenuButton } from './helpers/testUser.js';
+import { generateTestUser, registerUser, expectLoggedIn, logoutButton } from './helpers/testUser.js';
 
 test('can log in with a registered account', async ({ page }) => {
   const user = generateTestUser();
 
   // Register (which auto-logs-in), then log out so we can exercise login.
   await registerUser(page, user);
-  await userMenuButton(page).click();
-  await page.getByRole('button', { name: 'Logout' }).click();
+  await logoutButton(page).click();
   await expect(page).toHaveURL(/\/login/);
 
   await page.getByLabel('Email address').fill(user.email);
@@ -21,8 +20,7 @@ test('can log in with a registered account', async ({ page }) => {
 test('shows an error for an incorrect password', async ({ page }) => {
   const user = generateTestUser();
   await registerUser(page, user);
-  await userMenuButton(page).click();
-  await page.getByRole('button', { name: 'Logout' }).click();
+  await logoutButton(page).click();
   await expect(page).toHaveURL(/\/login/);
 
   await page.getByLabel('Email address').fill(user.email);

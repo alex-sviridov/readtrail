@@ -9,31 +9,32 @@
         <div
           v-for="setting in section.settings"
           :key="setting.key"
-          class="flex items-center justify-between py-3 border-b border-gray-200"
+          class="py-3 border-b border-gray-200"
         >
-          <div>
+          <div class="flex items-center justify-between gap-4">
             <h3 class="text-base font-medium text-gray-800">{{ setting.label }}</h3>
-            <p class="text-sm text-gray-600 mt-1">{{ setting.description }}</p>
+
+            <!-- Toggle Switch -->
+            <button
+              v-if="setting.type === 'toggle'"
+              @click="setting.toggle"
+              :class="[
+                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                setting.value ? 'bg-blue-600' : 'bg-gray-300'
+              ]"
+              role="switch"
+              :aria-checked="setting.value"
+            >
+              <span
+                :class="[
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                  setting.value ? 'translate-x-6' : 'translate-x-1'
+                ]"
+              />
+            </button>
           </div>
 
-          <!-- Toggle Switch -->
-          <button
-            v-if="setting.type === 'toggle'"
-            @click="setting.toggle"
-            :class="[
-              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-              setting.value ? 'bg-blue-600' : 'bg-gray-300'
-            ]"
-            role="switch"
-            :aria-checked="setting.value"
-          >
-            <span
-              :class="[
-                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                setting.value ? 'translate-x-6' : 'translate-x-1'
-              ]"
-            />
-          </button>
+          <p class="text-sm text-gray-600 mt-1">{{ setting.description }}</p>
         </div>
       </div>
     </div>

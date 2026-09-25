@@ -79,6 +79,16 @@ describe('SettingsApplication', () => {
       const toggleButtons = wrapper.findAll('button[role="switch"]')
       expect(toggleButtons.length).toBe(3)
     })
+
+    it('should keep each toggle on the same line as its title, not the description', () => {
+      wrapper = mountView()
+
+      const toggle = wrapper.find('button[role="switch"]')
+      const titleRow = toggle.element.parentElement
+
+      expect(titleRow.querySelector('h3')).not.toBeNull()
+      expect(titleRow.querySelector('p')).toBeNull()
+    })
   })
 
   describe('toggle switches', () => {

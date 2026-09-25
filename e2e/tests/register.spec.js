@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { generateTestUser, registerUser, expectLoggedIn, userMenuButton } from './helpers/testUser.js';
+import { generateTestUser, registerUser, expectLoggedIn, logoutButton } from './helpers/testUser.js';
 
 test('can register a new account and land in the library, logged in', async ({ page }) => {
   const user = generateTestUser();
@@ -34,8 +34,7 @@ test('shows an error when registering with an already-used email', async ({ page
   await registerUser(page, user);
 
   // Log out, then try registering the same email again.
-  await userMenuButton(page).click();
-  await page.getByRole('button', { name: 'Logout' }).click();
+  await logoutButton(page).click();
   await expect(page).toHaveURL(/\/login/);
 
   await page.goto('/register');

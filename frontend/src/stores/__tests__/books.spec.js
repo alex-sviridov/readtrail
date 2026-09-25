@@ -103,6 +103,24 @@ describe('useBooksStore', () => {
     expect(booksApi.updateBook).toHaveBeenCalledWith('real-1', { name: 'Dune Messiah' })
   })
 
+  it('merges a partial attributes update with the book\'s current attributes before sending, so unrelated flags survive', async () => {
+    booksApi.getBooks.mockResolvedValue([{
+      id: 'real-1',
+      name: 'Dune',
+      attributes: { isUnfinished: false, customCover: true, score: 2 }
+    }])
+    booksApi.updateBook.mockResolvedValue({ id: 'real-1', name: 'Dune', attributes: {} })
+    const store = mountStore()
+    await vi.waitUntil(() => store.books.length === 1)
+
+    store.updateBookFields('real-1', { attributes: { isUnfinished: true } })
+    await vi.waitUntil(() => booksApi.updateBook.mock.calls.length > 0)
+
+    expect(booksApi.updateBook).toHaveBeenCalledWith('real-1', {
+      attributes: { isUnfinished: true, customCover: true, score: 2 }
+    })
+  })
+
   it('sortedBooks/inProgressBooks/completedBooks derive from books', () => {
     booksApi.getBooks.mockResolvedValue([])
     const store = mountStore()

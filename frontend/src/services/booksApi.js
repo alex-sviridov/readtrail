@@ -93,24 +93,37 @@ function createFormData(data, file) {
  * @returns {Object|FormData} Book object in PocketBase format or FormData if file included
  */
 function transformBookToPocketBase(storeBook) {
-  // Convert {year, month} to read_date
-  let read_date = null
-  if (storeBook.year && storeBook.month) {
-    const month = String(storeBook.month).padStart(2, '0')
-    read_date = `${storeBook.year}-${month}-01`
+  // storeBook may be a full book (create) or a partial update -- omit a
+  // field entirely (rather than defaulting it) when the caller didn't
+  // include it, so a partial update doesn't wipe fields it wasn't touching.
+  const data = {
+    owner: pb.authStore.record?.id
   }
 
-  const data = {
-    name: storeBook.name,
-    author: storeBook.author || '',
-    cover_url: storeBook.coverLink || '',
-    read_date,
-    attributes: {
+  if (storeBook.name !== undefined) {
+    data.name = storeBook.name
+  }
+
+  if (storeBook.author !== undefined) {
+    data.author = storeBook.author || ''
+  }
+
+  if (storeBook.coverLink !== undefined) {
+    data.cover_url = storeBook.coverLink || ''
+  }
+
+  if (storeBook.year !== undefined) {
+    data.read_date = (storeBook.year && storeBook.month)
+      ? `${storeBook.year}-${String(storeBook.month).padStart(2, '0')}-01`
+      : null
+  }
+
+  if (storeBook.attributes !== undefined) {
+    data.attributes = {
       isUnfinished: storeBook.attributes?.isUnfinished ?? false,
       customCover: storeBook.attributes?.customCover ?? false,
       score: storeBook.attributes?.score ?? null
-    },
-    owner: pb.authStore.record?.id
+    }
   }
 
   // Return FormData if file present, otherwise plain object

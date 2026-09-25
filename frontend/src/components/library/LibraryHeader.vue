@@ -89,7 +89,7 @@
               :value="searchQuery"
               @input="$emit('update:search-query', $event.target.value)"
               type="text"
-              placeholder="Search by title, author, or year..."
+              placeholder="Search"
               aria-label="Search books by title, author, or year"
               class="bg-white w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

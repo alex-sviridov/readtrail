@@ -1,15 +1,5 @@
 <template>
   <div class="w-full">
-    <!-- Search/Filter Input -->
-    <div class="mb-4">
-      <input
-        v-model="globalFilter"
-        type="text"
-        placeholder="Search by title, author, or year..."
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-
     <!-- Table -->
     <div class="overflow-x-auto bg-white rounded-lg shadow">
       <table class="min-w-full divide-y divide-gray-200">
@@ -89,7 +79,6 @@ import {
   useVueTable,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   FlexRender
 } from '@tanstack/vue-table'
 import BookCoverModal from './BookCoverModal.vue'
@@ -109,9 +98,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['delete', 'update-cover', 'update-title', 'update-author', 'update-status'])
-
-// Global filter state
-const globalFilter = ref('')
 
 // Modal state
 const coverModalOpen = ref(false)
@@ -151,22 +137,6 @@ const table = useVueTable({
   columns,
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-  state: {
-    get globalFilter() {
-      return globalFilter.value
-    }
-  },
-  onGlobalFilterChange: (value) => {
-    globalFilter.value = value
-  },
-  globalFilterFn: (row, columnId, filterValue) => {
-    const search = filterValue.toLowerCase()
-    const name = row.original.name?.toLowerCase() || ''
-    const author = row.original.author?.toLowerCase() || ''
-    const year = row.original.year ? String(row.original.year) : ''
-    return name.includes(search) || author.includes(search) || year.includes(search)
-  },
   initialState: {
     sorting: [
       {

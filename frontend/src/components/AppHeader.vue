@@ -22,7 +22,7 @@ const closeMobileMenu = () => {
 
 <template>
   <header class="bg-white shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 py-4">
+    <div class="max-w-7xl mx-auto px-4 py-4 relative">
       <div class="flex justify-between items-center">
         <!-- Logo -->
         <RouterLink
@@ -87,7 +87,7 @@ const closeMobileMenu = () => {
 
       <!-- Mobile Menu -->
       <Transition name="mobile-menu">
-        <div v-if="mobileMenuOpen" class="md:hidden mt-4 pb-2 border-t border-gray-200 pt-4">
+        <div v-if="mobileMenuOpen" class="md:hidden absolute left-0 right-0 top-full pb-2 border-t border-gray-200 pt-4 bg-white shadow-lg z-50">
           <!-- Mobile Navigation -->
           <nav class="flex flex-col gap-3 mb-4">
             <RouterLink

@@ -251,4 +251,45 @@ describe('BaseModal Component', () => {
       expect(bodyElement).toBeTruthy()
     })
   })
+
+  describe('mobile viewport handling (window.visualViewport)', () => {
+    let originalVisualViewport
+    let listeners
+
+    beforeEach(() => {
+      originalVisualViewport = window.visualViewport
+      listeners = {}
+      window.visualViewport = {
+        height: 800,
+        addEventListener: vi.fn((event, handler) => { listeners[event] = handler }),
+        removeEventListener: vi.fn()
+      }
+    })
+
+    afterEach(() => {
+      window.visualViewport = originalVisualViewport
+    })
+
+    function shrinkVisualViewport(height) {
+      window.visualViewport.height = height
+      listeners.resize?.()
+    }
+
+    it('constrains dialog max-height to the visual viewport height when it shrinks (e.g. mobile keyboard opening)', async () => {
+      wrapper = mountModal()
+      await shrinkVisualViewport(400)
+      await nextTick()
+
+      expect(wrapper.get('dialog').element.style.maxHeight).toBe('360px')
+    })
+
+    it('stops reacting to visualViewport resize after the dialog unmounts', async () => {
+      wrapper = mountModal()
+      const handler = listeners.resize
+      wrapper.unmount()
+      wrapper = null
+
+      expect(window.visualViewport.removeEventListener).toHaveBeenCalledWith('resize', handler)
+    })
+  })
 })

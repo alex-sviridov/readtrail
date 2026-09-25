@@ -3,7 +3,9 @@
     view-mode="table"
     :hide-unfinished="hideUnfinished"
     :hide-to-read="hideToRead"
+    :search-query="searchQuery"
     :is-search-modal-open="isSearchModalOpen"
+    @update:search-query="searchQuery = $event"
     @set-view-mode="setViewMode"
     @toggle-filter="toggleFilter"
     @toggle-to-read-filter="toggleToReadFilter"
@@ -30,6 +32,7 @@ import { useRouter } from 'vue-router'
 import { useBooksStore } from '@/stores/books'
 import { useSettingsStore } from '@/stores/settings'
 import { useAddBookFlow } from '@/composables/useAddBookFlow'
+import { useBookSearch } from '@/composables/useBookSearch'
 import { useLibraryFilters } from '@/composables/useLibraryFilters'
 import BooksTable from '@/components/library/BooksTable.vue'
 import LibraryPageLayout from '@/components/library/LibraryPageLayout.vue'
@@ -49,7 +52,10 @@ const { sortedBooks } = storeToRefs(booksStore)
 // Initialize the settings store
 const settingsStore = useSettingsStore()
 
-// Filtered books based on hideUnfinished and hideToRead toggles
+// Initialize search functionality
+const { searchQuery, searchedBooks } = useBookSearch(sortedBooks)
+
+// Filtered books based on search and hideUnfinished/hideToRead toggles
 const {
   hideUnfinished,
   hideToRead,
@@ -57,7 +63,7 @@ const {
   toggleFilter,
   toggleToReadFilter,
   clearAllFilters
-} = useLibraryFilters(sortedBooks, settingsStore)
+} = useLibraryFilters(searchedBooks, settingsStore)
 
 // Set view mode and navigate to appropriate route
 const setViewMode = (mode) => {

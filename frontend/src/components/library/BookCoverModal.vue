@@ -180,7 +180,9 @@ const debouncedFetch = useDebounceFn(async (url) => {
   await fetchImage(url, 'book-cover')
 }, 500)
 
-// Initialize on modal open
+// Initialize on modal open. `immediate: true` because the parent v-if-gates
+// this component's existence on isOpen, so it's already true on first mount
+// and a non-immediate watch would never see the false-to-true transition.
 watch(() => props.isOpen, (open) => {
   if (!open) return
 
@@ -192,7 +194,7 @@ watch(() => props.isOpen, (open) => {
   imageError.value = false
   activeTab.value = props.book?.customCover ? 'generate' : 'url'
   reset() // Clear image fetch state
-})
+}, { immediate: true })
 
 // Clear file when switching to generate tab
 watch(activeTab, (tab) => {

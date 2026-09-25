@@ -291,6 +291,48 @@ describe('SettingsAccount', () => {
     })
   })
 
+  describe('row layout consistency', () => {
+    beforeEach(() => {
+      authManager.isGuestUser.mockReturnValue(false)
+      authManager.getCurrentUser.mockReturnValue({
+        id: 'user123',
+        email: 'test@example.com'
+      })
+    })
+
+    it('keeps each action button on the same line as its title, not its description', () => {
+      wrapper = mountSettingsAccount()
+
+      const labels = ['View Policy', 'Change Password', 'Export Books', 'Import Books']
+      const buttons = wrapper
+        .findAll('button, a')
+        .filter((el) => !el.element.closest('dialog'))
+        .filter((el) => labels.some((label) => el.text().includes(label)))
+
+      expect(buttons.length).toBe(4)
+      buttons.forEach((button) => {
+        const row = button.element.parentElement
+        expect(row.querySelector('h3, h4')).not.toBeNull()
+        expect(row.querySelector('p')).toBeNull()
+      })
+    })
+
+    it('gives every action button the same padding and prevents its label from wrapping', () => {
+      wrapper = mountSettingsAccount()
+
+      const labels = ['View Policy', 'Change Password', 'Export Books', 'Import Books']
+      const buttons = wrapper
+        .findAll('button, a')
+        .filter((el) => !el.element.closest('dialog'))
+        .filter((el) => labels.some((label) => el.text().includes(label)))
+
+      expect(buttons.length).toBe(4)
+      buttons.forEach((button) => {
+        expect(button.classes()).toEqual(expect.arrayContaining(['px-4', 'py-2', 'whitespace-nowrap', 'shrink-0']))
+      })
+    })
+  })
+
   describe.skip('password change functionality (modal-based)', () => {
     // These tests are skipped because the component now uses a modal (ChangePasswordModal)
     // instead of an inline form. The modal component should be tested separately.

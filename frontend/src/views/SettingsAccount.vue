@@ -39,34 +39,32 @@
             <p class="text-sm text-gray-600 mt-1">Signed in and syncing</p>
           </div>
         </div>
-        <div class="flex items-center justify-between py-3 border-t border-gray-200">
-          <div>
+        <div class="py-3 border-t border-gray-200">
+          <div class="flex items-center justify-between gap-4">
             <h3 class="text-base font-medium text-gray-800">Privacy Policy</h3>
-            <p class="text-sm text-gray-600 mt-1">Learn how we handle your data</p>
+            <router-link
+              to="/privacy"
+              class="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shrink-0 whitespace-nowrap"
+            >
+              View Policy
+            </router-link>
           </div>
-          <router-link
-            to="/privacy"
-            class="px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors"
-          >
-            View Policy
-          </router-link>
+          <p class="text-sm text-gray-600 mt-1">Learn how we handle your data</p>
         </div>
       </div>
 
       <!-- Change Password Section -->
       <div class="border-t border-gray-200 pt-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">Change Password</h3>
-            <p class="text-sm text-gray-600 mt-1">Update your account password</p>
-          </div>
+        <div class="flex items-center justify-between gap-4">
+          <h3 class="text-lg font-semibold text-gray-800">Change Password</h3>
           <button
             @click="showPasswordModal = true"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap"
           >
             Change Password
           </button>
         </div>
+        <p class="text-sm text-gray-600 mt-1">Update your account password</p>
       </div>
 
       <!-- Books Backup Section -->
@@ -78,46 +76,46 @@
 
         <div class="space-y-3">
           <!-- Export Books -->
-          <div class="flex items-center justify-between py-2">
-            <div>
+          <div class="py-2">
+            <div class="flex items-center justify-between gap-4">
               <h4 class="text-sm font-medium text-gray-800">Export Books</h4>
-              <p class="text-xs text-gray-600 mt-0.5">
-                Download a re-importable snapshot of your books
-              </p>
+              <button
+                @click="handleExportBooks"
+                :disabled="isExportingBooks"
+                class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
+              >
+                <ArrowDownTrayIcon class="w-4 h-4" />
+                Export Books
+              </button>
             </div>
-            <button
-              @click="handleExportBooks"
-              :disabled="isExportingBooks"
-              class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowDownTrayIcon class="w-4 h-4" />
-              Export Books
-            </button>
+            <p class="text-xs text-gray-600 mt-0.5">
+              Download a re-importable snapshot of your books
+            </p>
           </div>
 
           <!-- Import Books -->
-          <div class="flex items-center justify-between py-2">
-            <div>
+          <div class="py-2">
+            <div class="flex items-center justify-between gap-4">
               <h4 class="text-sm font-medium text-gray-800">Import Books</h4>
-              <p class="text-xs text-gray-600 mt-0.5">
-                Import books from a previously exported file. Existing books are skipped, not duplicated.
-              </p>
+              <button
+                @click="triggerImportFilePicker"
+                :disabled="isImportingBooks"
+                class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
+              >
+                <ArrowUpTrayIcon class="w-4 h-4" />
+                Import Books
+              </button>
+              <input
+                ref="importFileInputRef"
+                type="file"
+                accept="application/json"
+                class="hidden"
+                @change="handleImportFileSelected"
+              />
             </div>
-            <button
-              @click="triggerImportFilePicker"
-              :disabled="isImportingBooks"
-              class="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowUpTrayIcon class="w-4 h-4" />
-              Import Books
-            </button>
-            <input
-              ref="importFileInputRef"
-              type="file"
-              accept="application/json"
-              class="hidden"
-              @change="handleImportFileSelected"
-            />
+            <p class="text-xs text-gray-600 mt-0.5">
+              Import books from a previously exported file. Existing books are skipped, not duplicated.
+            </p>
           </div>
         </div>
       </div>

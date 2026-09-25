@@ -3,6 +3,7 @@
     ref="dialogRef"
     class="bg-white rounded-lg shadow-xl flex flex-col p-0 border-none"
     :class="[contentClass, maxHeightClass]"
+    :style="viewportStyle"
     @click="handleDialogClick"
     @cancel="handleCancel"
   >
@@ -35,7 +36,7 @@
 
 <script setup>
 // 1. Imports
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 
 // 2. Props & Emits
@@ -96,8 +97,18 @@ const emit = defineEmits(['close', 'update:isOpen'])
 
 // 3. Local State
 const dialogRef = ref(null)
+const viewportMaxHeight = ref(null)
+
+const viewportStyle = computed(() => (
+  viewportMaxHeight.value ? { maxHeight: `${viewportMaxHeight.value}px` } : {}
+))
 
 // 4. Methods
+function updateViewportMaxHeight() {
+  if (window.visualViewport) {
+    viewportMaxHeight.value = Math.round(window.visualViewport.height * 0.9)
+  }
+}
 function requestClose() {
   emit('close')
   emit('update:isOpen', false)
@@ -123,6 +134,12 @@ onMounted(() => {
   if (props.isOpen) {
     dialogRef.value.showModal()
   }
+  updateViewportMaxHeight()
+  window.visualViewport?.addEventListener('resize', updateViewportMaxHeight)
+})
+
+onUnmounted(() => {
+  window.visualViewport?.removeEventListener('resize', updateViewportMaxHeight)
 })
 
 watch(() => props.isOpen, (isOpen) => {
