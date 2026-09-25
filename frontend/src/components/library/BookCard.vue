@@ -25,7 +25,7 @@
       <div class="absolute top-0 left-0 z-10 pointer-events-none">
       <div
         class="transition-opacity duration-200 pointer-events-auto opacity-0 group-hover:opacity-100 edit-button"
-        :class="{ 'opacity-100': isEditMode }"
+        :class="{ 'opacity-100': isEditMode || isTouchRevealed }"
       >
         <IconButton
           :icon="PencilIcon"
@@ -174,6 +174,7 @@ const temporaryScoreEdit = useTemporaryScoreEdit(5000)
 const isEditMode = ref(false)
 const cardRef = ref(null)
 const isPickerOpen = ref(false)
+const isTouchRevealed = ref(false)
 const selectedDate = ref(null)
 const previousWasInProgress = ref(false)
 
@@ -273,6 +274,9 @@ function handleScoreUpdate(newScore) {
 }
 
 function handleCardClick(event) {
+  // Reveal the edit button on tap for touch devices (mirrors group-hover on desktop)
+  isTouchRevealed.value = true
+
   // Prevent click from bubbling when in edit mode
   if (isEditMode.value) {
     event.stopPropagation()
@@ -308,6 +312,8 @@ function handleCoverUpdate(coverData) {
 
 // 7. Lifecycle - Composables with side effects
 useClickOutside(cardRef, () => {
+  isTouchRevealed.value = false
+
   if (isEditMode.value) {
     isEditMode.value = false
   }
@@ -335,12 +341,5 @@ useEscapeKey(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   z-index: 10;
   pointer-events: none;
-}
-
-/* Show edit button on mobile without hover */
-@media (hover: none) {
-  .group .edit-button {
-    opacity: 1 !important;
-  }
 }
 </style>

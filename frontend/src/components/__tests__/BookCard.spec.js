@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import BookCard from '../library/BookCard.vue'
@@ -19,8 +19,12 @@ vi.mock('@/composables/useDateHelpers', () => ({
   })
 }))
 
+const { mockUseClickOutside } = vi.hoisted(() => ({
+  mockUseClickOutside: vi.fn()
+}))
+
 vi.mock('@/composables/useClickOutside', () => ({
-  useClickOutside: vi.fn(),
+  useClickOutside: mockUseClickOutside,
   useEscapeKey: vi.fn()
 }))
 
@@ -594,6 +598,40 @@ describe('BookCard', () => {
 
       // Overlay should be gone
       expect(wrapper.find('.absolute.bottom-0').exists()).toBe(false)
+    })
+  })
+
+  describe('Mobile tap-to-reveal edit button', () => {
+    beforeEach(() => {
+      mockUseClickOutside.mockClear()
+    })
+
+    it('is hidden (no opacity-100) before any interaction', () => {
+      const wrapper = createWrapper(inProgressBook)
+
+      expect(wrapper.find('.edit-button').classes()).not.toContain('opacity-100')
+    })
+
+    it('reveals the edit button after tapping the card', async () => {
+      const wrapper = createWrapper(inProgressBook)
+
+      await wrapper.find('.group').trigger('click')
+
+      expect(wrapper.find('.edit-button').classes()).toContain('opacity-100')
+    })
+
+    it('hides the edit button again when useClickOutside fires', async () => {
+      const wrapper = createWrapper(inProgressBook)
+
+      await wrapper.find('.group').trigger('click')
+      expect(wrapper.find('.edit-button').classes()).toContain('opacity-100')
+
+      // useClickOutside(cardRef, callback) -- invoke the registered callback
+      const onOutsideClick = mockUseClickOutside.mock.calls[0][1]
+      onOutsideClick()
+      await nextTick()
+
+      expect(wrapper.find('.edit-button').classes()).not.toContain('opacity-100')
     })
   })
 })
