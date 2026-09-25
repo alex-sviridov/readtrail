@@ -45,18 +45,18 @@ export async function registerUserApi(request, { email, password }) {
 }
 
 /**
- * Locates the user menu trigger in the app header (its accessible name is
- * the user's initials + display name, e.g. "E2 e2e-171...").
+ * Locates the header's Logout button. UserMenu renders it as a plain,
+ * always-visible item (no dropdown to open first).
  */
-export function userMenuButton(page) {
-  return page.locator('header').locator('button[aria-haspopup="true"]');
+export function logoutButton(page) {
+  return page.locator('header').getByRole('button', { name: 'Logout' });
 }
 
 /**
- * Asserts the header shows the authenticated user menu rather than the
- * "Login" link.
+ * Asserts the header shows the authenticated user's items (Logout) rather
+ * than the "Login" link.
  */
 export async function expectLoggedIn(page) {
-  await expect(userMenuButton(page)).toBeVisible();
+  await expect(logoutButton(page)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Login' })).toHaveCount(0);
 }

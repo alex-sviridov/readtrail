@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { generateTestUser, registerUser, registerUserApi, userMenuButton } from './helpers/testUser.js';
+import { generateTestUser, registerUser, registerUserApi, logoutButton } from './helpers/testUser.js';
 import { mockOpenLibrarySearch, addBookManually } from './helpers/books.js';
 
 /** Writes `content` to a fresh temp file and returns its path. */
@@ -85,8 +85,7 @@ test.describe('books export/import (UI)', () => {
     const exportPath = await exportBooks(page);
 
     // Switch accounts: log the first user out, register a second.
-    await userMenuButton(page).click();
-    await page.getByRole('button', { name: 'Logout' }).click();
+    await logoutButton(page).click();
     await expect(page).toHaveURL(/\/login/);
     await registerUser(page, generateTestUser());
 

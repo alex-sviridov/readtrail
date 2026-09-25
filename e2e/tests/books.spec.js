@@ -27,16 +27,18 @@ test("can change a book's rating after adding it", async ({ page }) => {
   await expect(page.getByLabel('Liked')).toHaveCount(0);
   await expect(page.getByLabel('Disliked')).toHaveCount(0);
 
-  // Enter edit mode and dislike it. Rating a book saves immediately and
-  // exits edit mode (the card re-renders from the refetched book list), so
-  // each rating change needs its own "Edit book" click.
+  // Enter edit mode and dislike it. Edit mode stays open after rating (it's
+  // only the display-mode badge, shown when not editing, that carries the
+  // "Disliked" label), so exit edit mode explicitly to see it.
   await page.getByTitle('Edit book').click();
   await page.getByRole('button', { name: 'Dislike', exact: true }).click();
+  await page.getByTitle('Edit book').click();
   await expect(page.getByLabel('Disliked')).toBeVisible();
 
   // Clicking the same rating again clears it.
   await page.getByTitle('Edit book').click();
   await page.getByRole('button', { name: 'Dislike', exact: true }).click();
+  await page.getByTitle('Edit book').click();
   await expect(page.getByLabel('Disliked')).toHaveCount(0);
 });
 
