@@ -82,13 +82,22 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   function updateBookFields(id, updates) {
-    if (!books.value.some((book) => book.id === id)) return false
+    const book = books.value.find((b) => b.id === id)
+    if (!book) return false
+
+    // `attributes` is stored as a single JSON column with no partial-field
+    // update support server-side, so a bare delta (e.g. { isUnfinished })
+    // would replace the whole column and wipe sibling flags (customCover,
+    // score). Merge with the book's current attributes before sending.
+    const mergedUpdates = updates.attributes
+      ? { ...updates, attributes: { ...book.attributes, ...updates.attributes } }
+      : updates
 
     if (isTempId(id)) {
       // The book's create mutation hasn't resolved, so the backend has no
       // record to update — calling it would 404 and roll the edit back.
       // Apply the change to the optimistic cache entry only.
-      applyLocalUpdate(id, updates)
+      applyLocalUpdate(id, mergedUpdates)
       logger.debug(
         '[BooksStore] Edited a book whose create is still pending; the change is local only and will not persist if the create resolves first:',
         id
@@ -97,7 +106,7 @@ export const useBooksStore = defineStore('books', () => {
     }
 
     updateBookMutation.mutate(
-      { id, updates },
+      { id, updates: mergedUpdates },
       {
         onSuccess: () => { lastError.value = null },
         onError: () => {

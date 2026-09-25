@@ -700,6 +700,118 @@ describe('booksApi transformations', () => {
     })
   })
 
+  describe('updateBook (partial updates)', () => {
+    it('does not send author when the update omits it, so it is not wiped server-side', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'book-1',
+          name: 'Book',
+          author: 'Existing Author',
+          cover_url: 'https://example.com/cover.jpg',
+          cover_file: '',
+          read_date: null,
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('book-1', { coverLink: 'https://example.com/cover.jpg' })
+
+      const callArgs = mockCollection.update.mock.calls[0][1]
+      expect(callArgs).not.toHaveProperty('author')
+    })
+
+    it('does not send cover_url when the update omits it, so it is not wiped server-side', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'book-1',
+          name: 'New Title',
+          author: 'Author',
+          cover_url: 'https://example.com/cover.jpg',
+          cover_file: '',
+          read_date: null,
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('book-1', { name: 'New Title' })
+
+      const callArgs = mockCollection.update.mock.calls[0][1]
+      expect(callArgs).not.toHaveProperty('cover_url')
+    })
+
+    it('does not send name when the update omits it', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'book-1',
+          name: 'Existing',
+          author: '',
+          cover_url: '',
+          cover_file: '',
+          read_date: null,
+          attributes: { isUnfinished: true },
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('book-1', { attributes: { isUnfinished: true } })
+
+      const callArgs = mockCollection.update.mock.calls[0][1]
+      expect(callArgs).not.toHaveProperty('name')
+    })
+
+    it('still sends author when the update explicitly includes it', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'book-1',
+          name: 'Book',
+          author: 'New Author',
+          cover_url: '',
+          cover_file: '',
+          read_date: null,
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('book-1', { author: 'New Author' })
+
+      const callArgs = mockCollection.update.mock.calls[0][1]
+      expect(callArgs.author).toBe('New Author')
+    })
+
+    it('does not omit read_date when the update includes year/month', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'book-1',
+          name: 'Book',
+          author: '',
+          cover_url: '',
+          cover_file: '',
+          read_date: '2024-06-01',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('book-1', { year: 2024, month: 6 })
+
+      const callArgs = mockCollection.update.mock.calls[0][1]
+      expect(callArgs.read_date).toBe('2024-06-01')
+    })
+  })
+
   describe('round-trip transformation', () => {
     it('should maintain data integrity through create and retrieve', async () => {
       const originalBook = {
