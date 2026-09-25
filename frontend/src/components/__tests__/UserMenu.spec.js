@@ -41,7 +41,6 @@ async function createTestRouter() {
 
 describe('UserMenu', () => {
   let wrapper
-  let wrappers = []
 
   beforeEach(() => {
     pb.authStore.isValid = false
@@ -51,133 +50,71 @@ describe('UserMenu', () => {
 
   afterEach(() => {
     wrapper?.unmount()
-    wrappers.forEach((w) => w.unmount())
-    wrappers = []
-    document.body.innerHTML = ''
   })
 
   async function mountMenu() {
     const router = await createTestRouter()
     return mount(UserMenu, {
-      attachTo: document.body,
       global: { plugins: [router] }
     })
   }
 
-  describe('authentication state', () => {
-    it('renders the Login link when not authenticated', async () => {
-      pb.authStore.isValid = false
+  describe('guest (not authenticated)', () => {
+    it('renders only a Login link -- no email, no Settings, no Logout', async () => {
       wrapper = await mountMenu()
 
       expect(wrapper.find('a[href="/login"]').exists()).toBe(true)
+      expect(wrapper.find('a[href="/settings"]').exists()).toBe(false)
       expect(wrapper.find('button').exists()).toBe(false)
     })
+  })
 
-    it('renders the avatar button when authenticated', async () => {
+  describe('authenticated', () => {
+    beforeEach(() => {
       pb.authStore.isValid = true
       pb.authStore.record = { name: 'Jane Doe', email: 'jane@example.com' }
+    })
+
+    it('shows the email, a Settings link, and a Logout button as plain items -- not behind any trigger', async () => {
       wrapper = await mountMenu()
 
       expect(wrapper.find('a[href="/login"]').exists()).toBe(false)
-      expect(wrapper.find('button[aria-haspopup="true"]').exists()).toBe(true)
-    })
-  })
+      // No dropdown/popover trigger of any kind
+      expect(wrapper.find('[popover]').exists()).toBe(false)
+      expect(wrapper.find('[aria-haspopup]').exists()).toBe(false)
 
-  describe('opening the menu', () => {
-    beforeEach(() => {
-      pb.authStore.isValid = true
-      pb.authStore.record = { name: 'Jane Doe', email: 'jane@example.com' }
-    })
-
-    it('opens the menu when the avatar button is clicked', async () => {
-      wrapper = await mountMenu()
-      const button = wrapper.get('button[aria-haspopup="true"]')
-      const menu = wrapper.get('.user-menu-popover')
-
-      expect(menu.classes()).toContain('hidden')
-      expect(button.attributes('aria-expanded')).toBe('false')
-
-      await button.trigger('click')
-      // jsdom does not implement the Popover API, so clicking popovertarget won't
-      // actually open the popover or fire a real ToggleEvent. Drive the same code
-      // path the browser would by dispatching a plain Event with a newState
-      // property attached, matching handleToggle's usage.
-      const toggleEvent = new Event('toggle')
-      toggleEvent.newState = 'open'
-      menu.element.dispatchEvent(toggleEvent)
-      await wrapper.vm.$nextTick()
-
-      expect(menu.classes()).not.toContain('hidden')
-      expect(button.attributes('aria-expanded')).toBe('true')
-    })
-  })
-
-  describe('duplicate mounts (regression for duplicate popover ids)', () => {
-    beforeEach(() => {
-      pb.authStore.isValid = true
-      pb.authStore.record = { name: 'Jane Doe', email: 'jane@example.com' }
-    })
-
-    it('gives two simultaneously mounted instances different ids, and only opens the clicked instance', async () => {
-      // useId() is scoped per Vue *app* instance, so this must mount both UserMenu
-      // instances under a single app -- exactly how AppHeader.vue mounts one
-      // desktop and one mobile instance side by side -- for the id collision this
-      // fix addresses to be reproducible at all.
-      const router = await createTestRouter()
-      const Both = {
-        components: { UserMenu },
-        template: '<div><UserMenu ref="a" /><UserMenu ref="b" /></div>'
-      }
-      const both = mount(Both, { attachTo: document.body, global: { plugins: [router] } })
-      wrappers.push(both)
-
-      const menuA = both.findAllComponents(UserMenu)[0].get('.user-menu-popover')
-      const menuB = both.findAllComponents(UserMenu)[1].get('.user-menu-popover')
-      const buttonA = both.findAllComponents(UserMenu)[0].get('button[aria-haspopup="true"]')
-
-      expect(menuA.attributes('id')).toBeTruthy()
-      expect(menuB.attributes('id')).toBeTruthy()
-      expect(menuA.attributes('id')).not.toBe(menuB.attributes('id'))
-      expect(buttonA.attributes('popovertarget')).toBe(menuA.attributes('id'))
-
-      // Simulate instance A's popover opening (browser toggle event) and confirm
-      // instance B is unaffected.
-      const toggleEvent = new Event('toggle')
-      toggleEvent.newState = 'open'
-      menuA.element.dispatchEvent(toggleEvent)
-      await both.vm.$nextTick()
-
-      expect(menuA.classes()).not.toContain('hidden')
-      expect(menuB.classes()).toContain('hidden')
-    })
-  })
-
-  describe('authenticated menu content', () => {
-    beforeEach(() => {
-      pb.authStore.isValid = true
-      pb.authStore.record = { name: 'Jane Doe', email: 'jane@example.com' }
-    })
-
-    it('shows the Settings link and Logout button, and logout calls authManager.logout', async () => {
-      wrapper = await mountMenu()
+      expect(wrapper.text()).toContain('jane@example.com')
 
       const settingsLink = wrapper.find('a[href="/settings"]')
       expect(settingsLink.exists()).toBe(true)
 
-      const buttons = wrapper.findAll('button')
-      const logoutButton = buttons.find((b) => b.text().includes('Logout'))
+      const logoutButton = wrapper.findAll('button').find((b) => b.text().includes('Logout'))
       expect(logoutButton).toBeTruthy()
+    })
 
-      // handleLogout navigates via window.location.href, which jsdom doesn't
-      // implement -- stub it out so the assertion focuses on authManager.logout.
+    it('calls authManager.logout when the Logout button is clicked', async () => {
+      wrapper = await mountMenu()
+
       const originalLocation = window.location
       delete window.location
       window.location = { ...originalLocation, href: '' }
 
+      const logoutButton = wrapper.findAll('button').find((b) => b.text().includes('Logout'))
       await logoutButton.trigger('click')
+
       expect(authManager.logout).toHaveBeenCalled()
 
       window.location = originalLocation
+    })
+
+    it('does not show Logout in remote-user mode', async () => {
+      const { isRemoteUserModeActive } = await import('@/services/remoteUserMode')
+      isRemoteUserModeActive.mockReturnValue(true)
+
+      wrapper = await mountMenu()
+
+      const logoutButton = wrapper.findAll('button').find((b) => b.text().includes('Logout'))
+      expect(logoutButton).toBeFalsy()
     })
   })
 })
