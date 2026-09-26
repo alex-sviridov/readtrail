@@ -53,7 +53,7 @@ onRecordAfterDeleteSuccess((e) => {
   e.next()
 }, "books")
 
-routerAdd("POST", "/api/books/:id/cover", (e) => {
+routerAdd("POST", "/api/books/{id}/cover", (e) => {
   const { resolveCoverImageForBytes } = require(`${__hooks}/coverImagesResolve.js`)
 
   if (!e.auth) {
@@ -80,7 +80,7 @@ routerAdd("POST", "/api/books/:id/cover", (e) => {
   const resolved = resolveCoverImageForBytes($app, bytes)
 
   if (resolved.error) {
-    throw new ApiError(resolved.error.status, resolved.error.message, { code: resolved.error.code })
+    throw new ApiError(resolved.error.status, resolved.error.message, { code: new ValidationError(resolved.error.code, resolved.error.message) })
   }
 
   book.set("cover_image", resolved.id)
