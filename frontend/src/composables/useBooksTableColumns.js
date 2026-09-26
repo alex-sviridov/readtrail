@@ -26,7 +26,8 @@ export function useBooksTableColumns({ emit, openCoverModal, openDateModal }) {
             ? h('div', { class: 'w-10 h-14 rounded shadow-sm hover:shadow-md transition-shadow overflow-hidden' }, [
                 h(CustomBookCover, {
                   title: book.name,
-                  author: book.author
+                  author: book.author,
+                  size: 'compact'
                 })
               ])
             : book.coverLink

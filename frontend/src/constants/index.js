@@ -30,13 +30,21 @@ export const TYPOGRAPHY = {
   TITLE_MAX_FONT_SIZE: 12,
   AUTHOR_MAX_FONT_SIZE: 10,
   TITLE_DEFAULT_SIZE: '12pt',
-  AUTHOR_DEFAULT_SIZE: '10pt'
+  AUTHOR_DEFAULT_SIZE: '10pt',
+  // Used by CustomBookCover's "compact" size (the small table-row thumbnail),
+  // which is too small for the card-sized font range to ever converge.
+  COMPACT_MIN_FONT_SIZE: 4,
+  COMPACT_TITLE_MAX_FONT_SIZE: 6,
+  COMPACT_AUTHOR_MAX_FONT_SIZE: 5
 }
 
 // Layout dimensions
 export const LAYOUT = {
   TITLE_MAX_HEIGHT: 64,
-  AUTHOR_MAX_HEIGHT: 32
+  AUTHOR_MAX_HEIGHT: 32,
+  // Matches the table thumbnail's actual box (w-10 h-14, minus compact padding)
+  COMPACT_TITLE_MAX_HEIGHT: 34,
+  COMPACT_AUTHOR_MAX_HEIGHT: 14
 }
 
 // UI timing
