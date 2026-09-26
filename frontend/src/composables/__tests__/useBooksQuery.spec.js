@@ -3,9 +3,11 @@ import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { booksApi } from '@/services/booksApi'
+import { ensureCoverCached } from '@/services/coverCache'
 import { useBooksQuery, useCreateBook, useUpdateBook, useDeleteBook, BOOKS_QUERY_KEY } from '../useBooksQuery'
 
 vi.mock('@/services/booksApi')
+vi.mock('@/services/coverCache')
 
 function mountWithQuery(setup) {
   const queryClient = new QueryClient({
@@ -30,6 +32,7 @@ function mountWithQuery(setup) {
 describe('useBooksQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ensureCoverCached.mockResolvedValue(null)
   })
 
   it('fetches books via booksApi.getBooks', async () => {
@@ -71,6 +74,35 @@ describe('useBooksQuery', () => {
 
       expect(queryClient.getQueryData(BOOKS_QUERY_KEY)).toEqual([])
     })
+
+    it('patches the cache when ensureCoverCached resolves a cached cover after create', async () => {
+      booksApi.createBook.mockResolvedValue({
+        id: 'b1',
+        name: 'Book',
+        coverLink: 'https://x/y.jpg',
+        hasCachedCover: false
+      })
+      ensureCoverCached.mockResolvedValue({
+        id: 'b1',
+        name: 'Book',
+        hasCachedCover: true,
+        coverDisplayLink: 'https://cached/y.jpg'
+      })
+
+      const { queryClient, result } = mountWithQuery(() => useCreateBook())
+      queryClient.setQueryData(BOOKS_QUERY_KEY, [])
+
+      await result.mutateAsync({ tempId: 'temp-1', book: { name: 'Book', coverLink: 'https://x/y.jpg' } })
+
+      expect(ensureCoverCached).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'b1', coverLink: 'https://x/y.jpg' })
+      )
+
+      await vi.waitFor(() => {
+        const cached = queryClient.getQueryData(BOOKS_QUERY_KEY)
+        expect(cached.find((b) => b.id === 'b1')?.coverDisplayLink).toBe('https://cached/y.jpg')
+      })
+    })
   })
 
   describe('useUpdateBook', () => {
@@ -96,6 +128,35 @@ describe('useBooksQuery', () => {
       ).rejects.toThrow('network error')
 
       expect(queryClient.getQueryData(BOOKS_QUERY_KEY)).toEqual([{ id: '1', name: 'Dune' }])
+    })
+
+    it('patches the cache when ensureCoverCached resolves a cached cover after update', async () => {
+      booksApi.updateBook.mockResolvedValue({
+        id: '1',
+        name: 'Dune',
+        coverLink: 'https://x/y.jpg',
+        hasCachedCover: false
+      })
+      ensureCoverCached.mockResolvedValue({
+        id: '1',
+        name: 'Dune',
+        hasCachedCover: true,
+        coverDisplayLink: 'https://cached/y.jpg'
+      })
+
+      const { queryClient, result } = mountWithQuery(() => useUpdateBook())
+      queryClient.setQueryData(BOOKS_QUERY_KEY, [{ id: '1', name: 'Dune' }])
+
+      await result.mutateAsync({ id: '1', updates: { coverLink: 'https://x/y.jpg' } })
+
+      expect(ensureCoverCached).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '1', coverLink: 'https://x/y.jpg' })
+      )
+
+      await vi.waitFor(() => {
+        const cached = queryClient.getQueryData(BOOKS_QUERY_KEY)
+        expect(cached.find((b) => b.id === '1')?.coverDisplayLink).toBe('https://cached/y.jpg')
+      })
     })
   })
 
