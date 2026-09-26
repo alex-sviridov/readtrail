@@ -72,8 +72,7 @@ function downloadAndValidate(url) {
   return { failed: false, bytes: res.body, mimeType: validation.mimeType }
 }
 
-/** Resolves a book's cover_url into a cover_images record id, or "" if it can't be (never throws). */
-function resolveCoverImageForUrl(app, url) {
+function resolveCoverImageForUrlInner(app, url) {
   const existingByUrl = findByFilter(app, "source_url = {:url}", { url })
   if (existingByUrl) return existingByUrl.id
 
@@ -95,8 +94,18 @@ function resolveCoverImageForUrl(app, url) {
   return record.id
 }
 
-/** Resolves raw uploaded bytes (the client-side-fetch fallback) into a cover_images record id. */
-function resolveCoverImageForBytes(app, bytes) {
+/** Resolves a book's cover_url into a cover_images record id, or "" if it can't be (never throws). */
+function resolveCoverImageForUrl(app, url) {
+  try {
+    return resolveCoverImageForUrlInner(app, url)
+  } catch {
+    // Anything unexpected (e.g. a non-hash-race app.save failure) must not
+    // propagate out — callers rely on this never throwing.
+    return ""
+  }
+}
+
+function resolveCoverImageForBytesInner(app, bytes) {
   const validation = validateImageBytes(bytes)
   if (!validation.valid) {
     return { error: { status: 422, code: validation.code, message: validation.error } }
@@ -115,6 +124,23 @@ function resolveCoverImageForBytes(app, bytes) {
     hash
   })
   return { id: record.id }
+}
+
+/** Resolves raw uploaded bytes (the client-side-fetch fallback) into a cover_images record id. */
+function resolveCoverImageForBytes(app, bytes) {
+  try {
+    return resolveCoverImageForBytesInner(app, bytes)
+  } catch {
+    // Anything unexpected (e.g. a non-hash-race app.save failure) must not
+    // propagate out — callers rely on this never throwing.
+    return {
+      error: {
+        status: 502,
+        code: 'cover_upload_failed',
+        message: 'Failed to process the uploaded image.'
+      }
+    }
+  }
 }
 
 function adjustRefCount(app, id, delta) {
