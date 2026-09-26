@@ -180,9 +180,20 @@ class BooksApi {
     }
 
     try {
-      const pbData = transformBookToPocketBase(book)
+      const { coverFile, ...bookWithoutFile } = book
+      const pbData = transformBookToPocketBase(bookWithoutFile)
       const record = await pb.collection('books').update(id, pbData, { expand: 'cover_image' })
-      return transformBookFromPocketBase(record)
+      let result = transformBookFromPocketBase(record)
+
+      if (coverFile) {
+        try {
+          result = await this.uploadBookCover(id, coverFile)
+        } catch (uploadError) {
+          logger.warn('[BooksApi] Cover upload failed, keeping the live URL:', uploadError)
+        }
+      }
+
+      return result
     } catch (error) {
       throw adaptPocketBaseError(error)
     }

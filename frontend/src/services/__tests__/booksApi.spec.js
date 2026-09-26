@@ -13,7 +13,8 @@ vi.mock('../pocketbase', () => ({
     },
     files: {
       getURL: vi.fn()
-    }
+    },
+    send: vi.fn()
   }
 }))
 
@@ -848,6 +849,84 @@ describe('booksApi transformations', () => {
 
       const callArgs = mockCollection.update.mock.calls[0][1]
       expect(callArgs.read_date).toBe('2024-06-01')
+    })
+  })
+
+  describe('updateBook with a coverFile (Edit Cover modal upload)', () => {
+    it('updates fields first, then uploads the file, and returns the merged result', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'b1',
+          name: 'Book',
+          cover_url: 'https://example.com/x.jpg',
+          cover_image: '',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+      pb.send.mockResolvedValue({
+        id: 'b1',
+        name: 'Book',
+        cover_url: 'https://example.com/x.jpg',
+        cover_image: 'img1',
+        expand: { cover_image: { id: 'img1', file: 'cover.jpg' } },
+        attributes: {},
+        created: '2024-01-01T00:00:00.000Z',
+        updated: '2024-01-01T00:00:00.000Z'
+      })
+      pb.files.getURL.mockReturnValue('https://pb.local/cover.jpg')
+
+      const fakeFile = new File(['x'], 'cover.jpg', { type: 'image/jpeg' })
+      const result = await booksApi.updateBook('b1', { coverLink: 'https://example.com/x.jpg', coverFile: fakeFile })
+
+      expect(mockCollection.update).toHaveBeenCalledWith(
+        'b1',
+        expect.not.objectContaining({ coverFile: expect.anything() }),
+        expect.objectContaining({ expand: 'cover_image' })
+      )
+      expect(pb.send).toHaveBeenCalledWith('/api/books/b1/cover', expect.objectContaining({ method: 'POST' }))
+      expect(result.hasCachedCover).toBe(true)
+      expect(result.coverDisplayLink).toBe('https://pb.local/cover.jpg')
+    })
+
+    it('keeps the plain-update result (a live hotlink) if the cover upload fails', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'b1',
+          name: 'Book',
+          cover_url: 'https://example.com/x.jpg',
+          cover_image: '',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+      pb.send.mockRejectedValue(Object.assign(new Error('fail'), { name: 'ClientResponseError 422', status: 422 }))
+
+      const fakeFile = new File(['x'], 'cover.jpg', { type: 'image/jpeg' })
+      const result = await booksApi.updateBook('b1', { coverLink: 'https://example.com/x.jpg', coverFile: fakeFile })
+
+      expect(result.coverDisplayLink).toBe('https://example.com/x.jpg')
+      expect(result.hasCachedCover).toBe(false)
+    })
+
+    it('does not call uploadBookCover when there is no coverFile', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'b1',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('b1', { name: 'New name' })
+
+      expect(pb.send).not.toHaveBeenCalled()
     })
   })
 
