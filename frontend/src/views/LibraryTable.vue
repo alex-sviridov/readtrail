@@ -96,14 +96,14 @@ const handleUpdateCover = ({ id, coverLink }) => {
 
 // Handle updating book title
 const handleUpdateTitle = ({ id, title }) => {
-  if (title) {
+  if (title !== undefined) {
     booksStore.updateBookFields(id, { name: title })
   }
 }
 
 // Handle updating book author
 const handleUpdateAuthor = ({ id, author }) => {
-  if (author) {
+  if (author !== undefined) {
     booksStore.updateBookFields(id, { author })
   }
 }

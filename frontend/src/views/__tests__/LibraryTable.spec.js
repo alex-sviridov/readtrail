@@ -7,6 +7,7 @@ import LibraryTable from '../LibraryTable.vue'
 import BooksTable from '@/components/library/BooksTable.vue'
 import { booksApi } from '@/services/booksApi'
 import { isGuestMode } from '@/services/guestMode'
+import { useBooksStore } from '@/stores/books'
 
 vi.mock('@/services/booksApi')
 vi.mock('@/services/guestMode')
@@ -35,6 +36,7 @@ describe('LibraryTable View', () => {
     vi.clearAllMocks()
     isGuestMode.mockReturnValue(false)
     booksApi.getBooks.mockResolvedValue(books)
+    booksApi.updateBook.mockImplementation((id, updates) => Promise.resolve({ ...books.find((b) => b.id === id), ...updates }))
     localStorage.clear()
 
     setActivePinia(createPinia())
@@ -78,5 +80,29 @@ describe('LibraryTable View', () => {
     const filtered = wrapper.findComponent(BooksTable).props('books')
     expect(filtered).toHaveLength(1)
     expect(filtered[0].name).toBe('Dune')
+  })
+
+  it('does not drop a title update when cleared to an empty string', async () => {
+    wrapper = mountView()
+    await flushPromises()
+
+    const store = useBooksStore()
+    const spy = vi.spyOn(store, 'updateBookFields')
+
+    await wrapper.findComponent(BooksTable).vm.$emit('update-title', { id: '1', title: '' })
+
+    expect(spy).toHaveBeenCalledWith('1', { name: '' })
+  })
+
+  it('does not drop an author update when cleared to an empty string', async () => {
+    wrapper = mountView()
+    await flushPromises()
+
+    const store = useBooksStore()
+    const spy = vi.spyOn(store, 'updateBookFields')
+
+    await wrapper.findComponent(BooksTable).vm.$emit('update-author', { id: '1', author: '' })
+
+    expect(spy).toHaveBeenCalledWith('1', { author: '' })
   })
 })
