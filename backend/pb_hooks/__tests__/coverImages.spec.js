@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkUrlAllowed, validateImageBytes, MAX_IMAGE_SIZE_BYTES } from '../coverImages.js'
+import { checkUrlAllowed, validateImageBytes, MAX_IMAGE_SIZE_BYTES, diffCoverImageChange, decideCoverImageResolution } from '../coverImages.js'
 
 describe('checkUrlAllowed', () => {
   it('allows a normal https URL', () => {
@@ -101,5 +101,56 @@ describe('validateImageBytes', () => {
 
   it('rejects an empty byte array', () => {
     expect(validateImageBytes([]).valid).toBe(false)
+  })
+})
+
+describe('diffCoverImageChange', () => {
+  it('does nothing when the cover_image is unchanged', () => {
+    expect(diffCoverImageChange('img1', 'img1')).toEqual({ toDecrement: null, toIncrement: null })
+  })
+
+  it('does nothing when both old and new are empty (never had a cover)', () => {
+    expect(diffCoverImageChange('', '')).toEqual({ toDecrement: null, toIncrement: null })
+    expect(diffCoverImageChange(null, null)).toEqual({ toDecrement: null, toIncrement: null })
+  })
+
+  it('increments only when a cover is newly set', () => {
+    expect(diffCoverImageChange('', 'img1')).toEqual({ toDecrement: null, toIncrement: 'img1' })
+  })
+
+  it('decrements only when a cover is cleared', () => {
+    expect(diffCoverImageChange('img1', '')).toEqual({ toDecrement: 'img1', toIncrement: null })
+  })
+
+  it('decrements the old and increments the new when the cover changes', () => {
+    expect(diffCoverImageChange('img1', 'img2')).toEqual({ toDecrement: 'img1', toIncrement: 'img2' })
+  })
+
+  it('handles a book delete with no cover ever set (both null)', () => {
+    // A book delete calls diffCoverImageChange(oldCoverImageId, null/"") —
+    // must not throw or attempt to decrement a non-existent id.
+    expect(diffCoverImageChange('', null)).toEqual({ toDecrement: null, toIncrement: null })
+  })
+})
+
+describe('decideCoverImageResolution', () => {
+  it('reuses an existing row found by url', () => {
+    expect(decideCoverImageResolution({ existingByUrl: { id: 'img1' }, existingByHash: null }))
+      .toEqual({ action: 'reuse', id: 'img1' })
+  })
+
+  it('reuses an existing row found by hash when url missed', () => {
+    expect(decideCoverImageResolution({ existingByUrl: null, existingByHash: { id: 'img2' } }))
+      .toEqual({ action: 'reuse', id: 'img2' })
+  })
+
+  it('prefers the url match when both are present', () => {
+    expect(decideCoverImageResolution({ existingByUrl: { id: 'img1' }, existingByHash: { id: 'img2' } }))
+      .toEqual({ action: 'reuse', id: 'img1' })
+  })
+
+  it('signals create when neither matches', () => {
+    expect(decideCoverImageResolution({ existingByUrl: null, existingByHash: null }))
+      .toEqual({ action: 'create' })
   })
 })

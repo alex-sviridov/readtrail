@@ -130,4 +130,27 @@ function validateImageBytes(bytes) {
   return { valid: true, mimeType }
 }
 
-module.exports = { checkUrlAllowed, validateImageBytes, MAX_IMAGE_SIZE_BYTES }
+function diffCoverImageChange(oldId, newId) {
+  const normalizedOld = oldId || null
+  const normalizedNew = newId || null
+
+  if (normalizedOld === normalizedNew) {
+    return { toDecrement: null, toIncrement: null }
+  }
+
+  return { toDecrement: normalizedOld, toIncrement: normalizedNew }
+}
+
+function decideCoverImageResolution({ existingByUrl, existingByHash }) {
+  if (existingByUrl) return { action: 'reuse', id: existingByUrl.id }
+  if (existingByHash) return { action: 'reuse', id: existingByHash.id }
+  return { action: 'create' }
+}
+
+module.exports = {
+  checkUrlAllowed,
+  validateImageBytes,
+  MAX_IMAGE_SIZE_BYTES,
+  diffCoverImageChange,
+  decideCoverImageResolution
+}
