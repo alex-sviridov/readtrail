@@ -98,15 +98,27 @@ const emit = defineEmits(['close', 'update:isOpen'])
 // 3. Local State
 const dialogRef = ref(null)
 const viewportMaxHeight = ref(null)
+const viewportTop = ref(null)
 
 const viewportStyle = computed(() => (
-  viewportMaxHeight.value ? { maxHeight: `${viewportMaxHeight.value}px` } : {}
+  viewportMaxHeight.value
+    ? { maxHeight: `${viewportMaxHeight.value}px`, top: `${viewportTop.value}px`, margin: '0 auto' }
+    : {}
 ))
 
 // 4. Methods
+// The dialog's default `margin: auto` centers it against the layout
+// viewport, which mobile browsers don't shrink when the on-screen keyboard
+// opens -- only the visual viewport shrinks (and shifts down via
+// offsetTop). Without correcting for that, a modal short enough to fit
+// the visible area can still be positioned partly behind the keyboard.
+// Anchoring `top` to the visual viewport keeps it fully on screen; with no
+// keyboard open, offsetTop is 0 and this matches the normal centered look.
 function updateViewportMaxHeight() {
   if (window.visualViewport) {
-    viewportMaxHeight.value = Math.round(window.visualViewport.height * 0.9)
+    const margin = 8
+    viewportMaxHeight.value = Math.round(window.visualViewport.height - margin * 2)
+    viewportTop.value = Math.round(window.visualViewport.offsetTop + margin)
   }
 }
 function requestClose() {
@@ -136,10 +148,12 @@ onMounted(() => {
   }
   updateViewportMaxHeight()
   window.visualViewport?.addEventListener('resize', updateViewportMaxHeight)
+  window.visualViewport?.addEventListener('scroll', updateViewportMaxHeight)
 })
 
 onUnmounted(() => {
   window.visualViewport?.removeEventListener('resize', updateViewportMaxHeight)
+  window.visualViewport?.removeEventListener('scroll', updateViewportMaxHeight)
 })
 
 watch(() => props.isOpen, (isOpen) => {

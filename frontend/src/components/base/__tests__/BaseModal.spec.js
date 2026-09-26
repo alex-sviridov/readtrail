@@ -261,6 +261,7 @@ describe('BaseModal Component', () => {
       listeners = {}
       window.visualViewport = {
         height: 800,
+        offsetTop: 0,
         addEventListener: vi.fn((event, handler) => { listeners[event] = handler }),
         removeEventListener: vi.fn()
       }
@@ -270,8 +271,9 @@ describe('BaseModal Component', () => {
       window.visualViewport = originalVisualViewport
     })
 
-    function shrinkVisualViewport(height) {
+    function shrinkVisualViewport(height, offsetTop = 0) {
       window.visualViewport.height = height
+      window.visualViewport.offsetTop = offsetTop
       listeners.resize?.()
     }
 
@@ -280,16 +282,36 @@ describe('BaseModal Component', () => {
       await shrinkVisualViewport(400)
       await nextTick()
 
-      expect(wrapper.get('dialog').element.style.maxHeight).toBe('360px')
+      expect(wrapper.get('dialog').element.style.maxHeight).toBe('384px')
     })
 
-    it('stops reacting to visualViewport resize after the dialog unmounts', async () => {
+    it('anchors the dialog top to the visual viewport offset so it stays above the keyboard', async () => {
       wrapper = mountModal()
-      const handler = listeners.resize
+      await shrinkVisualViewport(400, 120)
+      await nextTick()
+
+      expect(wrapper.get('dialog').element.style.top).toBe('128px')
+    })
+
+    it('reacts to visualViewport scroll (keyboard show/hide on some browsers) as well as resize', async () => {
+      wrapper = mountModal()
+      window.visualViewport.height = 400
+      window.visualViewport.offsetTop = 120
+      listeners.scroll?.()
+      await nextTick()
+
+      expect(wrapper.get('dialog').element.style.top).toBe('128px')
+    })
+
+    it('stops reacting to visualViewport resize and scroll after the dialog unmounts', async () => {
+      wrapper = mountModal()
+      const resizeHandler = listeners.resize
+      const scrollHandler = listeners.scroll
       wrapper.unmount()
       wrapper = null
 
-      expect(window.visualViewport.removeEventListener).toHaveBeenCalledWith('resize', handler)
+      expect(window.visualViewport.removeEventListener).toHaveBeenCalledWith('resize', resizeHandler)
+      expect(window.visualViewport.removeEventListener).toHaveBeenCalledWith('scroll', scrollHandler)
     })
   })
 })
