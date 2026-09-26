@@ -13,12 +13,12 @@ onRecordCreate((e) => {
   const { resolveCoverImageForUrl, applyCoverImageChange } = require(`${__hooks}/coverImagesResolve.js`)
 
   const url = e.record.get("cover_url")
-  const newCoverImageId = url ? resolveCoverImageForUrl($app, url) : ""
+  const newCoverImageId = url ? resolveCoverImageForUrl(e.app, url) : ""
 
   e.record.set("cover_image", newCoverImageId)
   e.next()
 
-  applyCoverImageChange($app, "", newCoverImageId)
+  applyCoverImageChange(e.app, "", newCoverImageId)
 }, "books")
 
 onRecordUpdate((e) => {
@@ -31,7 +31,7 @@ onRecordUpdate((e) => {
 
   let newCoverImageId
   if (newCoverUrl !== oldCoverUrl) {
-    newCoverImageId = newCoverUrl ? resolveCoverImageForUrl($app, newCoverUrl) : ""
+    newCoverImageId = newCoverUrl ? resolveCoverImageForUrl(e.app, newCoverUrl) : ""
     e.record.set("cover_image", newCoverImageId)
   } else {
     // cover_url didn't change on this update — cover_image may still have
@@ -41,14 +41,14 @@ onRecordUpdate((e) => {
 
   e.next()
 
-  applyCoverImageChange($app, oldCoverImageId, newCoverImageId)
+  applyCoverImageChange(e.app, oldCoverImageId, newCoverImageId)
 }, "books")
 
 onRecordAfterDeleteSuccess((e) => {
   const { applyCoverImageChange } = require(`${__hooks}/coverImagesResolve.js`)
 
   const oldCoverImageId = e.record.get("cover_image")
-  applyCoverImageChange($app, oldCoverImageId, "")
+  applyCoverImageChange(e.app, oldCoverImageId, "")
 
   e.next()
 }, "books")
@@ -62,7 +62,7 @@ routerAdd("POST", "/api/books/{id}/cover", (e) => {
 
   let book
   try {
-    book = $app.findRecordById("books", e.request.pathValue("id"))
+    book = e.app.findRecordById("books", e.request.pathValue("id"))
   } catch {
     throw new NotFoundError("Book not found")
   }
@@ -76,15 +76,23 @@ routerAdd("POST", "/api/books/{id}/cover", (e) => {
     throw new BadRequestError("Expected a 'file' upload")
   }
 
-  const bytes = toBytes(uploaded[0].reader.open())
-  const resolved = resolveCoverImageForBytes($app, bytes)
+  const fileReader = uploaded[0].reader.open()
+  let bytes
+  try {
+    bytes = toBytes(fileReader)
+  } finally {
+    fileReader.close()
+  }
+
+  const resolved = resolveCoverImageForBytes(e.app, bytes)
 
   if (resolved.error) {
     throw new ApiError(resolved.error.status, resolved.error.message, { code: new ValidationError(resolved.error.code, resolved.error.message) })
   }
 
   book.set("cover_image", resolved.id)
-  $app.save(book)
+  e.app.save(book)
+  e.app.expandRecord(book, ["cover_image"], null)
 
   return e.json(200, book)
 })

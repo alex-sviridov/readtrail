@@ -146,21 +146,27 @@ function resolveCoverImageForBytes(app, bytes) {
 function adjustRefCount(app, id, delta) {
   if (!id) return
 
-  let record
+  // Read-modify-write on a shared row (two requests can touch the same
+  // cover_images row at once, e.g. two users adding the same popular book)
+  // must be atomic, so the find/compute/save-or-delete all happen against
+  // the transaction's own txApp rather than the outer app.
   try {
-    record = app.findRecordById("cover_images", id)
+    app.runInTransaction((txApp) => {
+      const record = txApp.findRecordById("cover_images", id)
+
+      const newCount = (record.get("ref_count") || 0) + delta
+      if (newCount <= 0) {
+        txApp.delete(record)
+        return
+      }
+
+      record.set("ref_count", newCount)
+      txApp.save(record)
+    })
   } catch {
-    return
+    // Row may not exist (already deleted by a concurrent decrement) — a
+    // no-op is the correct outcome, matching the previous non-transactional behavior.
   }
-
-  const newCount = (record.get("ref_count") || 0) + delta
-  if (newCount <= 0) {
-    app.delete(record)
-    return
-  }
-
-  record.set("ref_count", newCount)
-  app.save(record)
 }
 
 /** Applies the ref-count delta for a book's cover_image changing from oldId to newId. Never throws. */
