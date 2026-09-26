@@ -29,11 +29,12 @@ function transformBookFromPocketBase(pbBook) {
     }
   }
 
-  // Determine cover display link: prioritize cover_file over cover_url
+  // Determine cover display link: prefer the shared, deduped cover_image
+  // file over the plain cover_url hotlink.
   let coverDisplayLink = null
-  if (pbBook.cover_file) {
-    // Generate PocketBase file URL
-    coverDisplayLink = pb.files.getURL(pbBook, pbBook.cover_file, {'thumb': '200x300'})
+  const expandedCoverImage = pbBook.expand?.cover_image
+  if (expandedCoverImage) {
+    coverDisplayLink = pb.files.getURL(expandedCoverImage, expandedCoverImage.file, { thumb: '200x300' })
   } else if (pbBook.cover_url) {
     coverDisplayLink = pbBook.cover_url
   }
@@ -44,6 +45,7 @@ function transformBookFromPocketBase(pbBook) {
     author: pbBook.author || null,
     coverLink: pbBook.cover_url || null,
     coverDisplayLink,
+    hasCachedCover: Boolean(pbBook.cover_image),
     year,
     month,
     attributes: {
@@ -57,40 +59,9 @@ function transformBookFromPocketBase(pbBook) {
 }
 
 /**
- * Create FormData from data object
- * @private
- */
-function createFormData(data, file) {
-  const formData = new FormData()
-
-  // Add scalar fields
-  Object.entries(data).forEach(([key, value]) => {
-    if (value === null || value === undefined) return
-
-    const serializedValue = typeof value === 'object'
-      ? JSON.stringify(value)
-      : String(value)
-
-    formData.append(key, serializedValue)
-  })
-
-  // Add file
-  if (file) {
-    formData.append('cover_file', file)
-
-    logger.debug('[BooksApi] FormData created:', {
-      fileName: file.name,
-      fileSize: `${(file.size / 1024).toFixed(1)}KB`
-    })
-  }
-
-  return formData
-}
-
-/**
  * Transform book from store format to PocketBase format
  * @param {Object} storeBook - Book object from store
- * @returns {Object|FormData} Book object in PocketBase format or FormData if file included
+ * @returns {Object} Book object in PocketBase format
  */
 function transformBookToPocketBase(storeBook) {
   // storeBook may be a full book (create) or a partial update -- omit a
@@ -126,10 +97,7 @@ function transformBookToPocketBase(storeBook) {
     }
   }
 
-  // Return FormData if file present, otherwise plain object
-  return storeBook.coverFile
-    ? createFormData(data, storeBook.coverFile)
-    : data
+  return data
 }
 
 /**
@@ -149,7 +117,8 @@ class BooksApi {
       // Fetch all books for the authenticated user
       // PocketBase automatically filters by owner based on auth token
       const result = await pb.collection('books').getList(1, 500, {
-        sort: '-created'
+        sort: '-created',
+        expand: 'cover_image'
       })
 
       return result.items.map(transformBookFromPocketBase)
@@ -171,7 +140,7 @@ class BooksApi {
     requireAuth('fetch individual books')
 
     try {
-      const record = await pb.collection('books').getOne(id)
+      const record = await pb.collection('books').getOne(id, { expand: 'cover_image' })
       return transformBookFromPocketBase(record)
     } catch (error) {
       throw adaptPocketBaseError(error)
@@ -190,7 +159,7 @@ class BooksApi {
 
     try {
       const pbData = transformBookToPocketBase(book)
-      const record = await pb.collection('books').create(pbData)
+      const record = await pb.collection('books').create(pbData, { expand: 'cover_image' })
       return transformBookFromPocketBase(record)
     } catch (error) {
       throw adaptPocketBaseError(error)
@@ -212,11 +181,24 @@ class BooksApi {
 
     try {
       const pbData = transformBookToPocketBase(book)
-      const record = await pb.collection('books').update(id, pbData)
+      const record = await pb.collection('books').update(id, pbData, { expand: 'cover_image' })
       return transformBookFromPocketBase(record)
     } catch (error) {
       throw adaptPocketBaseError(error)
     }
+  }
+
+  /**
+   * Upload a custom cover image for a book (fetch fallback endpoint)
+   * @param {string} id - Book ID
+   * @param {File|Blob} file - Cover image file
+   * @returns {Promise<Object>} Updated book object
+   */
+  async uploadBookCover(id, file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const record = await pb.send(`/api/books/${id}/cover`, { method: 'POST', body: formData })
+    return transformBookFromPocketBase(record)
   }
 
   /**
