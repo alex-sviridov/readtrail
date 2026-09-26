@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-0 flex items-center overflow-hidden px-2 py-1"
+    class="min-h-[1.5rem] flex items-center overflow-hidden px-2 py-1"
     :class="containerClasses"
   >
     <component
@@ -10,8 +10,10 @@
       :class="textClasses"
       :style="{ fontSize: fontSize }"
       :contenteditable="isEditing"
+      :data-placeholder="placeholderText"
       @click="props.editable && !isEditing && startEditing()"
       @keydown.enter.prevent="stopEditingAndEmit"
+      @keydown.escape.prevent="cancelEditing"
       @blur="stopEditingAndEmit"
       @input="handleInput"
     >
@@ -79,7 +81,8 @@ const containerClasses = computed(() => {
 const textClasses = computed(() => {
   const baseClasses = {
     'hover:bg-gray-100 cursor-pointer': props.editable && !isEditing.value,
-    'border-b border-blue-500 bg-blue-50': isEditing.value
+    'border-b border-blue-500 bg-blue-50': isEditing.value,
+    'et-placeholder': props.editable
   }
 
   const variantClasses = props.variant === 'title'
@@ -89,6 +92,8 @@ const textClasses = computed(() => {
   return [baseClasses, variantClasses]
 })
 
+const placeholderText = computed(() => (props.variant === 'title' ? 'Untitled' : 'Add author'))
+
 // Use the contenteditable composable
 const {
   isEditing,
@@ -96,6 +101,7 @@ const {
   fontSize,
   startEditing,
   stopEditingAndEmit,
+  cancelEditing,
   handleInput,
   updateContent
 } = useContentEditable({
@@ -115,3 +121,14 @@ watch(
   { immediate: true }
 )
 </script>
+
+<style scoped>
+/* :empty (not props.value) so the placeholder disappears the instant the
+   user types a real character, and reappears live if they clear it back out
+   — both happen inside the contenteditable DOM before any prop round-trip. */
+.et-placeholder:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+}
+</style>

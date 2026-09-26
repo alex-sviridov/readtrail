@@ -273,7 +273,7 @@ describe('useContentEditable', () => {
       expect(onUpdate).not.toHaveBeenCalled()
     })
 
-    it('should not call onUpdate when content is empty', () => {
+    it('should call onUpdate with an empty string when content is cleared', () => {
       const onUpdate = vi.fn()
       const TestComponent = defineComponent({
         setup() {
@@ -290,19 +290,19 @@ describe('useContentEditable', () => {
 
       wrapper.vm.editable.stopEditingAndEmit()
 
-      expect(onUpdate).not.toHaveBeenCalled()
+      expect(onUpdate).toHaveBeenCalledWith('')
     })
 
-    it('should reset to original content when empty', () => {
+    it('should not call onUpdate when clearing a field that was already empty', () => {
       const onUpdate = vi.fn()
       const TestComponent = defineComponent({
         setup() {
           const editable = useContentEditable({ onUpdate })
           editable.isEditing.value = true
-          editable.currentContent.value = 'Original Content'
+          editable.currentContent.value = ''
           return { editable }
         },
-        template: '<div :ref="el => { if (editable.elementRef) editable.elementRef.value = el }">Original Content</div>'
+        template: '<div :ref="el => { if (editable.elementRef) editable.elementRef.value = el }"></div>'
       })
 
       wrapper = mount(TestComponent)
@@ -310,7 +310,7 @@ describe('useContentEditable', () => {
 
       wrapper.vm.editable.stopEditingAndEmit()
 
-      expect(wrapper.vm.editable.elementRef.value.textContent).toBe('Original Content')
+      expect(onUpdate).not.toHaveBeenCalled()
     })
 
     it('should trim whitespace from new content', () => {
@@ -351,6 +351,68 @@ describe('useContentEditable', () => {
 
       // Should not update when not editing
       expect(onUpdate).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('cancelEditing', () => {
+    it('should set isEditing to false without emitting an update', () => {
+      const onUpdate = vi.fn()
+      const TestComponent = defineComponent({
+        setup() {
+          const editable = useContentEditable({ onUpdate })
+          editable.isEditing.value = true
+          editable.currentContent.value = 'Original Content'
+          return { editable }
+        },
+        template: '<div :ref="el => { if (editable.elementRef) editable.elementRef.value = el }">Edited but not saved</div>'
+      })
+
+      wrapper = mount(TestComponent)
+      wrapper.vm.editable.elementRef.value.textContent = 'Edited but not saved'
+
+      wrapper.vm.editable.cancelEditing()
+
+      expect(wrapper.vm.editable.isEditing.value).toBe(false)
+      expect(onUpdate).not.toHaveBeenCalled()
+    })
+
+    it('should revert the element text back to the original content', () => {
+      const TestComponent = defineComponent({
+        setup() {
+          const editable = useContentEditable()
+          editable.isEditing.value = true
+          editable.currentContent.value = 'Original Content'
+          return { editable }
+        },
+        template: '<div :ref="el => { if (editable.elementRef) editable.elementRef.value = el }">Original Content</div>'
+      })
+
+      wrapper = mount(TestComponent)
+      wrapper.vm.editable.elementRef.value.textContent = ''
+
+      wrapper.vm.editable.cancelEditing()
+
+      expect(wrapper.vm.editable.elementRef.value.textContent).toBe('Original Content')
+    })
+
+    it('should do nothing if not currently editing', () => {
+      const onUpdate = vi.fn()
+      const TestComponent = defineComponent({
+        setup() {
+          const editable = useContentEditable({ onUpdate })
+          editable.isEditing.value = false
+          editable.currentContent.value = 'Original Content'
+          return { editable }
+        },
+        template: '<div :ref="el => { if (editable.elementRef) editable.elementRef.value = el }">Original Content</div>'
+      })
+
+      wrapper = mount(TestComponent)
+      wrapper.vm.editable.elementRef.value.textContent = 'Something else'
+
+      wrapper.vm.editable.cancelEditing()
+
+      expect(wrapper.vm.editable.elementRef.value.textContent).toBe('Something else')
     })
   })
 

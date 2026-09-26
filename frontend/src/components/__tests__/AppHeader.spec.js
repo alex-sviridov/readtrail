@@ -74,6 +74,23 @@ describe('AppHeader mobile menu', () => {
       pb.authStore.record = { name: 'Jane Doe', email: 'jane@example.com' }
     })
 
+    it('shows the user email in the mobile menu, like the desktop UserMenu does', async () => {
+      wrapper = await mountWithRouter()
+      await wrapper.get('button[aria-label="Toggle menu"]').trigger('click')
+      const panel = wrapper.findAll('div').find(div => div.classes().includes('md:hidden') && div.classes().includes('border-t'))
+
+      expect(panel.text()).toContain('jane@example.com')
+    })
+
+    it('indents Settings/Logout the same as Library/Statistics (no extra wrapper padding)', async () => {
+      wrapper = await mountWithRouter()
+      await wrapper.get('button[aria-label="Toggle menu"]').trigger('click')
+      const panel = wrapper.findAll('div').find(div => div.classes().includes('md:hidden') && div.classes().includes('border-t'))
+
+      const settingsLink = panel.get('a[href="/settings"]')
+      expect(settingsLink.element.parentElement.classList.contains('px-3')).toBe(false)
+    })
+
     it('styles mobile Settings and Logout the same as the other mobile nav items', async () => {
       wrapper = await mountWithRouter()
       await wrapper.get('button[aria-label="Toggle menu"]').trigger('click')

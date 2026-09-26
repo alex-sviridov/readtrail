@@ -1,7 +1,7 @@
 <template>
   <div
-    class="relative w-full aspect-[2/3] bg-gradient-to-br from-blue-500 to-purple-600 rounded-t-lg overflow-hidden flex flex-col items-center justify-center text-white"
-    :class="isCompact ? 'p-1' : 'p-4'"
+    class="relative w-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-t-lg overflow-hidden flex flex-col items-center justify-center text-white"
+    :class="isCompact ? 'h-full p-1' : 'aspect-[2/3] p-4'"
     :style="coverStyle"
   >
     <!-- Book Title -->
