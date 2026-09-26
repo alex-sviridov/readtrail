@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkUrlAllowed } from '../coverImages.js'
+import { checkUrlAllowed, validateImageBytes, MAX_IMAGE_SIZE_BYTES } from '../coverImages.js'
 
 describe('checkUrlAllowed', () => {
   it('allows a normal https URL', () => {
@@ -58,5 +58,48 @@ describe('checkUrlAllowed', () => {
 
   it('allows a normal public hostname that merely contains digits', () => {
     expect(checkUrlAllowed('https://img101.example.com/x.jpg').allowed).toBe(true)
+  })
+})
+
+const PNG_HEADER = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+const JPEG_HEADER = [0xFF, 0xD8, 0xFF]
+
+function bytesOf(header, totalLength = header.length) {
+  const bytes = new Array(totalLength).fill(0)
+  header.forEach((b, i) => { bytes[i] = b })
+  return bytes
+}
+
+describe('validateImageBytes', () => {
+  it('accepts a valid PNG', () => {
+    const result = validateImageBytes(bytesOf(PNG_HEADER, 100))
+    expect(result).toEqual({ valid: true, mimeType: 'image/png' })
+  })
+
+  it('accepts a valid JPEG', () => {
+    const result = validateImageBytes(bytesOf(JPEG_HEADER, 100))
+    expect(result).toEqual({ valid: true, mimeType: 'image/jpeg' })
+  })
+
+  it('rejects bytes over the size cap', () => {
+    const result = validateImageBytes(bytesOf(PNG_HEADER, MAX_IMAGE_SIZE_BYTES + 1))
+    expect(result).toEqual({
+      valid: false,
+      code: 'cover_too_large',
+      error: 'Image is too large (max 512KB).'
+    })
+  })
+
+  it('rejects bytes matching no known image signature', () => {
+    const result = validateImageBytes(bytesOf([0x00, 0x01, 0x02, 0x03], 20))
+    expect(result).toEqual({
+      valid: false,
+      code: 'cover_invalid_format',
+      error: "That doesn't look like a supported image (JPEG, PNG, GIF, WebP, BMP)."
+    })
+  })
+
+  it('rejects an empty byte array', () => {
+    expect(validateImageBytes([]).valid).toBe(false)
   })
 })

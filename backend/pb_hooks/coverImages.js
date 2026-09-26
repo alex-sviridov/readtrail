@@ -79,4 +79,55 @@ function checkUrlAllowed(urlString) {
   return { allowed: true }
 }
 
-module.exports = { checkUrlAllowed }
+const MAX_IMAGE_SIZE_BYTES = 512 * 1024
+
+const IMAGE_MAGIC_BYTES = {
+  'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+  'image/png': [[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]],
+  'image/gif': [
+    [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
+    [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
+  ],
+  'image/webp': [[0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50]],
+  'image/bmp': [[0x42, 0x4D]]
+}
+
+function matchesMagicBytes(bytes, signature) {
+  if (bytes.length < signature.length) return false
+
+  for (let i = 0; i < signature.length; i++) {
+    if (signature[i] !== null && bytes[i] !== signature[i]) return false
+  }
+
+  return true
+}
+
+function sniffImageMimeType(bytes) {
+  for (const [mimeType, signatures] of Object.entries(IMAGE_MAGIC_BYTES)) {
+    if (signatures.some((sig) => matchesMagicBytes(bytes, sig))) return mimeType
+  }
+  return null
+}
+
+function validateImageBytes(bytes) {
+  if (!bytes || bytes.length === 0 || bytes.length > MAX_IMAGE_SIZE_BYTES) {
+    return {
+      valid: false,
+      code: 'cover_too_large',
+      error: `Image is too large (max ${MAX_IMAGE_SIZE_BYTES / 1024}KB).`
+    }
+  }
+
+  const mimeType = sniffImageMimeType(bytes)
+  if (!mimeType) {
+    return {
+      valid: false,
+      code: 'cover_invalid_format',
+      error: "That doesn't look like a supported image (JPEG, PNG, GIF, WebP, BMP)."
+    }
+  }
+
+  return { valid: true, mimeType }
+}
+
+module.exports = { checkUrlAllowed, validateImageBytes, MAX_IMAGE_SIZE_BYTES }
