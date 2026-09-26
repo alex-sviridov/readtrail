@@ -120,7 +120,11 @@ same split established for `bookSearch.js`/`bookSearch.pb.js`.
 This is the only place a hard failure needs to reach the user — the
 create/update path degrades silently (see point 4 above).
 
-| situation | status | `data.code` | message |
+Errors serialize as a PocketBase `ValidationError`, nested under
+`data.code` as `{code, message}` (PocketBase's standard per-field
+validation-error shape), not a flat `data.code` string:
+
+| situation | status | `data.code.code` | `data.code.message` |
 |---|---|---|---|
 | upload fails size cap | 422 | `cover_too_large` | "Image is too large (max 512KB)." |
 | upload fails MIME/magic-byte validation | 422 | `cover_invalid_format` | "That doesn't look like a supported image (JPEG, PNG, GIF, WebP, BMP)." |
@@ -192,3 +196,44 @@ implementation task should prove this** — hash a real image and compare
 against a known-good SHA-256 — before the rest of the feature is built on
 it. If it isn't byte-safe, fall back to shelling out via `$os.exec` to
 compute the hash instead.
+
+## Known limitations (found during final review)
+
+- **Nested error shape**: the `/cover` error table above originally implied
+  a flat `data.code` string; the actual PocketBase `ValidationError`
+  serialization nests it as `data.code.code`/`data.code.message`. Confirmed
+  non-load-bearing — nothing in the current frontend reads this field.
+- **No request-scoped opt-out for bulk paths**: `/api/books/import` and
+  guest-to-account migration's `batchCreateBooks` both trigger a synchronous
+  server-side download per book, which can add meaningful latency to a
+  bulk import or a migration-then-redirect for a user with many books.
+  Accepted for now; a future improvement could skip resolution for bulk
+  paths or resolve lazily.
+- **No download-time size cap**: `validateImageBytes` only checks size
+  after `$http.send` has already buffered the full response body, so an
+  oversized response is downloaded in full before being rejected. Accepted
+  given this app's trusted, small-scale threat model, same reasoning as the
+  SSRF guardrails' other accepted residual risks.
+- **Orphaned rows on book validation failure**: a `cover_images` row
+  created during a book create/update that then fails PocketBase's own
+  field validation (e.g. a bad `read_date`) can be left at `ref_count: 0`
+  forever, since nothing decrements a row that was never actually attached
+  to a saved book. Low-impact at this app's scale; not fixed now.
+- **Rare TOCTOU on reuse**: a book can resolve to reusing an existing
+  `cover_images` row that a concurrent request deletes (ref count hits
+  zero) before the book's own save completes, potentially leaving a
+  dangling relation. Mostly mitigated by making ref-count updates
+  transactional; residual risk accepted.
+- **Edit Cover modal still hits server-side resolution**: sending
+  `cover_url` in the plain update before separately uploading the
+  client-fetched file means this flow also triggers a server-side download
+  attempt, though the design originally said it would skip server-side
+  resolution. Harmless in practice (results get deduped, ref counts stay
+  balanced) but adds latency and redundant work. Accepted; revisit only if
+  it proves to matter.
+- **Upload failures aren't surfaced to the user**: `/cover` upload
+  failures are logged client-side but never shown as a user-facing error,
+  even though the original design implied they'd be human-readable
+  failures. The client pre-validates the same way, so this path is rare.
+  Accepted for now; a future UI pass could surface it in the Edit Cover
+  modal.
