@@ -15,11 +15,27 @@ const PRIVATE_IPV4_RANGES = [
 ]
 
 function parseUrl(urlString) {
-  const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/(\[[^\]]+\]|[^/:?#]+)(?::\d+)?/.exec(urlString)
+  const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([^/?#]*)(?::\d+)?(?:[/?#].*)?$/.exec(urlString)
   if (!match) return null
 
   const scheme = match[1].toLowerCase()
-  let hostname = match[2]
+  let authority = match[2]
+
+  // Reject any URL with embedded userinfo (user:pass@host) outright rather
+  // than trying to strip it and parse the host that follows — this app has
+  // no legitimate reason to fetch a cover URL with embedded credentials,
+  // and naively taking "everything after @" as the host is exactly what
+  // let `http://x@127.0.0.1/` and `http://u:p@10.0.0.1/` slip past the
+  // private-IP checks below (the checks ran against "x" / "u", not the
+  // real, private host after the @).
+  if (authority.includes('@')) return null
+
+  let hostname = authority
+  // Re-extract just the host portion (strip a bracketed IPv6 literal's
+  // brackets, and any trailing :port that the outer regex's lookahead
+  // didn't already separate out because the host itself contains a colon).
+  const hostMatch = /^(\[[^\]]+\]|[^:]+)/.exec(hostname)
+  if (hostMatch) hostname = hostMatch[1]
   if (hostname.startsWith('[') && hostname.endsWith(']')) {
     hostname = hostname.slice(1, -1)
   }
@@ -110,7 +126,15 @@ function sniffImageMimeType(bytes) {
 }
 
 function validateImageBytes(bytes) {
-  if (!bytes || bytes.length === 0 || bytes.length > MAX_IMAGE_SIZE_BYTES) {
+  if (!bytes || bytes.length === 0) {
+    return {
+      valid: false,
+      code: 'cover_invalid_format',
+      error: "That doesn't look like a supported image (JPEG, PNG, GIF, WebP, BMP)."
+    }
+  }
+
+  if (bytes.length > MAX_IMAGE_SIZE_BYTES) {
     return {
       valid: false,
       code: 'cover_too_large',

@@ -59,6 +59,11 @@ describe('checkUrlAllowed', () => {
   it('allows a normal public hostname that merely contains digits', () => {
     expect(checkUrlAllowed('https://img101.example.com/x.jpg').allowed).toBe(true)
   })
+
+  it('rejects urls with userinfo instead of being fooled into checking the userinfo as the host', () => {
+    expect(checkUrlAllowed('http://x@127.0.0.1/').allowed).toBe(false)
+    expect(checkUrlAllowed('http://u:p@10.0.0.1/').allowed).toBe(false)
+  })
 })
 
 const PNG_HEADER = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
@@ -99,8 +104,12 @@ describe('validateImageBytes', () => {
     })
   })
 
-  it('rejects an empty byte array', () => {
-    expect(validateImageBytes([]).valid).toBe(false)
+  it('rejects an empty byte array with an invalid-format error, not a too-large one', () => {
+    expect(validateImageBytes([])).toEqual({
+      valid: false,
+      code: 'cover_invalid_format',
+      error: "That doesn't look like a supported image (JPEG, PNG, GIF, WebP, BMP)."
+    })
   })
 })
 
