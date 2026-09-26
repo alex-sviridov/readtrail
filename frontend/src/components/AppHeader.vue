@@ -1,8 +1,11 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import SyncStatusIndicator from '@/components/SyncStatusIndicator.vue'
 import UserMenu from '@/components/UserMenu.vue'
+import { authManager } from '@/services/auth'
+import { isRemoteUserModeActive } from '@/services/remoteUserMode'
+import pb from '@/services/pocketbase'
 
 const route = useRoute()
 const mobileMenuOpen = ref(false)
@@ -18,6 +21,29 @@ const isStatisticsActive = computed(() => {
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false
 }
+
+// Mirrors UserMenu.vue's auth state, so the mobile menu can style its own
+// Settings/Logout items to match the other mobile nav items.
+const canLogout = !isRemoteUserModeActive()
+const authState = ref(pb.authStore.isValid)
+const isAuthenticated = computed(() => authState.value)
+
+async function handleMobileLogout() {
+  closeMobileMenu()
+  await authManager.logout()
+  window.location.href = '/login'
+}
+
+let unsubscribe
+onMounted(() => {
+  unsubscribe = pb.authStore.onChange(() => {
+    authState.value = pb.authStore.isValid
+  })
+})
+
+onUnmounted(() => {
+  unsubscribe?.()
+})
 </script>
 
 <template>
@@ -109,9 +135,34 @@ const closeMobileMenu = () => {
           </nav>
 
           <!-- Mobile Actions -->
-          <div class="flex items-center gap-3 px-3 py-2 border-t border-gray-200 pt-4">
-            <SyncStatusIndicator />
-            <UserMenu />
+          <div class="flex flex-col gap-3 px-3 py-2 border-t border-gray-200 pt-4">
+            <RouterLink
+              v-if="isAuthenticated"
+              to="/settings"
+              class="text-base font-medium py-2 px-3 rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              @click="closeMobileMenu"
+            >
+              Settings
+            </RouterLink>
+            <button
+              v-if="isAuthenticated && canLogout"
+              type="button"
+              @click="handleMobileLogout"
+              class="text-base font-medium py-2 px-3 rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 text-left"
+            >
+              Logout
+            </button>
+            <RouterLink
+              v-if="!isAuthenticated"
+              to="/login"
+              class="text-base font-medium py-2 px-3 rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              @click="closeMobileMenu"
+            >
+              Login
+            </RouterLink>
+            <div class="flex items-center px-3">
+              <SyncStatusIndicator />
+            </div>
           </div>
         </div>
       </Transition>

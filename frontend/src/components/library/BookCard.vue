@@ -83,7 +83,6 @@
         />
 
         <EditableText
-          v-if="book.author"
           :value="book.author"
           as="p"
           variant="author"
@@ -105,7 +104,7 @@
       />
 
       <EditableText
-        v-if="settingsStore.settings.showBookInfo && book.author"
+        v-if="settingsStore.settings.showBookInfo"
         :value="book.author"
         as="p"
         variant="author"
@@ -288,13 +287,13 @@ function handleDelete() {
 }
 
 function handleTitleUpdate(title) {
-  if (title) {
+  if (title !== undefined) {
     booksStore.updateBookFields(props.book.id, { name: title })
   }
 }
 
 function handleAuthorUpdate(author) {
-  if (author) {
+  if (author !== undefined) {
     booksStore.updateBookFields(props.book.id, { author })
   }
 }

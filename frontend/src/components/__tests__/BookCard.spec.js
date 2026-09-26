@@ -245,6 +245,26 @@ describe('BookCard', () => {
       expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { author: 'Updated Author' })
     })
 
+    it('clears author when EditableText emits an empty string', async () => {
+      const wrapper = createWrapper(inProgressBook)
+
+      const authorComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'author')
+      await authorComponent.vm.$emit('update', '')
+      await nextTick()
+
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { author: '' })
+    })
+
+    it('clears title when EditableText emits an empty string', async () => {
+      const wrapper = createWrapper(inProgressBook)
+
+      const titleComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'title')
+      await titleComponent.vm.$emit('update', '')
+      await nextTick()
+
+      expect(mockBooksStore.updateBookFields).toHaveBeenCalledWith('1', { name: '' })
+    })
+
     it('updates cover when BookCover emits update', async () => {
       const wrapper = createWrapper(inProgressBook)
 
@@ -534,7 +554,7 @@ describe('BookCard', () => {
       expect(authorComponent.props('editable')).toBe(true)
     })
 
-    it('overlay only shows title when author is missing', async () => {
+    it('overlay shows both title and author fields even when author is missing', async () => {
       const bookWithoutAuthor = { ...inProgressBook, author: null }
       const wrapper = createWrapper(bookWithoutAuthor, { showBookInfo: false })
 
@@ -543,10 +563,23 @@ describe('BookCard', () => {
       await editIcon.vm.$emit('click')
       await nextTick()
 
-      // Should only have title EditableText
+      // Author field should still render (empty) so it can be filled in
       const editableTexts = wrapper.findAllComponents(EditableText)
-      expect(editableTexts.length).toBe(1)
-      expect(editableTexts[0].props('variant')).toBe('title')
+      expect(editableTexts.length).toBe(2)
+
+      const authorComponent = editableTexts.find(c => c.props('variant') === 'author')
+      expect(authorComponent).toBeDefined()
+      expect(authorComponent.props('value')).toBe(null)
+      expect(authorComponent.props('editable')).toBe(true)
+    })
+
+    it('card content shows author field even when author is missing', () => {
+      const bookWithoutAuthor = { ...inProgressBook, author: null }
+      const wrapper = createWrapper(bookWithoutAuthor, { showBookInfo: true })
+
+      const authorComponent = wrapper.findAllComponents(EditableText).find(c => c.props('variant') === 'author')
+      expect(authorComponent).toBeDefined()
+      expect(authorComponent.props('value')).toBe(null)
     })
 
     it('updates title through overlay', async () => {
