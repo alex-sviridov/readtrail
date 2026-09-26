@@ -6,8 +6,9 @@
 // skipped on import rather than duplicated or overwritten — full conflict
 // resolution (merge/overwrite) is left for a future iteration.
 //
-// cover_file (an uploaded binary) intentionally does not travel through
-// export/import — only cover_url does.
+// cover_url travels through export/import, but the cached cover_images file
+// it resolves to does not — a re-import re-resolves cover_url through the
+// normal onRecordCreate caching path instead of carrying the cached bytes.
 
 routerAdd("GET", "/api/books/export", (e) => {
   if (!e.auth) {

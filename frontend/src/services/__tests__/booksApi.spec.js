@@ -13,7 +13,8 @@ vi.mock('../pocketbase', () => ({
     },
     files: {
       getURL: vi.fn()
-    }
+    },
+    send: vi.fn()
   }
 }))
 
@@ -75,6 +76,7 @@ describe('booksApi transformations', () => {
         author: 'Test Author',
         coverLink: 'https://example.com/cover.jpg',
         coverDisplayLink: 'https://example.com/cover.jpg',
+        hasCachedCover: false,
         year: 2024,
         month: 3,
         attributes: {
@@ -183,20 +185,21 @@ describe('booksApi transformations', () => {
       expect(result.month).toBeNull()
     })
 
-    it('should prioritize cover_file over cover_url for coverDisplayLink', async () => {
+    it('prefers the expanded cover_image file over cover_url for display', async () => {
       const pbBook = {
         id: 'test-id',
         name: 'Book',
         author: '',
         cover_url: 'https://example.com/url-cover.jpg',
-        cover_file: 'file123.jpg',
+        cover_image: 'img1',
+        expand: { cover_image: { id: 'img1', file: 'cover.jpg' } },
         read_date: null,
         attributes: {},
         created: '2024-01-01T00:00:00.000Z',
         updated: '2024-01-01T00:00:00.000Z'
       }
 
-      pb.files.getURL.mockReturnValue('https://pb.example.com/files/test-id/file123_thumb.jpg')
+      pb.files.getURL.mockReturnValue('https://pb.example.com/files/cover_images/img1/cover.jpg')
 
       const mockCollection = {
         getOne: vi.fn().mockResolvedValue(pbBook)
@@ -206,17 +209,18 @@ describe('booksApi transformations', () => {
       const result = await booksApi.getBook('test-id')
 
       expect(result.coverLink).toBe('https://example.com/url-cover.jpg')
-      expect(result.coverDisplayLink).toBe('https://pb.example.com/files/test-id/file123_thumb.jpg')
-      expect(pb.files.getURL).toHaveBeenCalledWith(pbBook, 'file123.jpg', { thumb: '200x300' })
+      expect(result.coverDisplayLink).toBe('https://pb.example.com/files/cover_images/img1/cover.jpg')
+      expect(result.hasCachedCover).toBe(true)
+      expect(pb.files.getURL).toHaveBeenCalledWith(pbBook.expand.cover_image, 'cover.jpg', { thumb: '200x300' })
     })
 
-    it('should use cover_url for coverDisplayLink when no cover_file', async () => {
+    it('falls back to cover_url when there is no cached cover_image', async () => {
       const pbBook = {
         id: 'test-id',
         name: 'Book',
         author: '',
         cover_url: 'https://example.com/cover.jpg',
-        cover_file: '',
+        cover_image: '',
         read_date: null,
         attributes: {},
         created: '2024-01-01T00:00:00.000Z',
@@ -231,6 +235,7 @@ describe('booksApi transformations', () => {
       const result = await booksApi.getBook('test-id')
 
       expect(result.coverDisplayLink).toBe('https://example.com/cover.jpg')
+      expect(result.hasCachedCover).toBe(false)
       expect(pb.files.getURL).not.toHaveBeenCalled()
     })
 
@@ -407,7 +412,7 @@ describe('booksApi transformations', () => {
           score: 1
         },
         owner: 'test-user-id'
-      })
+      }, { expand: 'cover_image' })
     })
 
     it('should convert year and month to read_date with zero-padding', async () => {
@@ -666,7 +671,7 @@ describe('booksApi transformations', () => {
       expect(callArgs.owner).toBe('test-user-id')
     })
 
-    it('should handle FormData when coverFile is present', async () => {
+    it('sends a plain object, never FormData, to pb.collection().create, even when coverFile is present', async () => {
       const mockFile = new File(['test'], 'cover.jpg', { type: 'image/jpeg' })
       const storeBook = {
         name: 'Book',
@@ -684,7 +689,6 @@ describe('booksApi transformations', () => {
           name: 'Book',
           author: 'Author',
           cover_url: '',
-          cover_file: 'generated_file_name.jpg',
           read_date: '2024-06-01',
           attributes: {},
           created: '2024-01-01T00:00:00.000Z',
@@ -696,7 +700,43 @@ describe('booksApi transformations', () => {
       await booksApi.createBook(storeBook)
 
       const callArgs = mockCollection.create.mock.calls[0][0]
-      expect(callArgs instanceof FormData).toBe(true)
+      expect(callArgs).not.toBeInstanceOf(FormData)
+      expect(callArgs).toEqual(expect.objectContaining({ name: 'Book', author: 'Author' }))
+    })
+
+    it('requests the cover_image expand on getBooks/getBook/createBook/updateBook', async () => {
+      const mockCollection = {
+        getList: vi.fn().mockResolvedValue({ items: [] }),
+        getOne: vi.fn().mockResolvedValue({ id: 'b1', attributes: {}, created: '2024-01-01T00:00:00.000Z', updated: '2024-01-01T00:00:00.000Z' }),
+        create: vi.fn().mockResolvedValue({ id: 'b1', attributes: {}, created: '2024-01-01T00:00:00.000Z', updated: '2024-01-01T00:00:00.000Z' }),
+        update: vi.fn().mockResolvedValue({ id: 'b1', attributes: {}, created: '2024-01-01T00:00:00.000Z', updated: '2024-01-01T00:00:00.000Z' })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.getBooks()
+      expect(mockCollection.getList).toHaveBeenCalledWith(1, 500, expect.objectContaining({ expand: 'cover_image' }))
+
+      await booksApi.getBook('b1')
+      expect(mockCollection.getOne).toHaveBeenCalledWith('b1', expect.objectContaining({ expand: 'cover_image' }))
+
+      await booksApi.createBook({ name: 'X' })
+      expect(mockCollection.create).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ expand: 'cover_image' }))
+
+      await booksApi.updateBook('b1', { name: 'Y' })
+      expect(mockCollection.update).toHaveBeenCalledWith('b1', expect.anything(), expect.objectContaining({ expand: 'cover_image' }))
+    })
+
+    it('sends a plain object, never FormData, to pb.collection().create', async () => {
+      const mockCollection = {
+        create: vi.fn().mockResolvedValue({ id: 'b1', attributes: {}, created: '2024-01-01T00:00:00.000Z', updated: '2024-01-01T00:00:00.000Z' })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.createBook({ name: 'X', coverLink: 'https://example.com/x.jpg' })
+
+      const [sentData] = mockCollection.create.mock.calls[0]
+      expect(sentData).not.toBeInstanceOf(FormData)
+      expect(sentData).toEqual(expect.objectContaining({ name: 'X', cover_url: 'https://example.com/x.jpg' }))
     })
   })
 
@@ -809,6 +849,84 @@ describe('booksApi transformations', () => {
 
       const callArgs = mockCollection.update.mock.calls[0][1]
       expect(callArgs.read_date).toBe('2024-06-01')
+    })
+  })
+
+  describe('updateBook with a coverFile (Edit Cover modal upload)', () => {
+    it('updates fields first, then uploads the file, and returns the merged result', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'b1',
+          name: 'Book',
+          cover_url: 'https://example.com/x.jpg',
+          cover_image: '',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+      pb.send.mockResolvedValue({
+        id: 'b1',
+        name: 'Book',
+        cover_url: 'https://example.com/x.jpg',
+        cover_image: 'img1',
+        expand: { cover_image: { id: 'img1', file: 'cover.jpg' } },
+        attributes: {},
+        created: '2024-01-01T00:00:00.000Z',
+        updated: '2024-01-01T00:00:00.000Z'
+      })
+      pb.files.getURL.mockReturnValue('https://pb.local/cover.jpg')
+
+      const fakeFile = new File(['x'], 'cover.jpg', { type: 'image/jpeg' })
+      const result = await booksApi.updateBook('b1', { coverLink: 'https://example.com/x.jpg', coverFile: fakeFile })
+
+      expect(mockCollection.update).toHaveBeenCalledWith(
+        'b1',
+        expect.not.objectContaining({ coverFile: expect.anything() }),
+        expect.objectContaining({ expand: 'cover_image' })
+      )
+      expect(pb.send).toHaveBeenCalledWith('/api/books/b1/cover', expect.objectContaining({ method: 'POST' }))
+      expect(result.hasCachedCover).toBe(true)
+      expect(result.coverDisplayLink).toBe('https://pb.local/cover.jpg')
+    })
+
+    it('keeps the plain-update result (a live hotlink) if the cover upload fails', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'b1',
+          name: 'Book',
+          cover_url: 'https://example.com/x.jpg',
+          cover_image: '',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+      pb.send.mockRejectedValue(Object.assign(new Error('fail'), { name: 'ClientResponseError 422', status: 422 }))
+
+      const fakeFile = new File(['x'], 'cover.jpg', { type: 'image/jpeg' })
+      const result = await booksApi.updateBook('b1', { coverLink: 'https://example.com/x.jpg', coverFile: fakeFile })
+
+      expect(result.coverDisplayLink).toBe('https://example.com/x.jpg')
+      expect(result.hasCachedCover).toBe(false)
+    })
+
+    it('does not call uploadBookCover when there is no coverFile', async () => {
+      const mockCollection = {
+        update: vi.fn().mockResolvedValue({
+          id: 'b1',
+          attributes: {},
+          created: '2024-01-01T00:00:00.000Z',
+          updated: '2024-01-01T00:00:00.000Z'
+        })
+      }
+      pb.collection.mockReturnValue(mockCollection)
+
+      await booksApi.updateBook('b1', { name: 'New name' })
+
+      expect(pb.send).not.toHaveBeenCalled()
     })
   })
 

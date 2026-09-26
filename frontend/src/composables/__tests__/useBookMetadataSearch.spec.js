@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { TIMINGS } from '@/constants'
-import { useOpenLibrarySearch } from '../useOpenLibrarySearch'
+import { useBookMetadataSearch } from '../useBookMetadataSearch'
 
-describe('useOpenLibrarySearch', () => {
+describe('useBookMetadataSearch', () => {
   let mockFetch
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('useOpenLibrarySearch', () => {
 
   it('does not search until debounce elapses', () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => ({ docs: [] }) })
-    const { titleQuery, handleSearchInput } = useOpenLibrarySearch()
+    const { titleQuery, handleSearchInput } = useBookMetadataSearch()
 
     titleQuery.value = '1984'
     handleSearchInput()
@@ -28,6 +28,18 @@ describe('useOpenLibrarySearch', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 
+  it('searches our own backend endpoint rather than a third-party API directly', () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ docs: [] }) })
+    const { titleQuery, handleSearchInput } = useBookMetadataSearch()
+
+    titleQuery.value = '1984'
+    handleSearchInput()
+    vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
+
+    const [url] = mockFetch.mock.calls[0]
+    expect(url).toBe('/api/books/search?title=1984')
+  })
+
   it('actually aborts the in-flight fetch when the client-side timeout fires', async () => {
     let capturedSignal
     mockFetch.mockImplementation((url, options) => {
@@ -35,7 +47,7 @@ describe('useOpenLibrarySearch', () => {
       return new Promise(() => {}) // never resolves on its own
     })
 
-    const { titleQuery, handleSearchInput } = useOpenLibrarySearch()
+    const { titleQuery, handleSearchInput } = useBookMetadataSearch()
     titleQuery.value = '1984'
     handleSearchInput()
     vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
@@ -55,7 +67,7 @@ describe('useOpenLibrarySearch', () => {
       })
     }))
 
-    const { titleQuery, error, handleSearchInput } = useOpenLibrarySearch()
+    const { titleQuery, error, handleSearchInput } = useBookMetadataSearch()
     titleQuery.value = '1984'
     handleSearchInput()
     vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
@@ -72,7 +84,7 @@ describe('useOpenLibrarySearch', () => {
     })
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ docs: [] }) })
 
-    const { titleQuery, error, handleSearchInput } = useOpenLibrarySearch()
+    const { titleQuery, error, handleSearchInput } = useBookMetadataSearch()
     titleQuery.value = 'First'
     handleSearchInput()
     vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
@@ -89,7 +101,7 @@ describe('useOpenLibrarySearch', () => {
   it('maps a non-ok response status to a readable error message', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 429 })
 
-    const { titleQuery, error, handleSearchInput } = useOpenLibrarySearch()
+    const { titleQuery, error, handleSearchInput } = useBookMetadataSearch()
     titleQuery.value = '1984'
     handleSearchInput()
     vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
@@ -103,7 +115,7 @@ describe('useOpenLibrarySearch', () => {
       json: async () => ({ docs: [{ key: '/works/1', title: '1984' }] })
     })
 
-    const { titleQuery, searchResults, reset, handleSearchInput } = useOpenLibrarySearch()
+    const { titleQuery, searchResults, reset, handleSearchInput } = useBookMetadataSearch()
     titleQuery.value = '1984'
     handleSearchInput()
     vi.advanceTimersByTime(TIMINGS.SEARCH_DEBOUNCE)
@@ -117,7 +129,7 @@ describe('useOpenLibrarySearch', () => {
 
   it('cleanup aborts any pending request without throwing', () => {
     mockFetch.mockImplementation(() => new Promise(() => {}))
-    const { titleQuery, handleSearchInput, cleanup } = useOpenLibrarySearch()
+    const { titleQuery, handleSearchInput, cleanup } = useBookMetadataSearch()
 
     titleQuery.value = '1984'
     handleSearchInput()
