@@ -52,3 +52,39 @@ onRecordAfterDeleteSuccess((e) => {
 
   e.next()
 }, "books")
+
+routerAdd("POST", "/api/books/:id/cover", (e) => {
+  const { resolveCoverImageForBytes } = require(`${__hooks}/coverImagesResolve.js`)
+
+  if (!e.auth) {
+    throw new UnauthorizedError("Authentication required")
+  }
+
+  let book
+  try {
+    book = $app.findRecordById("books", e.request.pathValue("id"))
+  } catch {
+    throw new NotFoundError("Book not found")
+  }
+
+  if (book.get("owner") !== e.auth.id) {
+    throw new ForbiddenError("You don't own this book")
+  }
+
+  const uploaded = e.findUploadedFiles("file")
+  if (!uploaded || uploaded.length === 0 || !uploaded[0]) {
+    throw new BadRequestError("Expected a 'file' upload")
+  }
+
+  const bytes = toBytes(uploaded[0].reader.open())
+  const resolved = resolveCoverImageForBytes($app, bytes)
+
+  if (resolved.error) {
+    throw new ApiError(resolved.error.status, resolved.error.message, { code: resolved.error.code })
+  }
+
+  book.set("cover_image", resolved.id)
+  $app.save(book)
+
+  return e.json(200, book)
+})
