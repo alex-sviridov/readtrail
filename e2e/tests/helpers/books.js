@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
 
 /**
- * Stubs the OpenLibrary search API so add-book tests don't depend on a
- * third-party service's uptime or content; the app always falls through
- * to its own "Add ... Manually" path.
+ * Stubs our backend's book search endpoint (which itself proxies to
+ * OpenLibrary) so add-book tests don't depend on a third-party service's
+ * uptime or content; the app always falls through to its own
+ * "Add ... Manually" path.
  */
 export async function mockOpenLibrarySearch(page) {
-  await page.route('https://openlibrary.org/**', (route) =>
+  await page.route('**/api/books/search**', (route) =>
     route.fulfill({ json: { docs: [] } })
   );
 }

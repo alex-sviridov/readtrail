@@ -193,7 +193,7 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import DatePickerCard from '@/components/library/DatePicker.vue'
 import BookScore from '@/components/library/BookScore.vue'
 import { DATE_PICKER } from '@/constants'
-import { useOpenLibrarySearch } from '@/composables/useOpenLibrarySearch'
+import { useBookMetadataSearch } from '@/composables/useBookMetadataSearch'
 import { useSettingsStore } from '@/stores/settings'
 
 // 3. Props & Emits
@@ -221,7 +221,7 @@ const {
   handleSearchInput,
   reset: resetSearch,
   cleanup: cleanupSearch
-} = useOpenLibrarySearch()
+} = useBookMetadataSearch()
 
 const searchInputRef = ref(null)
 const currentStep = ref('search') // 'search' or 'datePicker'

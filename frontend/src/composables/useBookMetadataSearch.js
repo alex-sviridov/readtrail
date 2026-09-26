@@ -2,24 +2,25 @@ import { ref, computed } from 'vue'
 import { TIMINGS } from '@/constants'
 import { logger } from '@/utils/logger'
 
-const API_BASE_URL = 'https://openlibrary.org'
-const SEARCH_LIMIT = 20
+const SEARCH_ENDPOINT = '/api/books/search'
 
 const STATUS_MESSAGES = {
   400: 'Invalid search query. Please check your input.',
   404: 'Search service not found. Please try again later.',
   429: 'Too many requests. Please wait a moment and try again.',
   500: 'Search service is experiencing issues. Please try again later.',
+  502: 'Search service is temporarily unavailable. Please try again later.',
   503: 'Search service is temporarily unavailable. Please try again later.'
 }
 
 /**
- * Debounced OpenLibrary title/author search with request cancellation and
- * a client-side timeout that actually aborts the in-flight request (rather
+ * Debounced book title/author search (proxied through our own backend,
+ * which in turn queries OpenLibrary) with request cancellation and a
+ * client-side timeout that actually aborts the in-flight request (rather
  * than just abandoning it) so a stale response can't land after the user
  * has already been shown a timeout error.
  */
-export function useOpenLibrarySearch() {
+export function useBookMetadataSearch() {
   const titleQuery = ref('')
   const authorQuery = ref('')
   const searchResults = ref([])
@@ -84,7 +85,7 @@ export function useOpenLibrarySearch() {
     error.value = null
 
     try {
-      const url = `${API_BASE_URL}/search.json?${queryParams.join('&')}&limit=${SEARCH_LIMIT}`
+      const url = `${SEARCH_ENDPOINT}?${queryParams.join('&')}`
 
       const response = await fetch(url, { signal: controller.signal })
 
