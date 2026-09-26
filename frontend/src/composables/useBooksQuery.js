@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { booksApi } from '@/services/booksApi'
+import { ensureCoverCached } from '@/services/coverCache'
 import { logger } from '@/utils/logger'
 
 export const BOOKS_QUERY_KEY = ['books']
@@ -46,6 +47,15 @@ export function useCreateBook() {
         BOOKS_QUERY_KEY,
         current.map((book) => (book.id === context.tempId ? createdBook : book))
       )
+
+      ensureCoverCached(createdBook).then((patchedBook) => {
+        if (!patchedBook) return
+        const latest = queryClient.getQueryData(BOOKS_QUERY_KEY) ?? []
+        queryClient.setQueryData(
+          BOOKS_QUERY_KEY,
+          latest.map((book) => (book.id === patchedBook.id ? patchedBook : book))
+        )
+      })
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
   })
@@ -92,6 +102,15 @@ export function useUpdateBook() {
         BOOKS_QUERY_KEY,
         current.map((book) => (book.id === updatedBook.id ? updatedBook : book))
       )
+
+      ensureCoverCached(updatedBook).then((patchedBook) => {
+        if (!patchedBook) return
+        const latest = queryClient.getQueryData(BOOKS_QUERY_KEY) ?? []
+        queryClient.setQueryData(
+          BOOKS_QUERY_KEY,
+          latest.map((book) => (book.id === patchedBook.id ? patchedBook : book))
+        )
+      })
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
   })
