@@ -154,7 +154,7 @@ export default {
 import { ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import { authManager } from '@/services/auth'
-import { completeAuthAndRedirect } from '@/services/postAuth'
+import { completeRegisterAndRedirect } from '@/services/postAuth'
 import { useBooksStore } from '@/stores/books'
 import { logger } from '@/utils/logger'
 import AuthErrorBanner from '@/components/auth/AuthErrorBanner.vue'
@@ -311,7 +311,7 @@ async function handleRegister() {
     toast.success('Account created successfully! Welcome to ReadTrail.', { timeout: 5000 })
 
     // Migrate guest data (if any) and redirect
-    await completeAuthAndRedirect(booksStore, 'Register')
+    await completeRegisterAndRedirect(booksStore)
   } catch (error) {
     logger.error('[Register] Registration failed:', error)
 
