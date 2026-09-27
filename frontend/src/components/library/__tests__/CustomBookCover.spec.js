@@ -22,6 +22,13 @@ describe('CustomBookCover', () => {
       expect(wrapper.classes()).toContain('p-4')
     })
 
+    it('sizes itself by aspect ratio, matching its parent card slot', () => {
+      const wrapper = mount(CustomBookCover, { props: { title: 'Dune', author: 'Frank Herbert' } })
+
+      expect(wrapper.classes()).toContain('aspect-[2/3]')
+      expect(wrapper.classes()).not.toContain('h-full')
+    })
+
     it('fits the title using the card-sized max height and font range', async () => {
       mount(CustomBookCover, { props: { title: 'Dune', author: 'Frank Herbert' } })
       await nextTick()
@@ -57,6 +64,19 @@ describe('CustomBookCover', () => {
 
       expect(wrapper.classes()).not.toContain('p-4')
       expect(wrapper.classes()).toContain('p-1')
+    })
+
+    it('fills its fixed-size wrapper instead of computing height from aspect ratio', () => {
+      // The table thumbnail wrapper (w-10 h-14) sets an explicit width AND
+      // height; aspect-[2/3] on a w-full/no-height root would compute its own
+      // height from the width (40px -> 60px) and get clipped by the wrapper's
+      // overflow-hidden, cropping several px off the bottom-pinned author line.
+      const wrapper = mount(CustomBookCover, {
+        props: { title: 'Dune', author: 'Frank Herbert', size: 'compact' }
+      })
+
+      expect(wrapper.classes()).toContain('h-full')
+      expect(wrapper.classes()).not.toContain('aspect-[2/3]')
     })
 
     it('fits the title using a smaller max height and font range so it can actually converge', async () => {

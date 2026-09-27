@@ -121,7 +121,8 @@ export function useContentEditable(options = {}) {
   }
 
   /**
-   * Stops editing and emits the update if the content has changed
+   * Stops editing and emits the update if the content has changed (including
+   * clearing it to empty, which is a valid, intentional edit).
    */
   const stopEditingAndEmit = () => {
     // Prevent immediate re-entry if the blur event is somehow triggered multiple times
@@ -130,17 +131,26 @@ export function useContentEditable(options = {}) {
     // 1. Get the text content from the contenteditable element
     const newContent = elementRef.value ? elementRef.value.textContent.trim() : ''
 
-    // 2. Check if the content has actually changed and is not empty
-    if (newContent !== currentContent.value && newContent.length > 0) {
+    // 2. Emit whenever the content actually changed, empty or not
+    if (newContent !== currentContent.value) {
       onUpdate(newContent)
-    } else if (newContent.length === 0) {
-      // Reset to original content if empty
-      if (elementRef.value) {
-        elementRef.value.textContent = currentContent.value
-      }
     }
 
     // 3. Revert to display mode
+    isEditing.value = false
+  }
+
+  /**
+   * Cancels editing without saving, reverting the element back to its
+   * last-known content. Used for an explicit Escape-to-cancel gesture.
+   */
+  const cancelEditing = () => {
+    if (!isEditing.value) return
+
+    if (elementRef.value) {
+      elementRef.value.textContent = currentContent.value
+    }
+
     isEditing.value = false
   }
 
@@ -170,6 +180,7 @@ export function useContentEditable(options = {}) {
     // Methods
     startEditing,
     stopEditingAndEmit,
+    cancelEditing,
     handleInput,
     adjustFontSize,
     updateContent

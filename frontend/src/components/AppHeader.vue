@@ -27,6 +27,7 @@ const closeMobileMenu = () => {
 const canLogout = !isRemoteUserModeActive()
 const authState = ref(pb.authStore.isValid)
 const isAuthenticated = computed(() => authState.value)
+const userEmail = computed(() => pb.authStore.record?.email || '')
 
 async function handleMobileLogout() {
   closeMobileMenu()
@@ -135,7 +136,8 @@ onUnmounted(() => {
           </nav>
 
           <!-- Mobile Actions -->
-          <div class="flex flex-col gap-3 px-3 py-2 border-t border-gray-200 pt-4">
+          <div class="flex flex-col gap-3 py-2 border-t border-gray-200 pt-4">
+            <span v-if="isAuthenticated" class="text-sm text-gray-500 truncate px-3">{{ userEmail }}</span>
             <RouterLink
               v-if="isAuthenticated"
               to="/settings"
