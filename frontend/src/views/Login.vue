@@ -93,7 +93,7 @@ export default {
 import { ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { authManager } from '@/services/auth'
-import { completeAuthAndRedirect } from '@/services/postAuth'
+import { completeLoginAndRedirect } from '@/services/postAuth'
 import { useBooksStore } from '@/stores/books'
 import { logger } from '@/utils/logger'
 import AuthErrorBanner from '@/components/auth/AuthErrorBanner.vue'
@@ -123,8 +123,9 @@ async function handleLogin() {
     // Attempt login
     await authManager.login(email.value, password.value)
 
-    // Login successful - migrate guest data (if any) and redirect
-    await completeAuthAndRedirect(booksStore, 'Login')
+    // Login successful - discard any local guest data (it belongs to a
+    // different identity than the account just logged into) and redirect
+    await completeLoginAndRedirect(booksStore)
   } catch (error) {
     logger.error('[Login] Login failed:', error)
 
