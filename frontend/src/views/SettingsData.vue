@@ -144,15 +144,6 @@ const triggerImportFilePicker = () => {
   importFileInputRef.value?.click()
 }
 
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(reader.error)
-    reader.readAsText(file)
-  })
-}
-
 const handleImportFileSelected = async (event) => {
   const file = event.target.files?.[0]
   event.target.value = ''
@@ -163,7 +154,7 @@ const handleImportFileSelected = async (event) => {
 
     let payload
     try {
-      payload = JSON.parse(await readFileAsText(file))
+      payload = JSON.parse(await file.text())
     } catch {
       toast.error('That file is not valid JSON.')
       return

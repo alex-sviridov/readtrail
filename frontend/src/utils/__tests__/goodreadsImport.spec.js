@@ -1,40 +1,46 @@
 import { describe, it, expect } from 'vitest'
 import {
-  parseCsv,
+  GoodreadsImportError,
+  MAX_FILE_BYTES,
+  MAX_ROWS,
+  cleanTitleForSearch,
+  coverUrlFromDocs,
+  mapReadDate,
+  mapRow,
+  mapScore,
   parseGoodreadsCsv,
   parseReadDate,
-  mapReadDate,
-  mapScore,
-  mapRow,
-  cleanTitleForSearch,
-  buildCoverSearchUrl,
-  pickCoverUrl,
-  MAX_ROWS
-} from '../goodreadsImport.js'
+  validateFile
+} from '../goodreadsImport'
 
 const HEADER = 'Book Id,Title,Author,ISBN,My Rating,Date Read,Exclusive Shelf,My Review'
 
-describe('parseCsv', () => {
-  it('handles quoted commas, escaped quotes and embedded newlines', () => {
-    const rows = parseCsv('a,"b,c","say ""hi""","line1\nline2"\r\nd,e,f,g\n')
-    expect(rows).toEqual([
-      ['a', 'b,c', 'say "hi"', 'line1\nline2'],
-      ['d', 'e', 'f', 'g']
-    ])
+describe('validateFile', () => {
+  it('accepts a .csv file', () => {
+    expect(() => validateFile(new File(['x'], 'Export.CSV'))).not.toThrow()
   })
 
-  it('strips a UTF-8 BOM and keeps a final row with no trailing newline', () => {
-    expect(parseCsv('﻿a,b\nc,d')).toEqual([['a', 'b'], ['c', 'd']])
+  it('rejects other extensions', () => {
+    expect(() => validateFile(new File(['{}'], 'backup.json'))).toThrow(/\.csv/)
   })
 
-  it('throws on an unterminated quoted field', () => {
-    expect(() => parseCsv('a,"b\nc')).toThrow(/unterminated/)
+  it('rejects files over the size limit', () => {
+    const big = new File(['x'], 'big.csv')
+    Object.defineProperty(big, 'size', { value: MAX_FILE_BYTES + 1 })
+    expect(() => validateFile(big)).toThrow(/too large/)
   })
 })
 
 describe('parseGoodreadsCsv', () => {
-  it('returns header-keyed rows, ignoring blank lines', () => {
-    const rows = parseGoodreadsCsv(`${HEADER}\n1,Pale Fire,Vladimir Nabokov,"=""0141185260""",0,,to-read,\n\n`)
+  it('handles quoted commas, escaped quotes, embedded newlines and CRLF', () => {
+    const csv = `${HEADER}\r\n3,Never Use Futura,Doug Thomas,"=""1616895721""",4,,read,"Pretty good!, but ""quoted""\nand multi-line"\r\n`
+    const rows = parseGoodreadsCsv(csv)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]['My Review']).toBe('Pretty good!, but "quoted"\nand multi-line')
+  })
+
+  it('returns header-keyed rows, ignoring blank lines and a BOM', () => {
+    const rows = parseGoodreadsCsv(`\uFEFF${HEADER}\n1,Pale Fire,Vladimir Nabokov,"=""0141185260""",0,,to-read,\n\n`)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ Title: 'Pale Fire', Author: 'Vladimir Nabokov', 'Exclusive Shelf': 'to-read' })
   })
@@ -47,12 +53,16 @@ describe('parseGoodreadsCsv', () => {
     expect(() => parseGoodreadsCsv('PK\u0003\u0004\u0000\u0000')).toThrow(/not a text CSV/)
   })
 
+  it('rejects an unterminated quoted field', () => {
+    expect(() => parseGoodreadsCsv('Title,Author\n"Dune,Frank Herbert\n')).toThrow(/unterminated/)
+  })
+
   it('rejects a CSV without Title/Author columns', () => {
     expect(() => parseGoodreadsCsv('foo,bar\n1,2\n')).toThrow(/missing column\(s\) Title, Author/)
   })
 
-  it('rejects JSON sent instead of CSV', () => {
-    expect(() => parseGoodreadsCsv('{"version":1,"books":[]}')).toThrow(/Not a Goodreads export/)
+  it('rejects JSON given instead of CSV', () => {
+    expect(() => parseGoodreadsCsv('{"version":1,"books":[]}')).toThrow(GoodreadsImportError)
   })
 
   it('rejects more than MAX_ROWS rows', () => {
@@ -95,7 +105,7 @@ describe('mapReadDate', () => {
   })
 
   it('leaves currently-reading books without a date', () => {
-    expect(mapReadDate('currently-reading', '')).toBeNull()
+    expect(mapReadDate('currently-reading', '')).toBe('')
   })
 })
 
@@ -160,31 +170,16 @@ describe('cleanTitleForSearch', () => {
   })
 })
 
-describe('buildCoverSearchUrl', () => {
-  it('searches by title and author, encoded', () => {
-    expect(buildCoverSearchUrl({ name: 'Dune (Dune, #1)', author: 'Frank Herbert' })).toBe(
-      'https://openlibrary.org/search.json?title=Dune&author=Frank%20Herbert&fields=cover_i&limit=20'
-    )
-  })
-
-  it('searches by title only when there is no author', () => {
-    expect(buildCoverSearchUrl({ name: 'Anonymous Work', author: '' })).toBe(
-      'https://openlibrary.org/search.json?title=Anonymous%20Work&fields=cover_i&limit=20'
-    )
-  })
-})
-
-describe('pickCoverUrl', () => {
+describe('coverUrlFromDocs', () => {
   it('takes the first result that has a cover', () => {
-    expect(pickCoverUrl({ docs: [{}, { cover_i: 111 }, { cover_i: 222 }] })).toBe(
+    expect(coverUrlFromDocs([{}, { cover_i: 111 }, { cover_i: 222 }])).toBe(
       'https://covers.openlibrary.org/b/id/111-M.jpg'
     )
   })
 
-  it('returns null when nothing has a usable cover', () => {
-    expect(pickCoverUrl({ docs: [{}, { cover_i: 0 }, { cover_i: 'x' }] })).toBeNull()
-    expect(pickCoverUrl({ docs: [] })).toBeNull()
-    expect(pickCoverUrl({})).toBeNull()
-    expect(pickCoverUrl(null)).toBeNull()
+  it('returns an empty string when nothing has a usable cover', () => {
+    expect(coverUrlFromDocs([{}, { cover_i: 0 }, { cover_i: 'x' }])).toBe('')
+    expect(coverUrlFromDocs([])).toBe('')
+    expect(coverUrlFromDocs(undefined)).toBe('')
   })
 })
