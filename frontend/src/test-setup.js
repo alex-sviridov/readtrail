@@ -1,7 +1,19 @@
 // jsdom does not implement HTMLDialogElement.showModal()/close() or the
 // Popover API (showPopover/hidePopover/light-dismiss/Escape). These are
 // minimal behavioral shims - just enough for component tests to exercise
-// real open/close/dismiss behavior, not full spec compliance.
+// real open/close/dismiss behavior, not full spec compliance. Blob.text() is
+// missing too and is shimmed the same way.
+
+if (!Blob.prototype.text) {
+  Blob.prototype.text = function () {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(this)
+    })
+  }
+}
 
 if (!HTMLDialogElement.prototype.showModal) {
   HTMLDialogElement.prototype.showModal = function () {
