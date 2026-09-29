@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test, expect } from '@playwright/test';
 import { generateTestUser, registerUser, registerUserApi, logoutButton } from './helpers/testUser.js';
 import { mockOpenLibrarySearch, addBookManually } from './helpers/books.js';
+import { gotoLibrary, gotoSettingsData } from './helpers/navigation.js';
 
 /** Writes `content` to a fresh temp file and returns its path. */
 async function writeTempFile(content) {
@@ -14,7 +15,7 @@ async function writeTempFile(content) {
 }
 
 async function exportBooks(page) {
-  await page.goto('/settings/data');
+  await gotoSettingsData(page);
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export Books' }).click(),
@@ -23,7 +24,7 @@ async function exportBooks(page) {
 }
 
 async function importFile(page, filePath) {
-  await page.goto('/settings/data');
+  await gotoSettingsData(page);
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
     page.getByRole('button', { name: 'Import Books' }).click(),
@@ -46,7 +47,7 @@ test.describe('books export/import (UI)', () => {
     // Delete both books, confirming the library is empty before importing.
     // Each card is scoped from its heading (rather than using `.first()`)
     // so deleting one title can't accidentally hit the other book's card.
-    await page.goto('/library');
+    await gotoLibrary(page);
     for (const title of ['Dune', 'Neuromancer']) {
       const card = page
         .getByRole('heading', { name: title, level: 3 })
@@ -60,7 +61,7 @@ test.describe('books export/import (UI)', () => {
     await importFile(page, exportPath);
     await expect(page.getByText(/Imported 2 book\(s\)/)).toBeVisible();
 
-    await page.goto('/library');
+    await gotoLibrary(page);
     await expect(page.getByRole('heading', { name: 'Dune', level: 3 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Neuromancer', level: 3 })).toBeVisible();
   });
@@ -75,7 +76,7 @@ test.describe('books export/import (UI)', () => {
     await expect(page.getByText('Imported 0 book(s), skipped 2 already in your library')).toBeVisible();
 
     // No duplicates: each title still appears exactly once.
-    await page.goto('/library');
+    await gotoLibrary(page);
     await expect(page.getByRole('heading', { name: 'Dune', level: 3 })).toHaveCount(1);
     await expect(page.getByRole('heading', { name: 'Neuromancer', level: 3 })).toHaveCount(1);
   });
@@ -93,7 +94,7 @@ test.describe('books export/import (UI)', () => {
     await importFile(page, exportPath);
     await expect(page.getByText(/Imported 1 book\(s\)/)).toBeVisible();
 
-    await page.goto('/library');
+    await gotoLibrary(page);
     await expect(page.getByRole('heading', { name: 'Dune', level: 3 })).toBeVisible();
   });
 
@@ -108,7 +109,7 @@ test.describe('books export/import (UI)', () => {
     await expect(page.getByText(/Imported 1 book\(s\)/)).toBeVisible();
     await expect(page.getByText('1 entry could not be imported')).toBeVisible();
 
-    await page.goto('/library');
+    await gotoLibrary(page);
     await expect(page.getByRole('heading', { name: 'Valid Book', level: 3 })).toBeVisible();
   });
 

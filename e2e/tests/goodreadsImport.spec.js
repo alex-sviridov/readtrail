@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test, expect } from '@playwright/test';
 import { generateTestUser, registerUser } from './helpers/testUser.js';
 import { mockOpenLibrarySearch } from './helpers/books.js';
+import { gotoLibrary, gotoSettingsData } from './helpers/navigation.js';
 
 const HEADER = 'Book Id,Title,Author,ISBN,My Rating,Date Read,Exclusive Shelf,My Review';
 
@@ -26,7 +27,7 @@ async function writeTempFile(name, content) {
 
 async function importGoodreadsCsv(page, name, content) {
   const filePath = await writeTempFile(name, content);
-  await page.goto('/settings/data');
+  await gotoSettingsData(page);
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
     page.getByRole('button', { name: 'Import Goodreads CSV' }).click(),
@@ -35,7 +36,7 @@ async function importGoodreadsCsv(page, name, content) {
 }
 
 async function exportedBooks(page) {
-  await page.goto('/settings/data');
+  await gotoSettingsData(page);
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export Books' }).click(),
@@ -70,7 +71,7 @@ test.describe('goodreads import (UI)', () => {
     expect(byName['Nixonland'].author).toBe('Rick Perlstein');
     expect(byName['Bad Rated Book'].attributes.score).toBe(-1);
 
-    await page.goto('/library');
+    await gotoLibrary(page);
     await expect(page.getByRole('heading', { name: 'Nixonland', level: 3 })).toBeVisible();
   });
 
