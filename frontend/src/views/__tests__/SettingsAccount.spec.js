@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import SettingsAccount from '../SettingsAccount.vue'
 import ChangePasswordModal from '@/components/settings/ChangePasswordModal.vue'
 import { authManager } from '@/services/auth'
-import pb from '@/services/pocketbase'
 
 // Mock vue-toastification
 const mockToast = {
@@ -193,104 +192,6 @@ describe('SettingsAccount', () => {
     })
   })
 
-  describe('books backup', () => {
-    let createdLink
-    const originalCreateElement = document.createElement.bind(document)
-
-    beforeEach(() => {
-      authManager.isGuestUser.mockReturnValue(false)
-      authManager.getCurrentUser.mockReturnValue({
-        id: 'user123',
-        email: 'test@example.com'
-      })
-
-      createdLink = null
-      vi.spyOn(document, 'createElement').mockImplementation((tag) => {
-        const el = originalCreateElement(tag)
-        if (tag === 'a') {
-          createdLink = el
-          vi.spyOn(el, 'click').mockImplementation(() => {})
-        }
-        return el
-      })
-    })
-
-    afterEach(() => {
-      vi.restoreAllMocks()
-    })
-
-    it('exports books via the backend endpoint and downloads the result', async () => {
-      const exportPayload = { version: 1, exportedAt: '2026-01-01T00:00:00.000Z', books: [] }
-      pb.send.mockResolvedValueOnce(exportPayload)
-
-      wrapper = mountSettingsAccount()
-      const exportButton = wrapper.findAll('button').find((btn) => btn.text() === 'Export Books')
-      await exportButton.trigger('click')
-      await flushPromises()
-
-      expect(pb.send).toHaveBeenCalledWith('/api/books/export', { method: 'GET' })
-      expect(createdLink.download).toMatch(/^readtrail-books-backup-.*\.json$/)
-      expect(createdLink.click).toHaveBeenCalled()
-      expect(mockToast.success).toHaveBeenCalledWith('Books exported successfully')
-    })
-
-    it('imports a selected file via the backend endpoint and reports the result', async () => {
-      pb.send.mockResolvedValueOnce({ imported: 2, skipped: 1, errors: [] })
-
-      wrapper = mountSettingsAccount()
-      const fileInput = wrapper.find('input[type="file"]')
-      const file = new File(
-        [JSON.stringify({ version: 1, books: [{ name: 'Dune', author: 'Frank Herbert' }] })],
-        'backup.json',
-        { type: 'application/json' }
-      )
-      Object.defineProperty(fileInput.element, 'files', { value: [file] })
-      await fileInput.trigger('change')
-      // FileReader dispatches its 'load' event on its own macrotask in jsdom,
-      // so the read needs an extra flush beyond the one for our own awaits.
-      await flushPromises()
-      await flushPromises()
-
-      expect(pb.send).toHaveBeenCalledWith('/api/books/import', {
-        method: 'POST',
-        body: { version: 1, books: [{ name: 'Dune', author: 'Frank Herbert' }] }
-      })
-      expect(mockToast.success).toHaveBeenCalledWith('Imported 2 book(s), skipped 1 already in your library')
-      expect(mockToast.warning).not.toHaveBeenCalled()
-    })
-
-    it('warns about entries that failed to import', async () => {
-      pb.send.mockResolvedValueOnce({ imported: 1, skipped: 0, errors: [{ index: 1, reason: 'bad' }] })
-
-      wrapper = mountSettingsAccount()
-      const fileInput = wrapper.find('input[type="file"]')
-      const file = new File([JSON.stringify({ books: [] })], 'backup.json', { type: 'application/json' })
-      Object.defineProperty(fileInput.element, 'files', { value: [file] })
-      await fileInput.trigger('change')
-      // FileReader dispatches its 'load' event on its own macrotask in jsdom,
-      // so the read needs an extra flush beyond the one for our own awaits.
-      await flushPromises()
-      await flushPromises()
-
-      expect(mockToast.warning).toHaveBeenCalledWith('1 entry could not be imported')
-    })
-
-    it('rejects a file that is not valid JSON without calling the backend', async () => {
-      wrapper = mountSettingsAccount()
-      const fileInput = wrapper.find('input[type="file"]')
-      const file = new File(['not json'], 'backup.json', { type: 'application/json' })
-      Object.defineProperty(fileInput.element, 'files', { value: [file] })
-      await fileInput.trigger('change')
-      // FileReader dispatches its 'load' event on its own macrotask in jsdom,
-      // so the read needs an extra flush beyond the one for our own awaits.
-      await flushPromises()
-      await flushPromises()
-
-      expect(pb.send).not.toHaveBeenCalled()
-      expect(mockToast.error).toHaveBeenCalledWith('That file is not valid JSON.')
-    })
-  })
-
   describe('row layout consistency', () => {
     beforeEach(() => {
       authManager.isGuestUser.mockReturnValue(false)
@@ -303,13 +204,13 @@ describe('SettingsAccount', () => {
     it('keeps each action button on the same line as its title, not its description', () => {
       wrapper = mountSettingsAccount()
 
-      const labels = ['View Policy', 'Change Password', 'Export Books', 'Import Books']
+      const labels = ['View Policy', 'Change Password']
       const buttons = wrapper
         .findAll('button, a')
         .filter((el) => !el.element.closest('dialog'))
         .filter((el) => labels.some((label) => el.text().includes(label)))
 
-      expect(buttons.length).toBe(4)
+      expect(buttons.length).toBe(2)
       buttons.forEach((button) => {
         const row = button.element.parentElement
         expect(row.querySelector('h3, h4')).not.toBeNull()
@@ -320,13 +221,13 @@ describe('SettingsAccount', () => {
     it('gives every action button the same padding and prevents its label from wrapping', () => {
       wrapper = mountSettingsAccount()
 
-      const labels = ['View Policy', 'Change Password', 'Export Books', 'Import Books']
+      const labels = ['View Policy', 'Change Password']
       const buttons = wrapper
         .findAll('button, a')
         .filter((el) => !el.element.closest('dialog'))
         .filter((el) => labels.some((label) => el.text().includes(label)))
 
-      expect(buttons.length).toBe(4)
+      expect(buttons.length).toBe(2)
       buttons.forEach((button) => {
         expect(button.classes()).toEqual(expect.arrayContaining(['px-4', 'py-2', 'whitespace-nowrap', 'shrink-0']))
       })

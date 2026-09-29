@@ -14,7 +14,7 @@ async function writeTempFile(content) {
 }
 
 async function exportBooks(page) {
-  await page.goto('/settings/account');
+  await page.goto('/settings/data');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export Books' }).click(),
@@ -23,7 +23,7 @@ async function exportBooks(page) {
 }
 
 async function importFile(page, filePath) {
-  await page.goto('/settings/account');
+  await page.goto('/settings/data');
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
     page.getByRole('button', { name: 'Import Books' }).click(),

@@ -1,5 +1,8 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { generateTestUser, registerUserApi } from './helpers/testUser.js';
+import { generateTestUser, registerUser, registerUserApi } from './helpers/testUser.js';
 
 const HEADER = 'Book Id,Title,Author,ISBN,My Rating,Date Read,Exclusive Shelf,My Review';
 
@@ -100,5 +103,52 @@ test.describe('goodreads import (API)', () => {
 
     const response = await importCsv(request, token, huge);
     expect(response.status()).toBe(413);
+  });
+});
+
+async function writeTempFile(name, content) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'e2e-goodreads-'));
+  const filePath = path.join(dir, name);
+  await fs.writeFile(filePath, content);
+  return filePath;
+}
+
+async function chooseGoodreadsFile(page, filePath) {
+  await page.goto('/settings/data');
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByRole('button', { name: 'Import Goodreads CSV' }).click(),
+  ]);
+  await fileChooser.setFiles(filePath);
+}
+
+test.describe('goodreads import (UI)', () => {
+  test.beforeEach(async ({ page }) => {
+    await registerUser(page, generateTestUser());
+  });
+
+  test('shows the import result inline on the page, without a modal', async ({ page }) => {
+    const csv = `${HEADER}\n1,Dune,Frank Herbert,,5,2017/11/11,read,\n2,Pale Fire,Vladimir Nabokov,,0,,to-read,\n3,Kim,Rudyard Kipling,,0,,read,`;
+    await chooseGoodreadsFile(page, await writeTempFile('goodreads_library_export.csv', csv));
+
+    await expect(page.getByText('Imported 2 books, skipped 0 already in your library.')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('1 row could not be imported.')).toBeVisible();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+
+    await page.goto('/library');
+    await expect(page.getByRole('heading', { name: 'Dune', level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Pale Fire', level: 3 })).toBeVisible();
+  });
+
+  test('shows an inline error for a file that is not a Goodreads export', async ({ page }) => {
+    await chooseGoodreadsFile(page, await writeTempFile('notes.csv', 'foo,bar\n1,2\n'));
+
+    await expect(page.getByRole('alert')).toContainText('Not a Goodreads export');
+  });
+
+  test('rejects a non-csv file inline', async ({ page }) => {
+    await chooseGoodreadsFile(page, await writeTempFile('backup.json', '{}'));
+
+    await expect(page.getByRole('alert')).toContainText('.csv');
   });
 });

@@ -17,6 +17,13 @@
             Account
           </router-link>
           <router-link
+            to="/settings/data"
+            class="flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors"
+            :class="isDataActive ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          >
+            Data
+          </router-link>
+          <router-link
             to="/settings/application"
             class="flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors"
             :class="isApplicationActive ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
@@ -46,5 +53,6 @@ defineOptions({
 const route = useRoute()
 
 const isAccountActive = computed(() => route.path.includes('/settings/account'))
+const isDataActive = computed(() => route.path.includes('/settings/data'))
 const isApplicationActive = computed(() => route.path.includes('/settings/application'))
 </script>

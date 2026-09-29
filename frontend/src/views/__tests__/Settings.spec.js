@@ -5,6 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import Settings from '../Settings.vue'
 import SettingsAccount from '../SettingsAccount.vue'
+import SettingsData from '../SettingsData.vue'
 import SettingsApplication from '../SettingsApplication.vue'
 
 // Mock authManager
@@ -51,6 +52,7 @@ describe('Settings View', () => {
           redirect: '/settings/account',
           children: [
             { path: 'account', name: 'settings-account', component: SettingsAccount },
+            { path: 'data', name: 'settings-data', component: SettingsData },
             { path: 'application', name: 'settings-application', component: SettingsApplication }
           ]
         },
@@ -92,9 +94,10 @@ describe('Settings View', () => {
 
       const nav = wrapper.find('nav[aria-label="Tabs"]')
       const tabs = nav.findAllComponents({ name: 'RouterLink' })
-      expect(tabs.length).toBe(2)
+      expect(tabs.length).toBe(3)
       expect(tabs[0].text()).toBe('Account')
-      expect(tabs[1].text()).toBe('Application')
+      expect(tabs[1].text()).toBe('Data')
+      expect(tabs[2].text()).toBe('Application')
     })
 
     it('should highlight active tab', async () => {
@@ -137,6 +140,21 @@ describe('Settings View', () => {
       expect(router.currentRoute.value.path).toBe('/settings/application')
     })
 
+    it('should highlight the Data tab on /settings/data', async () => {
+      await router.push('/settings/data')
+      await router.isReady()
+
+      wrapper = mount(Settings, {
+        global: {
+          plugins: [router, createPinia(), [VueQueryPlugin, { queryClient }]]
+        }
+      })
+
+      const dataTab = wrapper.findAll('nav[aria-label="Tabs"] > a')[1]
+      expect(dataTab.text()).toBe('Data')
+      expect(dataTab.classes()).toContain('border-blue-600')
+    })
+
     it('should highlight correct tab based on route', async () => {
       await router.push('/settings/application')
       await router.isReady()
@@ -147,7 +165,7 @@ describe('Settings View', () => {
         }
       })
 
-      const applicationTab = wrapper.findAll('nav[aria-label="Tabs"] > a')[1]
+      const applicationTab = wrapper.findAll('nav[aria-label="Tabs"] > a')[2]
       expect(applicationTab.classes()).toContain('border-blue-600')
       expect(applicationTab.classes()).toContain('text-blue-600')
     })
@@ -181,7 +199,7 @@ describe('Settings View', () => {
 
       const nav = wrapper.find('nav[aria-label="Tabs"]')
       const tabs = nav.findAllComponents({ name: 'RouterLink' })
-      expect(tabs.length).toBe(2)
+      expect(tabs.length).toBe(3)
 
       tabs.forEach(tab => {
         expect(tab.element.tagName).toBe('A')

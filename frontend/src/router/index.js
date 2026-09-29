@@ -5,6 +5,7 @@ import LibraryTable from '@/views/LibraryTable.vue'
 import Statistics from '@/views/Statistics.vue'
 import Settings from '@/views/Settings.vue'
 import SettingsAccount from '@/views/SettingsAccount.vue'
+import SettingsData from '@/views/SettingsData.vue'
 import SettingsApplication from '@/views/SettingsApplication.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
@@ -74,6 +75,11 @@ const router = createRouter({
           path: 'account',
           name: 'settings-account',
           component: SettingsAccount
+        },
+        {
+          path: 'data',
+          name: 'settings-data',
+          component: SettingsData
         },
         {
           path: 'application',
