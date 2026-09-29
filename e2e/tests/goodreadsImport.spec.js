@@ -13,9 +13,10 @@ const SAMPLE_CSV = [
   '6,Kim,Rudyard Kipling,"=""""",0,,read,',
 ].join('\n');
 
-async function importCsv(request, token, data, headers = {}) {
-  return request.post('/api/books/import/goodreads', {
-    headers: { Authorization: token, 'Content-Type': 'text/csv', ...headers },
+// Cover lookups hit the real Open Library, so tests default to skipping them.
+async function importCsv(request, token, data, { covers = false } = {}) {
+  return request.post(`/api/books/import/goodreads${covers ? '' : '?covers=false'}`, {
+    headers: { Authorization: token, 'Content-Type': 'text/csv' },
     data,
   });
 }
@@ -55,6 +56,25 @@ test.describe('goodreads import (API)', () => {
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(5);
     expect(await listBooks(request, token)).toHaveLength(5);
+  });
+
+  test('looks up covers on Open Library for new books unless disabled', async ({ request }) => {
+    const { token } = await registerUserApi(request, generateTestUser());
+    const csv = `${HEADER}\n1,Dune,Frank Herbert,,0,,read,`;
+
+    const result = await (await importCsv(request, token, csv, { covers: true })).json();
+    expect(result.imported).toBe(1);
+    // Open Library is a live third-party service, so a miss is tolerated;
+    // what matters is that the lookup ran, was accounted for, and never
+    // failed the import.
+    expect(result.covers.found + result.covers.notFound + result.covers.skipped).toBe(1);
+    if (result.covers.found === 1) {
+      const [book] = await listBooks(request, token);
+      expect(book.cover_url).toMatch(/^https:\/\/covers\.openlibrary\.org\/b\/id\/\d+-M\.jpg$/);
+    }
+
+    const skippedResult = await (await importCsv(request, token, `${HEADER}\n2,Neuromancer,William Gibson,,0,,read,`)).json();
+    expect(skippedResult.covers).toEqual({ found: 0, notFound: 0, skipped: 0 });
   });
 
   test('requires authentication', async ({ request }) => {

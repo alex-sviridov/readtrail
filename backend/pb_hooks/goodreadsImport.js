@@ -13,6 +13,13 @@ const AUTHOR_MAX = 128
 const READ_LATELY_DATE = '1910-01-01'
 const TO_READ_DATE = '2100-01-01'
 
+const OPEN_LIBRARY_SEARCH_URL = 'https://openlibrary.org/search.json'
+const OPEN_LIBRARY_COVER_URL = 'https://covers.openlibrary.org/b/id'
+const COVER_SEARCH_LIMIT = 20
+// Lookups are sequential and the request must finish inside the reverse
+// proxy's read timeout (360s), so stop looking up covers after this long.
+const COVER_LOOKUP_BUDGET_MS = 240 * 1000
+
 const REQUIRED_COLUMNS = ['Title', 'Author']
 
 class GoodreadsImportError extends Error {
@@ -173,8 +180,35 @@ function mapRow(row) {
   }
 }
 
+// Goodreads titles often end in a series note, e.g. "Dune (Dune, #1)", which
+// hurts Open Library matching.
+function cleanTitleForSearch(name) {
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name
+}
+
+function buildCoverSearchUrl({ name, author }) {
+  const params = [`title=${encodeURIComponent(cleanTitleForSearch(name))}`]
+  if (author) {
+    params.push(`author=${encodeURIComponent(author)}`)
+  }
+  params.push('fields=cover_i', `limit=${COVER_SEARCH_LIMIT}`)
+  return `${OPEN_LIBRARY_SEARCH_URL}?${params.join('&')}`
+}
+
+// First search result that has a cover wins. Uses the -M size, matching what
+// the frontend stores for covers picked from search.
+function pickCoverUrl(json) {
+  const docs = json && Array.isArray(json.docs) ? json.docs : []
+  const doc = docs.find((d) => d && Number.isInteger(d.cover_i) && d.cover_i > 0)
+  return doc ? `${OPEN_LIBRARY_COVER_URL}/${doc.cover_i}-M.jpg` : null
+}
+
 module.exports = {
   MAX_BODY_BYTES,
+  COVER_LOOKUP_BUDGET_MS,
+  cleanTitleForSearch,
+  buildCoverSearchUrl,
+  pickCoverUrl,
   MAX_ROWS,
   GoodreadsImportError,
   parseCsv,

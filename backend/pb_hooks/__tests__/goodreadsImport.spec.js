@@ -6,6 +6,9 @@ import {
   mapReadDate,
   mapScore,
   mapRow,
+  cleanTitleForSearch,
+  buildCoverSearchUrl,
+  pickCoverUrl,
   MAX_ROWS
 } from '../goodreadsImport.js'
 
@@ -139,5 +142,49 @@ describe('mapRow', () => {
     expect(mapRow({ Title: '', Author: 'Some Author' }).error).toMatch(/Title/)
     expect(mapRow({ Title: 'Kim', Author: 'Some Author' }).error).toMatch(/shorter than 4/)
     expect(mapRow({ Title: 'Valid Title', Author: 'Bo' }).error).toMatch(/Author/)
+  })
+})
+
+describe('cleanTitleForSearch', () => {
+  it('drops a trailing series note', () => {
+    expect(cleanTitleForSearch('Dune (Dune, #1)')).toBe('Dune')
+  })
+
+  it('keeps subtitles and mid-title parentheses', () => {
+    expect(cleanTitleForSearch('Nixonland: The Rise of a President')).toBe('Nixonland: The Rise of a President')
+    expect(cleanTitleForSearch('A (Very) Long Road')).toBe('A (Very) Long Road')
+  })
+
+  it('never returns an empty string', () => {
+    expect(cleanTitleForSearch('(Untitled)')).toBe('(Untitled)')
+  })
+})
+
+describe('buildCoverSearchUrl', () => {
+  it('searches by title and author, encoded', () => {
+    expect(buildCoverSearchUrl({ name: 'Dune (Dune, #1)', author: 'Frank Herbert' })).toBe(
+      'https://openlibrary.org/search.json?title=Dune&author=Frank%20Herbert&fields=cover_i&limit=20'
+    )
+  })
+
+  it('searches by title only when there is no author', () => {
+    expect(buildCoverSearchUrl({ name: 'Anonymous Work', author: '' })).toBe(
+      'https://openlibrary.org/search.json?title=Anonymous%20Work&fields=cover_i&limit=20'
+    )
+  })
+})
+
+describe('pickCoverUrl', () => {
+  it('takes the first result that has a cover', () => {
+    expect(pickCoverUrl({ docs: [{}, { cover_i: 111 }, { cover_i: 222 }] })).toBe(
+      'https://covers.openlibrary.org/b/id/111-M.jpg'
+    )
+  })
+
+  it('returns null when nothing has a usable cover', () => {
+    expect(pickCoverUrl({ docs: [{}, { cover_i: 0 }, { cover_i: 'x' }] })).toBeNull()
+    expect(pickCoverUrl({ docs: [] })).toBeNull()
+    expect(pickCoverUrl({})).toBeNull()
+    expect(pickCoverUrl(null)).toBeNull()
   })
 })
